@@ -1,0 +1,289 @@
+import * as THREE from 'three';
+import {
+  OCEAN_DEPTH,
+  OCEAN_WIDTH,
+  SURFACE_HEIGHT,
+  PARTICLE_COUNT,
+  BUBBLE_COUNT,
+} from '../utils/constants';
+import { WeatherData } from '../weather/WeatherService';
+
+export class Ocean {
+  private seabed!: THREE.Mesh;
+  private surface!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
+  private debrisParticles!: THREE.Points;
+  private bubbleParticles!: THREE.Points;
+
+  constructor(scene: THREE.Scene) {
+    this.createSeabed(scene);
+    this.createSurface(scene);
+    this.createDebris(scene);
+    this.createBubbles(scene);
+  }
+
+  private createSeabed(scene: THREE.Scene): void {
+    const geometry = new THREE.PlaneGeometry(
+      OCEAN_WIDTH * 2,
+      OCEAN_WIDTH * 2,
+      32,
+      32,
+    );
+
+    // Gentle terrain displacement
+    const posAttr = geometry.attributes.position as THREE.BufferAttribute;
+    for (let i = 0; i < posAttr.count; i++) {
+      const x = posAttr.getX(i);
+      const y = posAttr.getY(i);
+      posAttr.setZ(i, Math.sin(x * 0.3) * Math.cos(y * 0.3) * 1.5);
+    }
+    geometry.computeVertexNormals();
+
+    const material = new THREE.MeshPhongMaterial({
+      color: 0x1a3a4a,
+      specular: 0x111111,
+      shininess: 10,
+      side: THREE.DoubleSide,
+      flatShading: true,
+    });
+
+    this.seabed = new THREE.Mesh(geometry, material);
+    this.seabed.rotation.x = -Math.PI / 2;
+    this.seabed.position.y = -OCEAN_DEPTH;
+    scene.add(this.seabed);
+  }
+
+  private createSurface(scene: THREE.Scene): void {
+    const geometry = new THREE.PlaneGeometry(
+      OCEAN_WIDTH * 2,
+      OCEAN_WIDTH * 2,
+      64,
+      64,
+    );
+
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uTime: { value: 0 },
+        uSurfaceColor: { value: new THREE.Color(0x0077be) },
+        uDeepColor: { value: new THREE.Color(0x004488) },
+        uOpacity: { value: 0.4 },
+      },
+      vertexShader: `
+        uniform float uTime;
+        varying vec2 vUv;
+        varying float vWave;
+        void main() {
+          vUv = uv;
+          vec3 pos = position;
+          float wave = sin(pos.x * 0.5 + uTime) * 0.8
+                     + sin(pos.y * 0.3 + uTime * 0.7) * 0.6
+                     + sin((pos.x + pos.y) * 0.2 + uTime * 1.3) * 0.4;
+          pos.z += wave;
+          vWave = wave;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uSurfaceColor;
+        uniform vec3 uDeepColor;
+        uniform float uOpacity;
+        varying vec2 vUv;
+        varying float vWave;
+        void main() {
+          float mixFactor = (vWave + 1.8) / 3.6;
+          vec3 color = mix(uDeepColor, uSurfaceColor, mixFactor);
+          // Caustic-like bright spots
+          float caustic = sin(vUv.x * 40.0) * sin(vUv.y * 40.0);
+          color += vec3(caustic * 0.05);
+          gl_FragColor = vec4(color, uOpacity);
+        }
+      `,
+      transparent: true,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+
+    this.surface = new THREE.Mesh(geometry, material);
+    this.surface.rotation.x = -Math.PI / 2;
+    this.surface.position.y = SURFACE_HEIGHT;
+    scene.add(this.surface);
+  }
+
+  private createDebris(scene: THREE.Scene): void {
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(PARTICLE_COUNT * 3);
+    const velocities = new Float32Array(PARTICLE_COUNT * 3);
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * OCEAN_WIDTH * 0.8;
+      positions[i * 3 + 1] =
+        Math.random() * (SURFACE_HEIGHT + OCEAN_DEPTH) - OCEAN_DEPTH;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * OCEAN_WIDTH * 0.8;
+
+      velocities[i * 3] = (Math.random() - 0.5) * 0.02;
+      velocities[i * 3 + 1] = Math.random() * 0.01 + 0.005;
+      velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+
+    const material = new THREE.PointsMaterial({
+      color: 0x88aacc,
+      size: 0.15,
+      transparent: true,
+      opacity: 0.6,
+      sizeAttenuation: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    this.debrisParticles = new THREE.Points(geometry, material);
+    scene.add(this.debrisParticles);
+  }
+
+  private createBubbles(scene: THREE.Scene): void {
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(BUBBLE_COUNT * 3);
+    const sizes = new Float32Array(BUBBLE_COUNT);
+
+    for (let i = 0; i < BUBBLE_COUNT; i++) {
+      positions[i * 3] = (Math.random() - 0.5) * OCEAN_WIDTH * 0.5;
+      positions[i * 3 + 1] =
+        Math.random() * SURFACE_HEIGHT - OCEAN_DEPTH;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * OCEAN_WIDTH * 0.5;
+      sizes[i] = Math.random() * 0.3 + 0.1;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: new THREE.Color(0xaaddff) },
+      },
+      vertexShader: `
+        attribute float size;
+        void main() {
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = size * (200.0 / -mvPosition.z);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uColor;
+        void main() {
+          float dist = length(gl_PointCoord - vec2(0.5));
+          if (dist > 0.5) discard;
+          float ring = smoothstep(0.3, 0.5, dist);
+          float alpha = 0.3 + ring * 0.4;
+          gl_FragColor = vec4(uColor, alpha);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+
+    this.bubbleParticles = new THREE.Points(geometry, material);
+    scene.add(this.bubbleParticles);
+  }
+
+  update(elapsed: number, _delta: number): void {
+    // Animate surface waves
+    this.surface.material.uniforms.uTime.value = elapsed;
+
+    // Animate debris
+    const debrisPos = this.debrisParticles.geometry.attributes
+      .position as THREE.BufferAttribute;
+    const debrisVel = this.debrisParticles.geometry.attributes
+      .velocity as THREE.BufferAttribute;
+    const halfWidth = OCEAN_WIDTH * 0.4;
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      let x = debrisPos.getX(i) + debrisVel.getX(i);
+      let y = debrisPos.getY(i) + debrisVel.getY(i);
+      let z = debrisPos.getZ(i) + debrisVel.getZ(i);
+
+      if (y > SURFACE_HEIGHT) y = -OCEAN_DEPTH;
+      if (Math.abs(x) > halfWidth) x *= -1;
+      if (Math.abs(z) > halfWidth) z *= -1;
+
+      debrisPos.setXYZ(i, x, y, z);
+    }
+    debrisPos.needsUpdate = true;
+
+    // Animate bubbles
+    const bubblePos = this.bubbleParticles.geometry.attributes
+      .position as THREE.BufferAttribute;
+
+    for (let i = 0; i < BUBBLE_COUNT; i++) {
+      let x = bubblePos.getX(i) + Math.sin(elapsed + i) * 0.005;
+      let y = bubblePos.getY(i) + 0.02 + Math.random() * 0.01;
+      let z = bubblePos.getZ(i) + Math.cos(elapsed + i) * 0.005;
+
+      if (y > SURFACE_HEIGHT) {
+        y = -OCEAN_DEPTH + Math.random() * 10;
+        x = (Math.random() - 0.5) * OCEAN_WIDTH * 0.5;
+        z = (Math.random() - 0.5) * OCEAN_WIDTH * 0.5;
+      }
+
+      bubblePos.setXYZ(i, x, y, z);
+    }
+    bubblePos.needsUpdate = true;
+  }
+
+  applyWeather(data: WeatherData): void {
+    const surfaceUniforms = this.surface.material.uniforms;
+    switch (data.condition) {
+      case 'clear':
+        surfaceUniforms.uSurfaceColor.value.set(0x0099dd);
+        surfaceUniforms.uDeepColor.value.set(0x004488);
+        surfaceUniforms.uOpacity.value = 0.35;
+        break;
+      case 'cloudy':
+        surfaceUniforms.uSurfaceColor.value.set(0x336688);
+        surfaceUniforms.uDeepColor.value.set(0x223344);
+        surfaceUniforms.uOpacity.value = 0.45;
+        break;
+      case 'rain':
+        surfaceUniforms.uSurfaceColor.value.set(0x225566);
+        surfaceUniforms.uDeepColor.value.set(0x112233);
+        surfaceUniforms.uOpacity.value = 0.55;
+        break;
+      case 'snow':
+        surfaceUniforms.uSurfaceColor.value.set(0x88aacc);
+        surfaceUniforms.uDeepColor.value.set(0x446688);
+        surfaceUniforms.uOpacity.value = 0.5;
+        break;
+      case 'fog':
+        surfaceUniforms.uSurfaceColor.value.set(0x445566);
+        surfaceUniforms.uDeepColor.value.set(0x223344);
+        surfaceUniforms.uOpacity.value = 0.6;
+        break;
+    }
+  }
+
+  applyAqi(aqi: number): void {
+    const debrisMat = this.debrisParticles.material as THREE.PointsMaterial;
+    debrisMat.opacity = 0.4 + (aqi - 1) * 0.15;
+    debrisMat.size = 0.15 + (aqi - 1) * 0.05;
+
+    // AQI가 나쁠수록 수면 탁해짐
+    const surfaceUniforms = this.surface.material.uniforms;
+    surfaceUniforms.uOpacity.value += (aqi - 1) * 0.05;
+  }
+
+  dispose(): void {
+    this.seabed.geometry.dispose();
+    (this.seabed.material as THREE.Material).dispose();
+
+    this.surface.geometry.dispose();
+    this.surface.material.dispose();
+
+    this.debrisParticles.geometry.dispose();
+    (this.debrisParticles.material as THREE.Material).dispose();
+
+    this.bubbleParticles.geometry.dispose();
+    (this.bubbleParticles.material as THREE.Material).dispose();
+  }
+}

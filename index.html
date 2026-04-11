@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>BADA - Underwater Experience</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #001020; }
+    canvas { display: block; }
+
+    #scene-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Desktop: contained centered view */
+    @media (min-width: 768px) {
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #scene-container {
+        width: min(640px, 90vw);
+        height: min(480px, 80vh);
+        border-radius: 16px;
+        box-shadow: 0 0 60px rgba(17, 136, 187, 0.3);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="scene-container">
+    <div id="loading-screen"></div>
+    <div id="hud"></div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
