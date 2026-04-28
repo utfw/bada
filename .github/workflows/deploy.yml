@@ -3,6 +3,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'vite.config.ts'
+  schedule:
+    - cron: '0 * * * *'  # 매 시간 정각
   workflow_dispatch:
 
 permissions:
