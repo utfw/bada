@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: './',
+  base: process.env.GITHUB_PAGES ? '/bada/' : './',
   server: { host: true },
   build: {
     target: 'es2020',
