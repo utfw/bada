@@ -1,5 +1,12 @@
 import * as THREE from 'three';
-import { SURFACE_HEIGHT } from '../utils/constants';
+import {
+  SURFACE_HEIGHT,
+  GOD_RAY_HEIGHT,
+  GOD_RAY_RADIUS,
+  GOD_RAY_MAX_OPACITY,
+  GOD_RAY_RADIAL_SEGMENTS,
+  GOD_RAY_HEIGHT_SEGMENTS,
+} from '../utils/constants';
 import { WeatherData, WeatherCondition } from '../weather/WeatherService';
 
 interface LightingPreset {
@@ -48,10 +55,37 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   },
 };
 
+const godRayVertexShader = /* glsl */ `
+  uniform float uTime;
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    vec3 pos = position;
+    float bottomFactor = 1.0 - uv.y;
+    pos.x += sin(uTime * 0.4 + position.z * 0.5) * bottomFactor * 0.8;
+    pos.z += cos(uTime * 0.3 + position.x * 0.5) * bottomFactor * 0.8;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+  }
+`;
+
+const godRayFragmentShader = /* glsl */ `
+  uniform float uOpacity;
+  uniform float uTime;
+  uniform vec3 uColor;
+  varying vec2 vUv;
+  void main() {
+    float fade = smoothstep(0.0, 0.3, vUv.y) * (1.0 - vUv.y);
+    float shimmer = 0.7 + 0.3 * sin(uTime * 0.5 + vUv.x * 6.2832);
+    float alpha = uOpacity * fade * shimmer;
+    gl_FragColor = vec4(uColor, alpha);
+  }
+`;
+
 export class Lighting {
   private ambientLight: THREE.AmbientLight;
   private sunLight: THREE.DirectionalLight;
   private godRaySpots: THREE.SpotLight[] = [];
+  private godRayCones: THREE.Mesh[] = [];
 
   constructor(scene: THREE.Scene) {
     this.ambientLight = new THREE.AmbientLight(0x88bbdd, 1.0);
@@ -70,6 +104,14 @@ export class Lighting {
       [-4, SURFACE_HEIGHT, 6],
     ];
 
+    const coneGeo = new THREE.ConeGeometry(
+      GOD_RAY_RADIUS,
+      GOD_RAY_HEIGHT,
+      GOD_RAY_RADIAL_SEGMENTS,
+      GOD_RAY_HEIGHT_SEGMENTS,
+      true,
+    );
+
     for (const [x, y, z] of rayPositions) {
       const spot = new THREE.SpotLight(
         0xccddff,
@@ -84,6 +126,26 @@ export class Lighting {
       scene.add(spot);
       scene.add(spot.target);
       this.godRaySpots.push(spot);
+
+      const coneMat = new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: { value: 0 },
+          uOpacity: { value: GOD_RAY_MAX_OPACITY },
+          uColor: { value: new THREE.Color(0xccddff) },
+        },
+        vertexShader: godRayVertexShader,
+        fragmentShader: godRayFragmentShader,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+
+      const cone = new THREE.Mesh(coneGeo, coneMat);
+      cone.position.set(x, y - GOD_RAY_HEIGHT / 2, z);
+      cone.renderOrder = 999;
+      scene.add(cone);
+      this.godRayCones.push(cone);
     }
   }
 
@@ -92,6 +154,11 @@ export class Lighting {
       spot.target.position.x += Math.sin(elapsed * 0.3 + i * 2) * 0.05;
       spot.target.position.z += Math.cos(elapsed * 0.4 + i * 2) * 0.05;
       spot.target.updateMatrixWorld();
+    });
+
+    this.godRayCones.forEach((cone) => {
+      const mat = cone.material as THREE.ShaderMaterial;
+      mat.uniforms['uTime'].value = elapsed;
     });
   }
 
@@ -102,12 +169,25 @@ export class Lighting {
     this.sunLight.color.set(preset.sunColor);
     this.sunLight.intensity = preset.sunIntensity;
     this.godRaySpots.forEach((s) => (s.intensity = preset.godRayIntensity));
+
+    const opacityScale = preset.godRayIntensity / WEATHER_PRESETS.clear.godRayIntensity;
+    this.godRayCones.forEach((cone) => {
+      const mat = cone.material as THREE.ShaderMaterial;
+      mat.uniforms['uOpacity'].value = GOD_RAY_MAX_OPACITY * opacityScale;
+    });
   }
 
   applyAqi(aqi: number): void {
-    // AQI가 나쁠수록 빛이 탁해지고 어두워짐
     const factor = Math.max(0.3, 1 - (aqi - 1) * 0.15);
     this.ambientLight.intensity *= factor;
     this.sunLight.intensity *= factor;
+  }
+
+  dispose(): void {
+    this.godRayCones.forEach((cone) => {
+      cone.geometry.dispose();
+      const mat = cone.material as THREE.ShaderMaterial;
+      mat.dispose();
+    });
   }
 }

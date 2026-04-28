@@ -9,47 +9,14 @@ import {
 import { WeatherData } from '../weather/WeatherService';
 
 export class Ocean {
-  private seabed!: THREE.Mesh;
   private surface!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   private debrisParticles!: THREE.Points;
   private bubbleParticles!: THREE.Points;
 
   constructor(scene: THREE.Scene) {
-    this.createSeabed(scene);
     this.createSurface(scene);
     this.createDebris(scene);
     this.createBubbles(scene);
-  }
-
-  private createSeabed(scene: THREE.Scene): void {
-    const geometry = new THREE.PlaneGeometry(
-      OCEAN_WIDTH * 2,
-      OCEAN_WIDTH * 2,
-      32,
-      32,
-    );
-
-    // Gentle terrain displacement
-    const posAttr = geometry.attributes.position as THREE.BufferAttribute;
-    for (let i = 0; i < posAttr.count; i++) {
-      const x = posAttr.getX(i);
-      const y = posAttr.getY(i);
-      posAttr.setZ(i, Math.sin(x * 0.3) * Math.cos(y * 0.3) * 1.5);
-    }
-    geometry.computeVertexNormals();
-
-    const material = new THREE.MeshPhongMaterial({
-      color: 0x1a3a4a,
-      specular: 0x111111,
-      shininess: 10,
-      side: THREE.DoubleSide,
-      flatShading: true,
-    });
-
-    this.seabed = new THREE.Mesh(geometry, material);
-    this.seabed.rotation.x = -Math.PI / 2;
-    this.seabed.position.y = -OCEAN_DEPTH;
-    scene.add(this.seabed);
   }
 
   private createSurface(scene: THREE.Scene): void {
@@ -112,6 +79,7 @@ export class Ocean {
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(PARTICLE_COUNT * 3);
     const velocities = new Float32Array(PARTICLE_COUNT * 3);
+    const sizes = new Float32Array(PARTICLE_COUNT);
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       positions[i * 3] = (Math.random() - 0.5) * OCEAN_WIDTH * 0.8;
@@ -122,17 +90,40 @@ export class Ocean {
       velocities[i * 3] = (Math.random() - 0.5) * 0.02;
       velocities[i * 3 + 1] = Math.random() * 0.01 + 0.005;
       velocities[i * 3 + 2] = (Math.random() - 0.5) * 0.02;
+
+      sizes[i] = Math.random() * 0.15 + 0.1;
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
 
-    const material = new THREE.PointsMaterial({
-      color: 0x88aacc,
-      size: 0.15,
+    const material = new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: new THREE.Color(0x88aacc) },
+        uOpacity: { value: 0.6 },
+        uSizeScale: { value: 1.0 },
+      },
+      vertexShader: `
+        attribute float size;
+        uniform float uSizeScale;
+        void main() {
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = size * uSizeScale * (200.0 / -mvPosition.z);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uColor;
+        uniform float uOpacity;
+        void main() {
+          float dist = length(gl_PointCoord - vec2(0.5));
+          if (dist > 0.5) discard;
+          float alpha = uOpacity * smoothstep(0.5, 0.1, dist);
+          gl_FragColor = vec4(uColor, alpha);
+        }
+      `,
       transparent: true,
-      opacity: 0.6,
-      sizeAttenuation: true,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
@@ -189,7 +180,6 @@ export class Ocean {
   }
 
   update(elapsed: number, _delta: number): void {
-    // Animate surface waves
     this.surface.material.uniforms.uTime.value = elapsed;
 
     // Animate debris
@@ -264,9 +254,9 @@ export class Ocean {
   }
 
   applyAqi(aqi: number): void {
-    const debrisMat = this.debrisParticles.material as THREE.PointsMaterial;
-    debrisMat.opacity = 0.4 + (aqi - 1) * 0.15;
-    debrisMat.size = 0.15 + (aqi - 1) * 0.05;
+    const debrisMat = this.debrisParticles.material as THREE.ShaderMaterial;
+    debrisMat.uniforms.uOpacity.value = 0.4 + (aqi - 1) * 0.15;
+    debrisMat.uniforms.uSizeScale.value = 1.0 + (aqi - 1) * 0.33;
 
     // AQI가 나쁠수록 수면 탁해짐
     const surfaceUniforms = this.surface.material.uniforms;
@@ -274,9 +264,6 @@ export class Ocean {
   }
 
   dispose(): void {
-    this.seabed.geometry.dispose();
-    (this.seabed.material as THREE.Material).dispose();
-
     this.surface.geometry.dispose();
     this.surface.material.dispose();
 

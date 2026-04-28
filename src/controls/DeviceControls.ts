@@ -231,8 +231,10 @@ export class DeviceControls {
   }
 
   setPresetView(position: THREE.Vector3, target: THREE.Vector3): void {
-    this.camera.position.copy(position);
-    this.camera.lookAt(target);
+    const pos = new THREE.Vector3(position.x, position.y, position.z);
+    const tgt = new THREE.Vector3(target.x, target.y, target.z);
+    this.camera.position.copy(pos);
+    this.camera.lookAt(tgt);
 
     // Sync internal drag state from the resulting camera orientation
     const euler = new THREE.Euler().setFromQuaternion(this.camera.quaternion, 'YXZ');

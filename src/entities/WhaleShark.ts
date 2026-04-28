@@ -15,15 +15,24 @@ export class WhaleShark {
   private group: THREE.Group;
   private bodyGeometry!: THREE.BufferGeometry;
   private tailGroup!: THREE.Group;
+  private dorsal!: THREE.Mesh;
+  private secondDorsal!: THREE.Mesh;
   private leftPectoral!: THREE.Mesh;
   private rightPectoral!: THREE.Mesh;
   private originalPositions!: Float32Array;
   private disposables: Array<THREE.BufferGeometry | THREE.Material> = [];
+  // Base X positions for fin wave correction (must match createDorsalFin / createPectoralFins)
+  private readonly dorsalBaseX = -0.05;
+  private readonly secondDorsalBaseX = -0.05;
+  private readonly pectoralBaseX = 2.2;
 
   // Swim animation — closed loop path, always swimming
   private swimPath!: THREE.CatmullRomCurve3;
   private pathProgress = 0;
   private speedBoostRemaining = 0;
+  // Pre-allocated Vector3s to avoid per-frame GC pressure
+  private readonly _pathPoint = new THREE.Vector3();
+  private readonly _pathTangent = new THREE.Vector3();
 
   constructor(scene: THREE.Scene) {
     this.group = new THREE.Group();
@@ -87,8 +96,8 @@ export class WhaleShark {
 
     const material = new THREE.MeshStandardMaterial({
       color: 0x3a4e63, // 회청색
-      roughness: 0.7,
-      metalness: 0.05,
+      roughness: 0.5,
+      metalness: 0.15,
     });
 
     this.disposables.push(latheGeo, material);
@@ -113,14 +122,14 @@ export class WhaleShark {
     // 상엽 (큰 쪽)
     const upperShape = new THREE.Shape();
     upperShape.moveTo(0, 0);
-    upperShape.quadraticCurveTo(0.4, 2.2, 1.2, 3.0);
+    upperShape.quadraticCurveTo(0.4, 2.2, 1.2, 2.4);
     upperShape.quadraticCurveTo(1.6, 2.8, 1.2, 1.8);
     upperShape.quadraticCurveTo(0.8, 0.6, 0, 0);
 
     // 하엽 (작은 쪽)
     const lowerShape = new THREE.Shape();
     lowerShape.moveTo(0, 0);
-    lowerShape.quadraticCurveTo(0.3, -1.4, 0.9, -1.9);
+    lowerShape.quadraticCurveTo(0.3, -1.4, 0.9, -1.5);
     lowerShape.quadraticCurveTo(1.0, -1.6, 0.7, -0.9);
     lowerShape.quadraticCurveTo(0.4, -0.3, 0, 0);
 
@@ -172,19 +181,19 @@ export class WhaleShark {
     });
     this.disposables.push(geo, mat);
 
-    const dorsal = new THREE.Mesh(geo, mat);
-    dorsal.position.set(-0.05, 1.4, SHARK_LENGTH * 0.05);
-    dorsal.rotation.y = Math.PI / 2;
-    this.group.add(dorsal);
+    this.dorsal = new THREE.Mesh(geo, mat);
+    this.dorsal.position.set(-0.05, 1.4, SHARK_LENGTH * 0.05);
+    this.dorsal.rotation.y = Math.PI / 2;
+    this.group.add(this.dorsal);
 
     // 작은 두 번째 등지느러미 (상어 특징)
     const secondGeo = geo.clone();
     secondGeo.scale(0.45, 0.45, 1);
     this.disposables.push(secondGeo);
-    const secondDorsal = new THREE.Mesh(secondGeo, mat);
-    secondDorsal.position.set(-0.05, 0.9, SHARK_LENGTH * 0.3);
-    secondDorsal.rotation.y = Math.PI / 2;
-    this.group.add(secondDorsal);
+    this.secondDorsal = new THREE.Mesh(secondGeo, mat);
+    this.secondDorsal.position.set(-0.05, 0.24, SHARK_LENGTH * 0.3);
+    this.secondDorsal.rotation.y = Math.PI / 2;
+    this.group.add(this.secondDorsal);
   }
 
   /**
@@ -212,11 +221,11 @@ export class WhaleShark {
     this.disposables.push(geo, mat);
 
     this.leftPectoral = new THREE.Mesh(geo, mat);
-    this.leftPectoral.position.set(1.8, -0.4, -SHARK_LENGTH * 0.25);
+    this.leftPectoral.position.set(2.2, -0.4, -SHARK_LENGTH * 0.25);
     this.leftPectoral.rotation.set(0.1, 0, -0.25);
 
     this.rightPectoral = new THREE.Mesh(geo, mat);
-    this.rightPectoral.position.set(-1.8, -0.4, -SHARK_LENGTH * 0.25);
+    this.rightPectoral.position.set(-2.2, -0.4, -SHARK_LENGTH * 0.25);
     this.rightPectoral.rotation.set(0.1, Math.PI, 0.25);
 
     this.group.add(this.leftPectoral, this.rightPectoral);
@@ -292,15 +301,15 @@ export class WhaleShark {
    * 작은 흰 디스크를 몸체 표면 위에 격자 형태로 살짝 띄워 배치.
    */
   private createSpots(): void {
-    const spotGeo = new THREE.CircleGeometry(0.13, 8);
+    const spotGeo = new THREE.CircleGeometry(0.22, 8);
     const spotMat = new THREE.MeshBasicMaterial({
       color: 0xf0f4f8,
       side: THREE.DoubleSide,
     });
     this.disposables.push(spotGeo, spotMat);
 
-    const rows = 8;
-    const cols = 6;
+    const rows = 10;
+    const cols = 9;
     for (let r = 0; r < rows; r++) {
       const t = 0.15 + (r / rows) * 0.7; // 머리와 꼬리 끝 제외
       const bodyZ = -SHARK_LENGTH / 2 + t * SHARK_LENGTH;
@@ -312,8 +321,8 @@ export class WhaleShark {
         // 아래쪽(배)은 반점 생략
         if (Math.sin(angle) < -0.3) continue;
 
-        const x = Math.cos(angle) * (bodyRadius * 1.08);
-        const y = Math.sin(angle) * (bodyRadius * 0.82); // 편평한 단면 반영
+        const x = Math.cos(angle) * (bodyRadius * 1.1);
+        const y = Math.sin(angle) * (bodyRadius * 0.75); // 편평한 단면 반영
         const spot = new THREE.Mesh(spotGeo, spotMat);
         spot.position.set(x, y, bodyZ);
         // 반점이 몸체 바깥을 향하도록 회전
@@ -333,16 +342,23 @@ export class WhaleShark {
    * closed=true로 시작점과 끝점이 매끄럽게 이어져 순환 유영이 가능.
    */
   private generateSwimPath(): void {
+    // 경로 제어점 중 최소 2개를 카메라 전방 시야(-Z, |x|<15) 안에 배치해
+    // 고래상어가 반드시 카메라 시야권을 통과하도록 한다.
+    // 카메라 위치: (0,0,0), FOV=75°, 전방=-Z
+    // z=-18에서 |x|≤13 이면 시야 내 (tan(37.5°)≈0.77 → 18*0.77≈14)
     this.swimPath = new THREE.CatmullRomCurve3(
       [
-        new THREE.Vector3(-28, -4, -18),
-        new THREE.Vector3(-14, -2, 6),
-        new THREE.Vector3(2, 0, 20),
-        new THREE.Vector3(18, -3, 14),
-        new THREE.Vector3(26, -5, -6),
-        new THREE.Vector3(14, -6, -22),
-        new THREE.Vector3(-6, -3, -26),
-        new THREE.Vector3(-22, -5, -10),
+        new THREE.Vector3(2, -3, -24),    // ✓ 정면 PASS 1 (x=2,  z=-24, 심화)
+        new THREE.Vector3(8, -4, -16),    // ★ 우측 완만한 이탈
+        new THREE.Vector3(22, -5, -8),    // 오른쪽-앞
+        new THREE.Vector3(28, -5, 6),     // 오른쪽
+        new THREE.Vector3(20, -6, 22),    // 후방-우
+        new THREE.Vector3(0, -3.5, -24),  // ★ 정중앙 체류점 (신규, PASS2 직전 진입호)
+        new THREE.Vector3(-2, -4, -24),   // ✓ 정면 PASS 2 (x=-2, z=-24, 심화)
+        new THREE.Vector3(-8, -4, -16),   // ★ 좌측 완만한 이탈
+        new THREE.Vector3(-22, -5, -8),   // 왼쪽-앞
+        new THREE.Vector3(-28, -4, 6),    // 왼쪽
+        new THREE.Vector3(-20, -5, 22),   // 후방-좌
       ],
       true,
       'catmullrom',
@@ -363,12 +379,12 @@ export class WhaleShark {
 
     this.pathProgress = (this.pathProgress + delta * SHARK_SWIM_SPEED * 0.02 * boost) % 1;
 
-    const point = this.swimPath.getPointAt(this.pathProgress);
-    this.group.position.copy(point);
+    this.swimPath.getPointAt(this.pathProgress, this._pathPoint);
+    this.group.position.copy(this._pathPoint);
 
-    // 진행 방향으로 몸체를 향하게 — 머리(nose)가 -Z에 있으므로 반대 방향
-    const tangent = this.swimPath.getTangentAt(this.pathProgress);
-    const lookTarget = point.clone().sub(tangent);
+    // 진행 방향으로 몸체를 향하게 — lookAt은 -Z를 타겟으로 정렬하므로 tangent를 더함
+    this.swimPath.getTangentAt(this.pathProgress, this._pathTangent);
+    const lookTarget = this._pathPoint.clone().sub(this._pathTangent);
     this.group.lookAt(lookTarget);
 
     // 몸체 좌우 물결 (상어 특유의 사인 곡선 웨이브)
@@ -406,6 +422,31 @@ export class WhaleShark {
 
     positions.needsUpdate = true;
     this.bodyGeometry.computeVertexNormals();
+
+    // Sync fin X positions to the body wave at each fin's Z location
+    const finWave = (finZ: number): number => {
+      const fraction = Math.max(0, (finZ + SHARK_LENGTH / 2) / SHARK_LENGTH);
+      const amp = Math.pow(fraction, 1.6) * 1.0;
+      return Math.sin(elapsed * 2.5 - fraction * Math.PI * 2) * amp;
+    };
+
+    // Derivative of finWave w.r.t. Z — used to tilt dorsal fins with body wave
+    const finWaveSlope = (finZ: number): number => {
+      const fraction = Math.max(0.001, (finZ + SHARK_LENGTH / 2) / SHARK_LENGTH);
+      const phase = elapsed * 2.5 - fraction * Math.PI * 2;
+      const dWaveDf =
+        -Math.PI * 2 * Math.cos(phase) * Math.pow(fraction, 1.6) +
+        Math.sin(phase) * 1.6 * Math.pow(fraction, 0.6);
+      return dWaveDf / SHARK_LENGTH;
+    };
+
+    this.dorsal.position.x = this.dorsalBaseX + finWave(SHARK_LENGTH * 0.05);
+    this.dorsal.rotation.y = Math.PI / 2 + Math.atan(finWaveSlope(SHARK_LENGTH * 0.05));
+    this.secondDorsal.position.x = this.secondDorsalBaseX + finWave(SHARK_LENGTH * 0.3);
+    this.secondDorsal.rotation.y = Math.PI / 2 + Math.atan(finWaveSlope(SHARK_LENGTH * 0.3));
+    const pectoralWave = finWave(-SHARK_LENGTH * 0.25);
+    this.leftPectoral.position.x = this.pectoralBaseX + pectoralWave;
+    this.rightPectoral.position.x = -this.pectoralBaseX + pectoralWave;
   }
 
   /** 런타임 관찰용 상태 스냅샷 (agent/observe.ts에서 사용) */

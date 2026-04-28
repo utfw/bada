@@ -75,10 +75,12 @@ export class SceneManager {
 
     this.createCameraButtons();
 
-    // Expose scene for dev debugging (window.__scene / __entities)
+    // Expose scene for dev debugging (window.__scene / __entities / __camera)
     if (import.meta.env.DEV) {
       const globalAny = window as unknown as Record<string, unknown>;
       globalAny.__scene = this.scene;
+      globalAny.__camera = this.camera;
+      globalAny.__controls = this.controls;
       globalAny.__entities = {
         whaleShark: this.whaleShark,
         fishSchool: this.fishSchool,
@@ -166,11 +168,11 @@ export class SceneManager {
 
     const delta = this.clock.getDelta();
     const elapsed = this.clock.getElapsedTime();
-
+    // console.log(delta)
     this.controls.update(delta);
     this.ocean.update(elapsed, delta);
     this.whaleShark.update(elapsed, delta);
-    this.fishSchool.update(elapsed);
+    this.fishSchool.update(elapsed, delta);
     this.lighting.update(elapsed);
     this.skyBox.update(elapsed);
 
