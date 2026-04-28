@@ -6,7 +6,9 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node"],
+    "composite": true,
+    "outDir": "dist/agent"
   },
   "include": ["agent"]
 }
