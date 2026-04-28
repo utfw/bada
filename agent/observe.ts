@@ -1,3 +1,4 @@
+/// <reference types="node" />
 /**
  * Project BADA — 런타임 관찰자 (Observer)
  *
@@ -30,13 +31,23 @@ interface WhaleSharkState {
   position: Vec3;
   progress: number;
 }
-interface FishState {
-  positions: Vec3[];
+interface SchoolSpread {
+  school: number;
+  count: number;
+  spread: number; // centroid 기준 평균 거리
+}
+interface FishGroupStats {
+  count: number;
+  centroid: Vec3;
+  spread: number;        // 전체 개체 간 평균 거리
+  schoolSpreads: SchoolSpread[]; // school별 분산도
+  avgVelocity: Vec3;
+  avgForwardDot: number;
 }
 interface Sample {
   t: number;
   whaleShark: WhaleSharkState | null;
-  fish: FishState | null;
+  fish: FishGroupStats | null;
 }
 interface Observation {
   capturedAt: string;
@@ -70,6 +81,30 @@ function vecDist(a: Vec3, b: Vec3): number {
 }
 
 /**
+ * PNG 파일 크기를 휴리스틱으로 사용해 "거의 단색 검은 화면"을 감지.
+ * 단색에 가까운 PNG는 압축률이 매우 높아 파일 크기가 극도로 작아진다.
+ * 1024x768 PNG가 10KB 미만이면 사실상 아무것도 렌더되지 않은 것으로 본다.
+ */
+async function analyzeBrightness(relativePaths: string[]): Promise<string[]> {
+  const anomalies: string[] = [];
+  const DARK_BYTES_THRESHOLD = 10_000;
+  for (const rel of relativePaths) {
+    const abs = path.join(ROOT, rel);
+    try {
+      const stat = fs.statSync(abs);
+      if (stat.size < DARK_BYTES_THRESHOLD) {
+        anomalies.push(
+          `${rel}가 거의 단색(${(stat.size / 1024).toFixed(1)}KB) — 카메라 또는 조명 오작동 의심`,
+        );
+      }
+    } catch {
+      // ignore missing files
+    }
+  }
+  return anomalies;
+}
+
+/**
  * 샘플 시퀀스에서 자동 감지할 수 있는 이상 패턴:
  *  1. 위치 불연속 점프 (리스폰 의심)
  *  2. 완전한 정지 (애니메이션이 멈췄는지)
@@ -94,18 +129,12 @@ function detectAnomalies(samples: Sample[]): string[] {
       }
     }
 
-    if (
-      prev.fish &&
-      cur.fish &&
-      prev.fish.positions.length === cur.fish.positions.length
-    ) {
-      for (let j = 0; j < cur.fish.positions.length; j++) {
-        const dist = vecDist(prev.fish.positions[j], cur.fish.positions[j]);
-        if (dist > JUMP_THRESHOLD) {
-          anomalies.push(
-            `Fish[${j}] position jump at t=${cur.t.toFixed(2)}s: ${dist.toFixed(1)} units`,
-          );
-        }
+    if (prev.fish && cur.fish) {
+      const centroidDist = vecDist(prev.fish.centroid, cur.fish.centroid);
+      if (centroidDist > JUMP_THRESHOLD) {
+        anomalies.push(
+          `FishSchool centroid jump at t=${cur.t.toFixed(2)}s: ${centroidDist.toFixed(1)} units (respawn 의심)`,
+        );
       }
     }
   }
@@ -134,6 +163,26 @@ function detectAnomalies(samples: Sample[]): string[] {
     if (total < 1.0) {
       anomalies.push(`WhaleShark 거의 정지 상태 (${wsSamples.length}샘플 동안 ${total.toFixed(2)} 단위만 이동)`);
     }
+  }
+
+  // 물고기 밀집도 + 방향 검사 (마지막 샘플 기준)
+  const lastFish = samples[samples.length - 1]?.fish;
+  if (lastFish) {
+    if (lastFish.spread < 3.0) {
+      anomalies.push(
+        `FishSchool 밀집 (spread=${lastFish.spread.toFixed(1)}, count=${lastFish.count}) — Boids separation 부족 의심`,
+      );
+    }
+    // per-school spread 검사: school 별 spread가 2.0 미만이면 그 school 내 물고기가 뭉침
+    for (const ss of lastFish.schoolSpreads) {
+      if (ss.spread < 2.0) {
+        anomalies.push(
+          `School ${ss.school} 내 물고기 밀집 (spread=${ss.spread.toFixed(1)}, count=${ss.count}) — school 내 separation 부족 의심`,
+        );
+      }
+    }
+    // avgForwardDot은 참고용 수치로만 기록. anomaly로 올리지 않음.
+    // (이 값이 음수여도 lookAt 수식 수정 금지 — 탑뷰 스냅샷으로만 판단)
   }
 
   return anomalies;
@@ -215,16 +264,79 @@ async function observe(): Promise<Observation> {
             fishSchool?: {
               getDebugState(): {
                 positions: Array<{ x: number; y: number; z: number }>;
+                velocities: Array<{ x: number; y: number; z: number }>;
+                forwardDots: number[];
+                schoolIndices: number[];
               };
             };
           };
         };
         const ents = w.__entities;
         if (!ents) return { whaleShark: null, fish: null };
-        return {
-          whaleShark: ents.whaleShark?.getDebugState() ?? null,
-          fish: ents.fishSchool?.getDebugState() ?? null,
-        };
+
+        const ws = ents.whaleShark?.getDebugState() ?? null;
+        const fishRaw = ents.fishSchool?.getDebugState();
+
+        let fish: {
+          count: number;
+          centroid: { x: number; y: number; z: number };
+          spread: number;
+          schoolSpreads: Array<{ school: number; count: number; spread: number }>;
+          avgVelocity: { x: number; y: number; z: number };
+          avgForwardDot: number;
+        } | null = null;
+
+        if (fishRaw && fishRaw.positions.length > 0) {
+          const n = fishRaw.positions.length;
+          // centroid
+          const cx = fishRaw.positions.reduce((s, p) => s + p.x, 0) / n;
+          const cy = fishRaw.positions.reduce((s, p) => s + p.y, 0) / n;
+          const cz = fishRaw.positions.reduce((s, p) => s + p.z, 0) / n;
+          // global spread: 각 개체와 centroid 사이 평균 거리
+          let totalDist = 0;
+          for (const p of fishRaw.positions) {
+            const dx = p.x - cx, dy = p.y - cy, dz = p.z - cz;
+            totalDist += Math.sqrt(dx * dx + dy * dy + dz * dz);
+          }
+          // per-school spread
+          const schoolMap = new Map<number, Array<{ x: number; y: number; z: number }>>();
+          for (let k = 0; k < n; k++) {
+            const si = fishRaw.schoolIndices[k] ?? 0;
+            if (!schoolMap.has(si)) schoolMap.set(si, []);
+            schoolMap.get(si)!.push(fishRaw.positions[k]);
+          }
+          const schoolSpreads: Array<{ school: number; count: number; spread: number }> = [];
+          schoolMap.forEach((positions, school) => {
+            const sn = positions.length;
+            const scx = positions.reduce((s, p) => s + p.x, 0) / sn;
+            const scy = positions.reduce((s, p) => s + p.y, 0) / sn;
+            const scz = positions.reduce((s, p) => s + p.z, 0) / sn;
+            let sDist = 0;
+            for (const p of positions) {
+              const dx = p.x - scx, dy = p.y - scy, dz = p.z - scz;
+              sDist += Math.sqrt(dx * dx + dy * dy + dz * dz);
+            }
+            schoolSpreads.push({ school, count: sn, spread: sDist / sn });
+          });
+          schoolSpreads.sort((a, b) => a.school - b.school);
+          // average velocity
+          const vx = fishRaw.velocities.reduce((s, v) => s + v.x, 0) / n;
+          const vy = fishRaw.velocities.reduce((s, v) => s + v.y, 0) / n;
+          const vz = fishRaw.velocities.reduce((s, v) => s + v.z, 0) / n;
+          // average forward dot (velocity 방향 vs 메시 실제 전진 방향)
+          const avgForwardDot = fishRaw.forwardDots.reduce((s, d) => s + d, 0) / n;
+
+          fish = {
+            count: n,
+            centroid: { x: cx, y: cy, z: cz },
+            spread: totalDist / n,
+            schoolSpreads,
+            avgVelocity: { x: vx, y: vy, z: vz },
+            avgForwardDot,
+          };
+        }
+
+        return { whaleShark: ws, fish };
       });
 
       samples.push({
@@ -233,9 +345,16 @@ async function observe(): Promise<Observation> {
         fish: snap.fish,
       });
 
-      if (i === Math.floor(sampleCount / 2) || i === sampleCount - 1) {
-        const tag = i === sampleCount - 1 ? "end" : "mid";
-        const shotPath = path.join(OBS_DIR, `screenshot-${tag}.png`);
+      // 균등 간격으로 4장 캡처 (시간 변화 비교용)
+      const shotIndices = [
+        Math.floor(sampleCount * 0.15),
+        Math.floor(sampleCount * 0.4),
+        Math.floor(sampleCount * 0.7),
+        sampleCount - 1,
+      ];
+      const shotIdx = shotIndices.indexOf(i);
+      if (shotIdx >= 0) {
+        const shotPath = path.join(OBS_DIR, `screenshot-${shotIdx + 1}.png`);
         await page.screenshot({ path: shotPath });
         screenshots.push(path.relative(ROOT, shotPath));
       }
@@ -243,7 +362,96 @@ async function observe(): Promise<Observation> {
       if (i < sampleCount - 1) await page.waitForTimeout(intervalMs);
     }
 
+    // ── 고래상어 근접 샷: 카메라를 엔티티 바로 옆으로 옮겨 여러 각도에서 촬영 ──
+    console.log(`[observer] 고래상어 근접 샷 촬영`);
+    const closeUpAngles = [
+      { name: "front", offset: [0, 0, -14] },
+      { name: "side", offset: [14, 0, 0] },
+      { name: "top", offset: [0, 10, -8] },
+      { name: "below", offset: [0, -8, -10] },
+    ];
+    for (const angle of closeUpAngles) {
+      const ok = await page.evaluate((o) => {
+        const w = window as unknown as {
+          __entities?: {
+            whaleShark?: {
+              getDebugState(): {
+                position: { x: number; y: number; z: number };
+              };
+            };
+          };
+          __controls?: {
+            setPresetView(
+              position: { x: number; y: number; z: number },
+              target: { x: number; y: number; z: number },
+            ): void;
+          };
+        };
+        const ws = w.__entities?.whaleShark?.getDebugState();
+        const ctrl = w.__controls;
+        if (!ws || !ctrl) return false;
+        const cam = {
+          x: ws.position.x + o.offset[0],
+          y: ws.position.y + o.offset[1],
+          z: ws.position.z + o.offset[2],
+        };
+        ctrl.setPresetView(cam, ws.position);
+        return true;
+      }, angle);
+
+      if (!ok) break;
+
+      // 카메라 전환 + 렌더 안정화 대기
+      await page.waitForTimeout(400);
+      const shotPath = path.join(OBS_DIR, `whaleshark-${angle.name}.png`);
+      await page.screenshot({ path: shotPath });
+      screenshots.push(path.relative(ROOT, shotPath));
+    }
+
+    // ── 탑뷰 시간차 스냅샷: 수영 방향 확인용 ──────────────────────────
+    console.log(`[observer] 탑뷰 이동 방향 확인 스냅샷 촬영`);
+    const topViewHeight = 50;
+    // 카메라를 위에서 아래로 내려다보도록 설정
+    const setTopView = async () => {
+      return page.evaluate((h) => {
+        const w = window as unknown as {
+          __controls?: {
+            setPresetView(
+              position: { x: number; y: number; z: number },
+              target: { x: number; y: number; z: number },
+            ): void;
+          };
+        };
+        const ctrl = w.__controls;
+        if (!ctrl) return false;
+        ctrl.setPresetView(
+          { x: 0, y: h, z: 0 },
+          { x: 0, y: 0, z: 0 },
+        );
+        return true;
+      }, topViewHeight);
+    };
+
+    const topViewOk = await setTopView();
+    if (topViewOk) {
+      // 첫 번째 탑뷰 스냅샷
+      await page.waitForTimeout(500);
+      const topPath1 = path.join(OBS_DIR, "topview-t1.png");
+      await page.screenshot({ path: topPath1 });
+      screenshots.push(path.relative(ROOT, topPath1));
+
+      // 2초 대기 후 두 번째 탑뷰 스냅샷 (위치 변화로 이동 방향 확인)
+      await page.waitForTimeout(2000);
+      await setTopView(); // 카메라 재설정 (controls update가 덮어쓸 수 있으므로)
+      await page.waitForTimeout(500);
+      const topPath2 = path.join(OBS_DIR, "topview-t2.png");
+      await page.screenshot({ path: topPath2 });
+      screenshots.push(path.relative(ROOT, topPath2));
+    }
+
     const anomalies = detectAnomalies(samples);
+    const darkShots = await analyzeBrightness(screenshots);
+    anomalies.push(...darkShots);
 
     const observation: Observation = {
       capturedAt: new Date().toISOString(),
