@@ -301,15 +301,15 @@ export class WhaleShark {
    * 작은 흰 디스크를 몸체 표면 위에 격자 형태로 살짝 띄워 배치.
    */
   private createSpots(): void {
-    const spotGeo = new THREE.CircleGeometry(0.22, 8);
+    const spotGeo = new THREE.CircleGeometry(0.38, 8);
     const spotMat = new THREE.MeshBasicMaterial({
       color: 0xf0f4f8,
       side: THREE.DoubleSide,
     });
     this.disposables.push(spotGeo, spotMat);
 
-    const rows = 10;
-    const cols = 9;
+    const rows = 6;
+    const cols = 5;
     for (let r = 0; r < rows; r++) {
       const t = 0.15 + (r / rows) * 0.7; // 머리와 꼬리 끝 제외
       const bodyZ = -SHARK_LENGTH / 2 + t * SHARK_LENGTH;
