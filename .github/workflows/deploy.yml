@@ -8,7 +8,7 @@ on:
       - 'public/**'
       - 'vite.config.ts'
   schedule:
-    - cron: '0 * * * *'  # 매 시간 정각
+    - cron: '0 0 * * *'  # 매일 자정
   workflow_dispatch:
 
 permissions:
@@ -21,7 +21,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      src_changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: check
+        run: |
+          if git log --since="24 hours ago" --oneline -- src/ | grep -q .; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
   build:
+    needs: check
+    if: github.event_name != 'schedule' || needs.check.outputs.src_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
