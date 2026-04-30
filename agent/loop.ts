@@ -559,7 +559,11 @@ function recordCompletedGoal(goalText: string, commitMsg: string): void {
 
 // ── 목표별 파이프라인 실행 ─────────────────────────────────────────────────────
 
-type GoalResult = "completed" | "failed" | "rate-limited";
+type GoalResult = "completed" | "failed" | "interrupted" | "rate-limited";
+// "completed"   — Reviewer REVIEW_PASS
+// "failed"      — REVIEW_FAIL 최대 재시도 초과 (코드 문제)
+// "interrupted" — 단계 자체가 예기치 않게 실패 (CLI 오류, 타임아웃 등)
+// "rate-limited"— API 사용량 초과
 
 function logAndCheck(
   result: StageResult,
@@ -622,7 +626,7 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog): GoalResult {
     if (planCheck === "stage-failed") {
       markGoal(goal.lineIndex, "pending");
       log.goalEnd(false, []);
-      return "failed";
+      return "interrupted";
     }
     const plan = extractPlan(planResult.output);
 
@@ -643,8 +647,13 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog): GoalResult {
         log.goalEnd(false, getChangedFiles().filter((f) => !filesBefore.has(f)));
         return "rate-limited";
       }
-      if (implCheck === "stage-failed" || !implResult.output.includes("IMPL_COMPLETE")) {
-        reviewFeedback = "이전 구현이 IMPL_COMPLETE를 출력하지 않았거나 실패했습니다. 원인을 파악하고 다시 시도하세요.";
+      if (implCheck === "stage-failed") {
+        markGoal(goal.lineIndex, "pending");
+        log.goalEnd(false, getChangedFiles().filter((f) => !filesBefore.has(f)));
+        return "interrupted";
+      }
+      if (!implResult.output.includes("IMPL_COMPLETE")) {
+        reviewFeedback = "이전 구현이 IMPL_COMPLETE를 출력하지 않았습니다. 원인을 파악하고 다시 시도하세요.";
         continue;
       }
 
@@ -658,6 +667,11 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog): GoalResult {
         markGoal(goal.lineIndex, "pending");
         log.goalEnd(false, changedSoFar);
         return "rate-limited";
+      }
+      if (reviewCheck === "stage-failed") {
+        markGoal(goal.lineIndex, "pending");
+        log.goalEnd(false, changedSoFar);
+        return "interrupted";
       }
 
       if (checklistBefore !== checklistAfter) {
@@ -919,7 +933,7 @@ function runGoals(log: AgentLog): void {
     if (result === "completed") {
       completed++;
     }
-    if (result === "rate-limited") {
+    if (result === "rate-limited" || result === "interrupted") {
       stoppedByRateLimit = true;
       break;
     }

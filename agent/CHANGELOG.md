@@ -268,6 +268,28 @@ N개 완료 시 한 번에 커밋·푸시하는 방식 채택.
                                         → 대기열 N개 이상: git add → commit → push → 대기열 초기화
 ```
 
+---
+
+## [2026-04-28] 단계 중단 시 파이프라인 전체 정지
+
+### 배경
+Claude CLI가 예기치 않게 실패(타임아웃, API 오류 등)해도 다음 목표가 계속 실행되는
+문제가 있었음. 기존에는 "rate-limited"만 루프를 멈추고 그 외 실패("failed")는
+다음 목표로 넘어갔음. 에이전트가 중단된 상황에서 후속 목표를 실행하는 건 낭비이자
+잠재적 위험이므로 인프라 오류와 코드 오류를 분리해야 했음.
+
+### loop.ts
+- **`GoalResult`에 `"interrupted"` 타입 추가**
+  - `"completed"` — Reviewer REVIEW_PASS
+  - `"failed"` — REVIEW_FAIL 최대 재시도 초과 (코드 문제, 다음 목표 계속)
+  - `"interrupted"` — 단계 자체가 예기치 않게 실패 (CLI 오류, 타임아웃 등)
+  - `"rate-limited"` — API 사용량 초과
+- **Planner `stage-failed`** → `"failed"` 반환에서 `"interrupted"` 반환으로 변경
+- **Implementer `stage-failed`** → retry 계속에서 즉시 `"interrupted"` 반환으로 변경
+  - `IMPL_COMPLETE` 누락(코드 문제)은 기존대로 retry 유지
+- **Reviewer `stage-failed`** → `reviewFeedback` 설정 후 retry에서 `"interrupted"` 반환으로 변경
+- **`runGoals()`** — `"rate-limited" || "interrupted"` 모두 루프 break 처리
+
 ### loop.ts (Reviewer 프롬프트 + main 흐름)
 - **SUGGESTIONS 필수화**: "선택(optional)" → "필수(mandatory)"로 변경
   - 스크린샷을 직접 보고 시각적 문제를 근거로 **최소 3개** 제안 의무화
