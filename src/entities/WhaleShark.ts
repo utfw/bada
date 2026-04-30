@@ -95,9 +95,9 @@ export class WhaleShark {
     this.originalPositions.set(latheGeo.attributes.position.array);
 
     const material = new THREE.MeshStandardMaterial({
-      color: 0x3a4e63, // 회청색
-      roughness: 0.5,
-      metalness: 0.15,
+      color: 0x4a6a80, // 회청색
+      roughness: 0.25,
+      metalness: 0.04,
     });
 
     this.disposables.push(latheGeo, material);

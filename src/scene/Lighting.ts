@@ -84,6 +84,7 @@ const godRayFragmentShader = /* glsl */ `
 export class Lighting {
   private ambientLight: THREE.AmbientLight;
   private sunLight: THREE.DirectionalLight;
+  private fillLight: THREE.DirectionalLight;
   private godRaySpots: THREE.SpotLight[] = [];
   private godRayCones: THREE.Mesh[] = [];
 
@@ -96,6 +97,14 @@ export class Lighting {
     this.sunLight.target.position.set(0, -SURFACE_HEIGHT, 0);
     scene.add(this.sunLight);
     scene.add(this.sunLight.target);
+
+    // Fill light — upward from below, simulates scattered subsurface light
+    // Keeps belly/pectoral fins from becoming pure silhouettes when viewed from below
+    this.fillLight = new THREE.DirectionalLight(0x336699, 0.15);
+    this.fillLight.position.set(0, -20, 0);
+    this.fillLight.target.position.set(0, 0, 0);
+    scene.add(this.fillLight);
+    scene.add(this.fillLight.target);
 
     // God Rays (SpotLights) — straight down from surface
     const rayPositions = [

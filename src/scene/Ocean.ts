@@ -142,7 +142,7 @@ export class Ocean {
       positions[i * 3 + 1] =
         Math.random() * SURFACE_HEIGHT - OCEAN_DEPTH;
       positions[i * 3 + 2] = (Math.random() - 0.5) * OCEAN_WIDTH * 0.5;
-      sizes[i] = Math.random() * 0.3 + 0.1;
+      sizes[i] = Math.random() * 0.025 + 0.01;
     }
 
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -166,7 +166,7 @@ export class Ocean {
           float dist = length(gl_PointCoord - vec2(0.5));
           if (dist > 0.5) discard;
           float ring = smoothstep(0.3, 0.5, dist);
-          float alpha = 0.3 + ring * 0.4;
+          float alpha = 0.04 + ring * 0.03;
           gl_FragColor = vec4(uColor, alpha);
         }
       `,
