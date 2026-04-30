@@ -308,8 +308,8 @@ export class WhaleShark {
     });
     this.disposables.push(spotGeo, spotMat);
 
-    const rows = 6;
-    const cols = 5;
+    const rows = 10;
+    const cols = 8;
     for (let r = 0; r < rows; r++) {
       const t = 0.15 + (r / rows) * 0.7; // 머리와 꼬리 끝 제외
       const bodyZ = -SHARK_LENGTH / 2 + t * SHARK_LENGTH;
@@ -317,7 +317,7 @@ export class WhaleShark {
       const bodyRadius = 2.0 * Math.pow(1 - Math.abs(t - 0.45) / 0.5, 0.8);
 
       for (let c = 0; c < cols; c++) {
-        const angle = (c / cols) * Math.PI * 2 + r * 0.4;
+        const angle = (c / cols) * Math.PI * 2 + r * 0.71 + ((r * 17 + c * 11) % 7) * 0.09;
         // 아래쪽(배)은 반점 생략
         if (Math.sin(angle) < -0.3) continue;
 
@@ -359,6 +359,7 @@ export class WhaleShark {
         new THREE.Vector3(-22, -5, -8),   // 왼쪽-앞
         new THREE.Vector3(-28, -4, 6),    // 왼쪽
         new THREE.Vector3(-20, -5, 22),   // 후방-좌
+        new THREE.Vector3(-5, -4, -20),   // ✓ 정면 재진입 경유점 (좌후방→전방 구간)
       ],
       true,
       'catmullrom',
