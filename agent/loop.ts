@@ -168,6 +168,20 @@ function findClaude(): string {
 
 const CLAUDE_BIN = findClaude();
 
+function findHermes(): string {
+  try {
+    return execSync("which hermes", {
+      encoding: "utf-8",
+      shell: process.env.SHELL ?? "/bin/zsh",
+      env: process.env,
+    }).trim();
+  } catch {
+    return "";
+  }
+}
+
+const HERMES_BIN = findHermes();
+
 // ── Observer (Playwright 런타임 관찰) ─────────────────────────────────────────
 
 interface Vec3 {
@@ -287,11 +301,15 @@ interface StageResult {
   rateLimited: boolean;
 }
 
-function runClaude(prompt: string, allowedTools: string, maxTurns: number): StageResult {
+function runClaude(prompt: string, allowedTools: string, maxTurns: number, model?: string): StageResult {
   try {
+    const args = ["-p", prompt, "--allowedTools", allowedTools, "--max-turns", String(maxTurns)];
+    if (model) {
+      args.push("--model", model);
+    }
     const output = execFileSync(
       CLAUDE_BIN,
-      ["-p", prompt, "--allowedTools", allowedTools, "--max-turns", String(maxTurns)],
+      args,
       {
         cwd: ROOT,
         encoding: "utf-8",
@@ -305,6 +323,30 @@ function runClaude(prompt: string, allowedTools: string, maxTurns: number): Stag
     const output = `${err.stdout ?? ""}\n${err.stderr ?? ""}`.trim();
     const rateLimited = /rate.?limit|too many requests|429|usage.?limit|quota/i.test(output);
     return { output, success: false, rateLimited };
+  }
+}
+
+// ── Hermes Agent 호출 (Ollama를 백엔드로 사용) ──────────────────────────────
+// Hermes config(~/.hermes/config.yaml)이 base_url=http://localhost:11434/v1로
+// 설정되어 있어, hermes -z 호출이 Ollama 모델을 호출한다.
+
+function runHermes(model: string, prompt: string): string {
+  if (!HERMES_BIN) {
+    console.log(`⚠ hermes CLI를 찾을 수 없습니다. 설치 확인 필요.`);
+    return "";
+  }
+  try {
+    const result = execFileSync(
+      HERMES_BIN,
+      ["-z", prompt, "-m", model],
+      { cwd: ROOT, encoding: "utf-8", timeout: 300_000, env: process.env }
+    );
+    return result.trim();
+  } catch (e: unknown) {
+    const err = e as { stdout?: string; stderr?: string };
+    const output = `${err.stdout ?? ""}\n${err.stderr ?? ""}`.trim();
+    console.log(`⚠ Hermes(${model}) 호출 실패: ${output.slice(-500)}`);
+    return "";
   }
 }
 
@@ -358,7 +400,7 @@ PLAN_START
 PLAN_END
 `.trim();
 
-  return runClaude(prompt, "Read,Glob,Grep", 15);
+  return runClaude(prompt, "Read,Glob,Grep", 15, "sonnet");
 }
 
 function extractPlan(output: string): string {
@@ -396,7 +438,7 @@ ${plan}
 5. 계획에 없는 파일을 만지지 말 것 (꼭 필요하면 이유 남기고 진행)
 `.trim();
 
-  return runClaude(prompt, "Bash,Edit,Write,Read,Glob,Grep", 30);
+  return runClaude(prompt, "Bash,Edit,Write,Read,Glob,Grep", 30, "sonnet");
 }
 
 function runReviewer(
@@ -821,6 +863,13 @@ const GOAL_GENERATION_EXCLUSIONS = `
 `.trim();
 
 function generateGoalsFromChecklist(observationSummary: string): string[] {
+  const checklistContent = fs.existsSync(CHECKLIST_FILE)
+    ? fs.readFileSync(CHECKLIST_FILE, "utf-8")
+    : "(체크리스트 없음)";
+  const claudeMd = fs.existsSync(path.join(ROOT, "CLAUDE.md"))
+    ? fs.readFileSync(path.join(ROOT, "CLAUDE.md"), "utf-8")
+    : "";
+
   const prompt = `
 당신은 Project BADA의 목표 생성기입니다.
 Reviewer가 REVIEW_CHECKLIST.md를 갱신한 직후입니다.
@@ -828,28 +877,32 @@ Reviewer가 REVIEW_CHECKLIST.md를 갱신한 직후입니다.
 
 ${GOAL_GENERATION_EXCLUSIONS}
 
-관찰 결과:
+## 관찰 결과:
 ${observationSummary}
 
-해야 할 일:
-1. agent/REVIEW_CHECKLIST.md를 읽어 최근 추가/수정된 항목 확인 (갱신 로그 참고)
-2. CLAUDE.md를 읽어 프로젝트 맥락 파악
-3. 체크리스트에서 현재 코드가 위반하고 있는 항목을 식별 (위 제외 목록 제외)
-4. 각 위반에 대해 구체적인 수정 목표를 한 줄씩 작성
+## REVIEW_CHECKLIST.md:
+${checklistContent}
 
-출력 형식 (GOALS_START와 GOALS_END 사이에만 작성):
+## CLAUDE.md (프로젝트 맥락):
+${claudeMd}
+
+위 체크리스트에서 현재 코드가 위반하고 있을 항목을 식별하고 (제외 목록 제외),
+각 위반에 대해 구체적인 수정 목표를 한 줄씩 작성하세요.
+
+출력 형식 — GOALS_START와 GOALS_END 사이에만 작성하고 다른 텍스트는 출력하지 마세요:
 GOALS_START
 - [ ] 목표 1
 - [ ] 목표 2
 GOALS_END
 
-위반이 없으면 빈 목록:
+위반이 없으면:
 GOALS_START
 GOALS_END
 `.trim();
 
-  const result = runClaude(prompt, "Read,Glob,Grep", 10);
-  return parseGoalOutput(result.output);
+  console.log(`  → Hermes(qwen2.5-coder:7b via Ollama)로 체크리스트 기반 목표 생성 중...`);
+  const output = runHermes("qwen2.5-coder:7b", prompt);
+  return parseGoalOutput(output);
 }
 
 function generateGoalsFromReview(reviewOutput: string): string[] {
@@ -859,22 +912,22 @@ Reviewer가 REVIEW_FAIL을 선언했습니다. 리뷰 결과를 바탕으로 수
 
 ${GOAL_GENERATION_EXCLUSIONS}
 
-리뷰 결과:
+## 리뷰 결과:
 ${reviewOutput.slice(-3000)}
 
-해야 할 일:
-1. 리뷰 지적 사항을 분석 (위 제외 목록에 해당하는 항목은 무시)
-2. 각 지적에 대해 구체적인 수정 목표를 한 줄씩 작성
+리뷰 지적 사항을 분석하고 (위 제외 목록에 해당하는 항목은 무시),
+각 지적에 대해 구체적인 수정 목표를 한 줄씩 작성하세요.
 
-출력 형식:
+출력 형식 — GOALS_START와 GOALS_END 사이에만 작성하고 다른 텍스트는 출력하지 마세요:
 GOALS_START
 - [ ] 목표 1
 - [ ] 목표 2
 GOALS_END
 `.trim();
 
-  const result = runClaude(prompt, "Read,Glob,Grep", 10);
-  return parseGoalOutput(result.output);
+  console.log(`  → Hermes(llama3.1:8b via Ollama)로 리뷰 기반 목표 생성 중...`);
+  const output = runHermes("llama3.1:8b", prompt);
+  return parseGoalOutput(output);
 }
 
 function parseGoalOutput(output: string): string[] {

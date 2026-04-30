@@ -98,6 +98,8 @@ export class WhaleShark {
       color: 0x4a6a80, // 회청색
       roughness: 0.25,
       metalness: 0.04,
+      emissive: 0x0a1520,
+      emissiveIntensity: 0.15,
     });
 
     this.disposables.push(latheGeo, material);
@@ -163,8 +165,8 @@ export class WhaleShark {
   private createDorsalFin(): void {
     const shape = new THREE.Shape();
     shape.moveTo(0, 0);
-    shape.quadraticCurveTo(0.6, 2.0, 1.4, 2.2);
-    shape.quadraticCurveTo(1.6, 2.0, 1.0, 0.3);
+    shape.quadraticCurveTo(0.6, 1.4, 1.4, 1.6);
+    shape.quadraticCurveTo(1.6, 1.4, 1.4, 0.3);
     shape.lineTo(0, 0);
 
     const extrudeSettings: THREE.ExtrudeGeometryOptions = {

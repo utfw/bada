@@ -85,6 +85,7 @@ export class Lighting {
   private ambientLight: THREE.AmbientLight;
   private sunLight: THREE.DirectionalLight;
   private fillLight: THREE.DirectionalLight;
+  private underFillPoint: THREE.PointLight;
   private godRaySpots: THREE.SpotLight[] = [];
   private godRayCones: THREE.Mesh[] = [];
 
@@ -105,6 +106,12 @@ export class Lighting {
     this.fillLight.target.position.set(0, 0, 0);
     scene.add(this.fillLight);
     scene.add(this.fillLight.target);
+
+    // Under-fill point light — mitigates PBR under-belly darkening on WhaleShark
+    // decay=1.5 (less than physical 2.0) for even coverage across belly at y≈-3~-5
+    this.underFillPoint = new THREE.PointLight(0x5588bb, 0.6, 40, 1.5);
+    this.underFillPoint.position.set(0, -15, 0);
+    scene.add(this.underFillPoint);
 
     // God Rays (SpotLights) — straight down from surface
     const rayPositions = [
@@ -193,6 +200,7 @@ export class Lighting {
   }
 
   dispose(): void {
+    this.underFillPoint.dispose();
     this.godRayCones.forEach((cone) => {
       cone.geometry.dispose();
       const mat = cone.material as THREE.ShaderMaterial;
