@@ -94,12 +94,32 @@ export class WhaleShark {
     );
     this.originalPositions.set(latheGeo.attributes.position.array);
 
+    // Y좌표 기반 vertex color: 배(y≈-1.58) → 크림색, 등(y≈+1.58) → 회청색
+    const posArr = latheGeo.attributes.position.array as Float32Array;
+    const vertCount = latheGeo.attributes.position.count;
+    const colorData = new Float32Array(vertCount * 3);
+    const bellyColor = new THREE.Color(0xe0e8d0);
+    const backColor = new THREE.Color(0x4a6a80);
+    const tmpColor = new THREE.Color();
+    const yRange = 1.58; // max radius 2.1 × scale 0.75 ≈ 1.58
+
+    for (let i = 0; i < vertCount; i++) {
+      const y = posArr[i * 3 + 1];
+      const t = Math.max(0, Math.min(1, (y + yRange) / (yRange * 2)));
+      tmpColor.lerpColors(bellyColor, backColor, t);
+      colorData[i * 3]     = tmpColor.r;
+      colorData[i * 3 + 1] = tmpColor.g;
+      colorData[i * 3 + 2] = tmpColor.b;
+    }
+    latheGeo.setAttribute('color', new THREE.BufferAttribute(colorData, 3));
+
     const material = new THREE.MeshStandardMaterial({
-      color: 0x4a6a80, // 회청색
+      color: 0xffffff, // vertex color와 곱해지므로 흰색 필수
       roughness: 0.25,
       metalness: 0.04,
-      emissive: 0x0a1520,
-      emissiveIntensity: 0.15,
+      emissive: new THREE.Color(0x1a2a36),
+      emissiveIntensity: 0.25,
+      vertexColors: true,
     });
 
     this.disposables.push(latheGeo, material);
@@ -351,12 +371,16 @@ export class WhaleShark {
     this.swimPath = new THREE.CatmullRomCurve3(
       [
         new THREE.Vector3(2, -3, -24),    // ✓ 정면 PASS 1 (x=2,  z=-24, 심화)
+        new THREE.Vector3(4, -3.2, -21),  // 정면 통과 체류 연장 (z=-21, x=4, arctan≈11° < FOV)
+        new THREE.Vector3(6, -3.5, -19),  // 우측 이탈 완충 (z=-19, x=6, arctan≈18° < FOV)
         new THREE.Vector3(8, -4, -16),    // ★ 우측 완만한 이탈
         new THREE.Vector3(22, -5, -8),    // 오른쪽-앞
         new THREE.Vector3(28, -5, 6),     // 오른쪽
         new THREE.Vector3(20, -6, 22),    // 후방-우
         new THREE.Vector3(0, -3.5, -24),  // ★ 정중앙 체류점 (신규, PASS2 직전 진입호)
         new THREE.Vector3(-2, -4, -24),   // ✓ 정면 PASS 2 (x=-2, z=-24, 심화)
+        new THREE.Vector3(-4, -3.5, -21), // 좌측 정면 통과 체류 연장 (z=-21, x=-4, arctan≈11° < FOV)
+        new THREE.Vector3(-6, -3.5, -19), // 좌측 이탈 완충 (z=-19, x=-6, arctan≈18° < FOV)
         new THREE.Vector3(-8, -4, -16),   // ★ 좌측 완만한 이탈
         new THREE.Vector3(-22, -5, -8),   // 왼쪽-앞
         new THREE.Vector3(-28, -4, 6),    // 왼쪽

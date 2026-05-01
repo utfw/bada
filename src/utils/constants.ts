@@ -35,7 +35,7 @@ export interface WeatherState {
 export const SHARK_LENGTH = 14;
 export const SHARK_BODY_SEGMENTS = 24;
 export const SHARK_RADIAL_SEGMENTS = 18;
-export const SHARK_SWIM_SPEED = 0.84;
+export const SHARK_SWIM_SPEED = 0.65;
 
 // ── Particles ──────────────────────────────────────
 export const PARTICLE_COUNT = 500;
