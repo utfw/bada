@@ -8,6 +8,65 @@ Three.js · TypeScript · Vite
 
 ---
 
+## 자율 에이전트
+
+`npm run agent`로 자율 파이프라인이 실행됩니다.
+
+### 전체 흐름
+
+```
+시작
+  ├─ pending 목표 없음 → Standalone Review (시각 품질 점검 모드)
+  └─ pending 목표 있음
+       ↓
+       [사전 정리] 미완료 목록 의미 기반 중복 제거 (Ollama)
+       ↓
+       각 목표마다:
+         ┌─ 1. Observer (Playwright)
+         │    Vite dev 서버 + 헤드리스 브라우저로 씬 관찰
+         │    위치 샘플, anomaly 감지, 스크린샷 4장 + 탑뷰 2장 + 고래상어 근접 4장
+         │
+         ├─ 2. Planner [Claude sonnet]
+         │    REVIEW_CHECKLIST.md + 관찰 결과 + 코드 분석 → 수정 계획
+         │
+         ├─ 3. Implementer [Claude sonnet]
+         │    계획대로 코드 수정, npx tsc --noEmit 통과 확인
+         │    출력 마지막에 COMMIT_MSG + IMPL_COMPLETE
+         │
+         └─ 4. Reviewer [Claude opus 4.6]
+              체크리스트 점검 + 스크린샷 시각 검증 + 타입체크
+              REVIEW_FAIL → Implementer 재시도 (최대 2회)
+              REVIEW_PASS → SUGGESTIONS 블록 (시각 개선 제안 ≥3개) 추출 → goals.md
+              체크리스트 갱신 시 → Observer부터 재사이클 (최대 N회)
+       ↓
+       완료 시점:
+         ├─ 단계 중단 (CLI 오류·타임아웃) → 전체 파이프라인 정지
+         ├─ Rate-limit 도달 → 전체 정지, 한도 리셋 후 재실행 가능
+         └─ 누적 3개 완료 → autoCommit (Ollama로 통합 제목 합성) + push
+```
+
+### 핵심 메커니즘
+
+- **REVIEW_CHECKLIST.md** — 과거 발견된 버그 패턴이 누적되는 단일 진실원천. Reviewer가 새 패턴 발견 시 직접 갱신
+- **SUGGESTIONS 자동 목표화** — Reviewer가 매 실행마다 시각 개선 제안 3개 이상 생성 → 다음 사이클에서 처리
+- **중복 제거** — 신규 목표 추가 시 + 시작 시점 모두 Ollama로 의미 기반 중복 검사
+- **자동 커밋 범위 제한** — `src/`, `goals.md`, `agent/REVIEW_CHECKLIST.md`만 (에이전트 자체 코드는 제외)
+- **모델 분리** — 가벼운 분류 작업(목표 생성, dedup, 커밋 제목)은 로컬 Ollama, 본 단계는 Claude
+
+### 옵션
+
+```bash
+npm run agent                       # 정상 실행
+npm run agent -- -n 1               # 체크리스트 사이클 1회로 제한 (빠른 디버그)
+npm run agent -- --max-cycles 5     # 5회까지 허용
+npm run agent:review                # Standalone Review만
+npm run agent:observe               # 관찰만
+```
+
+자세한 변경 이력은 [agent/CHANGELOG.md](agent/CHANGELOG.md) 참고.
+
+---
+
 ## 주요 기능
 
 - **고래상어** — LatheGeometry 기반 프로시저럴 모델. 회청색 몸체 + 흰 반점, 수직 이형 꼬리(heterocercal), CatmullRomCurve3 3D 순환 경로
@@ -75,27 +134,11 @@ agent/
   CHANGELOG.md          # 에이전트 파이프라인 변경 이력
 ```
 
-## 자율 에이전트
-
-`npm run agent`로 4단계 파이프라인이 실행됩니다.
-
-```
-Observer   Playwright로 씬을 관찰, 이상 패턴 감지, 스크린샷 저장
-  ↓
-Planner    관찰 결과 + goals.md 기반 수정 계획 수립
-  ↓
-Implementer 계획에 따라 코드 작성, 타입체크 통과 확인
-  ↓
-Reviewer   REVIEW_CHECKLIST.md 전 항목 점검, 통과 시 REVIEW_PASS
-           개선 사항은 SUGGESTIONS 블록으로 goals.md에 자동 추가
-```
-
-목표 3개 완료마다 변경 내역을 자동으로 커밋·푸시합니다.
-
 ## 기술 스택
 
 - [Three.js](https://threejs.org/) 0.170
 - TypeScript 5.7 (strict)
 - Vite 6
 - Playwright (E2E 테스트)
-- Claude Code Agent SDK (자율 파이프라인)
+- Claude Code Agent SDK (자율 파이프라인 본체)
+- Ollama (로컬 보조 — 목표 생성·중복 검사·커밋 제목)

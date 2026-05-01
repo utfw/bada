@@ -246,7 +246,7 @@ Reviewer가 수치 체크(position.x 값, spread 수치 등)를 모두 통과시
 
 ---
 
-## [2026-04-28] 자동 커밋·푸시 (AUTO_COMMIT_THRESHOLD)
+## [2026-05-01] 자동 커밋·푸시 (AUTO_COMMIT_THRESHOLD)
 
 ### 배경
 에이전트가 목표를 완료할 때마다 변경 내역이 로컬에만 남아 있어 원격 저장소와
@@ -270,7 +270,212 @@ N개 완료 시 한 번에 커밋·푸시하는 방식 채택.
 
 ---
 
-## [2026-04-28] 단계 중단 시 파이프라인 전체 정지
+## [2026-05-01] Hermes CLI를 통한 Ollama 호출 도입 (회고 기록)
+
+> 원래 변경은 2026-05-01 커밋 `38fd102 feat: agent auto-commit (3 goals)`에서
+> 에이전트 자동 커밋과 함께 묻어 들어갔으나 CHANGELOG에 기록되지 않았음.
+> 자동 커밋 대상에 `agent/`가 포함되어 있던 시점이라, 에이전트가 자기 자신 코드를
+> 수정한 변경분이 추적되지 않은 채 누적됐음. 이 누락을 계기로 [2026-04-28] 항목에서
+> 자동 커밋 대상 파일을 제한하게 됐다.
+
+### 배경
+`generateGoalsFromChecklist` / `generateGoalsFromReview`의 목표 자동 생성 단계에서
+Claude API를 호출하면 비용·지연이 누적된다는 판단. 가벼운 텍스트 생성은 로컬
+Ollama로 오프로드하기로 결정. 직접 Ollama API를 호출하는 대신 `hermes` CLI
+(`~/.hermes/config.yaml`의 `base_url`을 `http://localhost:11434/v1`로 설정)를
+경유해 OpenAI 호환 인터페이스로 호출.
+
+### loop.ts
+- **`findHermes` / `HERMES_BIN`** 추가 — `which hermes`로 CLI 경로 탐색
+- **`runHermes(model, prompt)`** 추가 — `hermes -z <prompt> -m <model>` 형태로 호출,
+  300초 타임아웃, 실패 시 빈 문자열 반환(소프트 실패)
+- **`generateGoalsFromChecklist`** — `qwen2.5-coder:7b` 모델로 호출
+- **`generateGoalsFromReview`** — `llama3.1:8b` 모델로 호출
+
+### 알려진 문제 (이후 수정됨)
+- 호출 실패 시 빈 문자열을 반환해 후속 단계가 빈 입력으로 조용히 진행됨
+- 모델이 출력 포맷(GOALS_START/END)을 어겨도 감지 못함
+- 추가 의존성(hermes 바이너리 설치 필요)
+→ 이 문제들은 [2026-04-28] Hermes 제거 → Ollama 직접 호출 항목에서 해결됨
+
+---
+
+## [2026-05-01] Hermes 제거 → Ollama 직접 호출 + 실패 시 파이프라인 전체 중단
+
+### 배경
+이전에는 `hermes` CLI(Hermes config의 `base_url`을 Ollama로 설정)를 통해 로컬 LLM을
+호출했음. 이 경로는 (1) 추가 의존성(hermes 바이너리)을 요구하고, (2) 호출 실패 시
+빈 문자열을 반환해 후속 단계가 잘못된 입력으로 조용히 진행되는 문제가 있었음.
+또한 모델이 응답 포맷(GOALS_START/END)을 따르지 않아도 감지되지 않았음.
+
+### loop.ts
+- **`findHermes` / `HERMES_BIN` / `runHermes` 전부 제거**
+- **`runOllama(model, prompt)` 신설** — `http://localhost:11434/api/generate`에 curl로
+  직접 POST. 큰 프롬프트도 안전 전달하도록 임시 파일(`agent/.ollama-tmp.json`)에
+  바디를 써서 `-d @file`로 넘기고 finally 블록에서 정리
+- **`OllamaError` 클래스 신설** — 모델명까지 담아 throw. 다음 케이스에 발생:
+  * curl 호출 실패 (서버 미동작 등)
+  * 호출 타임아웃 (300초)
+  * 응답 JSON 파싱 실패
+  * `data.error` 필드 존재
+  * 응답 본문 비어있음
+- **`assertGoalsFormat(output, model, context)`** — Ollama 응답에 `GOALS_START/END`
+  마커가 없으면 즉시 `OllamaError` throw. 모델이 포맷을 어기면 다음 단계로 진행
+  하지 않음
+- **`main()` 전체를 try-catch로 감쌈** — `OllamaError` 발생 시 진단 메시지(서버 동작
+  확인, 모델 리스트, 직접 호출 명령) 출력 후 `process.exit(2)`. 다른 예외는 그대로
+  rethrow
+- **`generateGoalsFromChecklist` / `generateGoalsFromReview`** — `runHermes` →
+  `runOllama` 전환 + 호출 직후 `assertGoalsFormat` 검증 추가
+
+---
+
+## [2026-05-01] Reviewer 모델 명시 (claude-opus-4-6)
+
+### 배경
+`runReviewer`가 `runClaude(...)` 호출 시 `--model` 인자를 생략해, Claude Code CLI의
+기본 설정 모델로 실행됐음. Planner/Implementer는 `"sonnet"`을 명시하고 있었으므로
+Reviewer만 모델이 비결정적이었음. Reviewer는 코드 검증·이미지 시각 검증·체크리스트
+관리를 모두 담당하는 가장 무거운 역할이라, 명시적으로 강한 모델을 고정해야 했음.
+
+### loop.ts
+- `runReviewer()`의 `runClaude` 호출에 `"claude-opus-4-6"` 인자 명시
+- `--model` 별칭 `opus`는 항상 최신 Opus(현재 4.7)를 가리키므로, 4.6에 고정하려면
+  full ID를 사용해야 함
+
+---
+
+## [2026-05-01] SUGGESTIONS 의무 출력 → 조건부 출력으로 완화
+
+### 배경
+이전에 [2026-04-27]에서 SUGGESTIONS를 "필수, 최소 3개"로 강제했음. 이는 Reviewer가
+제안 채널 자체를 생략하는 것을 막기 위한 조치였으나, 결과적으로 매 사이클마다
+3개 이상의 새 목표가 강제로 생성되어 누적되는 부작용 발생.
+중단(rate-limit·interrupted)이 잦아지자 미완료 큐가 폭발적으로 커지는 문제가 드러남.
+이미 [2026-05-01] dedup 작업으로 의미 중복은 정리되지만, 그 전에 무리하게
+짜낸 제안들 자체가 노이즈로 작용했음.
+
+### loop.ts (Reviewer 프롬프트)
+- "## 개선 제안 (필수)" → "(조건부)"
+- "최소 3개" → "최대 3개 권장, 0개여도 OK"
+- 추가 규칙:
+  * **이미 미완료 항목(`[ ]`/`[~]`)과 같은 파일·함수·동작을 다루는 제안은 금지**
+    (이전에는 완료(`[x]`) 중복만 금지했음)
+  * "채워야 한다는 압박으로 임의 제안 만들어 내지 말 것"
+  * 진짜 새 문제가 없으면 SUGGESTIONS 블록 자체를 출력에서 생략
+- 출력 예시도 3줄 → 1줄로 축소
+
+### 효과
+- Reviewer가 진짜 시각 문제를 발견했을 때만 새 목표 추가
+- dedup으로도 못 잡는 "표현은 다르지만 무가치한 제안" 자체를 줄임
+- 사이클당 평균 신규 목표 수 감소 → 누적 부담 완화
+
+---
+
+## [2026-05-01] `--max-cycles` / `-n` CLI 오버라이드
+
+### 배경
+체크리스트가 자주 갱신되거나 디버깅 중일 때 `MAX_CHECKLIST_CYCLES` 상수(3)를 코드 수정 없이
+런타임에서 조정할 필요가 있었음. 빠른 실험·디버그 사이클을 위해 한 번에 1사이클만 돌리거나
+반대로 5~10사이클로 늘려 실행하는 케이스 발생.
+
+### loop.ts
+- **`parseMaxCycles(args)`** 추가 — `--max-cycles N` 또는 `-n N` 인자 파싱, 양의 정수 검증
+- **`main()`** — args에서 maxCycles 추출 후 `runStandaloneReview(maxCycles)` / `runGoals(log, maxCycles)`에 전달
+- **`runGoal` / `runGoals` / `runStandaloneReview`** 시그니처에 `maxCycles: number` 매개변수 추가
+- 기본값(`MAX_CHECKLIST_CYCLES`)과 다른 값이 지정되면 시작 로그에 명시
+- 사용 예: `npx tsx agent/loop.ts -n 1` (1사이클만), `--max-cycles 5` (5사이클까지)
+
+---
+
+## [2026-05-01] 다중 목표 커밋 제목 자동 합성 (Ollama)
+
+### 배경
+3개 목표가 누적되어 자동 커밋될 때 제목이 `feat: agent auto-commit (3 goals)`로 일률적이라
+git log 가독성이 낮았음. 개별 COMMIT_MSG들은 풍부한 정보를 담고 있으나 그것들을 합쳐
+하나의 의미 있는 제목을 만드는 휴리스틱이 부재했음.
+
+### loop.ts
+- **`summarizeCommitTitle(msgLines)`** 추가 — 1개일 땐 그대로, 2개 이상일 때 Ollama
+  (`qwen2.5-coder:7b`)에 합성 요청
+- 프롬프트는 conventional commit 형식(`type(scope): summary`), 50자 이내, 동사 시작 강제
+- `TITLE_START`/`TITLE_END` 마커로 응답 추출
+- 실패·포맷 오류·80자 초과 시 기본 제목 (`feat: agent auto-commit (N goals)`) 폴백
+- **`autoCommitAndPush()`** — 하드코딩 제목 → `summarizeCommitTitle(msgLines)` 호출
+
+### 효과
+```
+이전: feat: agent auto-commit (3 goals)
+이후: feat(WhaleShark, Fish, Ocean): improve animation quality
+```
+
+---
+
+## [2026-05-01] 신규 목표 추가 시 의미 기반 중복 제거 (Ollama)
+
+### 배경
+Reviewer SUGGESTIONS가 매 실행마다 3개 이상 누적되며, 표현이 다르지만 의미상
+동일한 목표가 goals.md에 쌓이는 문제. 정규식 기반 substring 매칭으로는 잡히지
+않는 의미적 중복이 많았음 (예: "BOID_SEPARATION_WEIGHT 상향" vs "분리 가중치 증가").
+
+### loop.ts
+- **`deduplicateGoalsWithOllama(newGoals, existing)`** 추가 — Ollama
+  (`qwen2.5-coder:7b`)에 기존 미완료 목표 + 신규 후보를 보내 중복 후보 번호 식별
+- 프롬프트: "같은 파일·함수·동작이면 표현 달라도 중복", `DUPS_START/END` 마커 응답
+- Ollama 실패·포맷 오류 시 전체 통과 (안전 fallback, 파이프라인 차단 없음)
+- **`appendGoals()`** — 추가 전에 자동으로 중복 검사를 거치도록 흐름 변경
+- 진입점(`runGoal`의 SUGGESTIONS, `runStandaloneReview`의 새 목표 생성)이 모두
+  `appendGoals` 통과하므로 한 곳만 고치면 전체 적용
+
+---
+
+## [2026-05-01] 시작 시점 미완료 목표 목록 사전 정리 (Ollama)
+
+### 배경
+중단(rate-limit, interrupted)으로 누적된 pending 목표가 새 실행 시점에 이미
+중복 그룹을 형성. 시작하자마자 같은 변경을 두 번 시도하거나 컨텍스트가 길어지는 문제.
+`appendGoals` dedup은 신규 추가 시점에만 동작해서 누적된 기존 항목 정리는 수동.
+
+### loop.ts
+- **`deduplicateExistingGoals()`** 추가 — `parsePendingGoals()` 결과를 Ollama에 보내
+  의미상 중복 그룹 식별
+- 프롬프트: 그룹의 첫 번호 = 대표(보존), 나머지 = 삭제 대상. `GROUPS_START/END` 마커
+- 중복 줄을 `goals.md`에서 **완전 삭제** (마커 변경 아님 — 컨텍스트 길이 부담 감소가 목적)
+- **`main()`** — pending 목표가 있는 경우 `runGoals()` 호출 직전에 호출
+- 정리 후 남은 목표가 0이면 즉시 종료
+
+### 흐름
+```
+npm run agent
+  ↓
+pending 목표 있음
+  ↓
+deduplicateExistingGoals()  ← 시작 정리
+  ↓
+runGoals()  ← 정리된 목록으로 진행
+```
+
+---
+
+## [2026-05-01] 자동 커밋 대상 파일 제한
+
+### 배경
+초기 자동 커밋은 `src/`, `agent/`, `goals.md`, `package.json`, `tsconfig*.json`을 모두
+스테이징해 커밋했음. 그 결과 에이전트가 자기 자신의 코드(`agent/loop.ts` 등)를 수정한
+변경분까지 자동 커밋되며, 의도치 않게 인프라 코드가 자동 흐름에 포함되는 문제가 발생.
+
+### loop.ts (autoCommitAndPush)
+- **포함 대상 파일을 명시적으로 제한**:
+  - `src/` — 실제 수정 작업물
+  - `goals.md` — 목표 진행 상태 (`[x]` 마킹)
+  - `agent/REVIEW_CHECKLIST.md` — Reviewer가 누적하는 버그 패턴 지식
+- **제외**: `agent/loop.ts`·`observe.ts`·`setGoals.ts`·`CHANGELOG.md` (에이전트 자체 코드/문서),
+  `package.json`·`tsconfig*.json` (빌드 설정), `CLAUDE.md`·`README.md` (사람 관리 문서),
+  `.github/`·`vite.config.ts` (인프라 설정)
+
+---
+
+## [2026-05-01] 단계 중단 시 파이프라인 전체 정지
 
 ### 배경
 Claude CLI가 예기치 않게 실패(타임아웃, API 오류 등)해도 다음 목표가 계속 실행되는
