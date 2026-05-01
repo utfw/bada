@@ -56,12 +56,13 @@ Three.js · TypeScript · Vite
 ### 옵션
 
 ```bash
-npm run agent                       # 정상 실행
-npm run agent -- -n 1               # 체크리스트 사이클 1회로 제한 (빠른 디버그)
-npm run agent -- --max-cycles 5     # 5회까지 허용
+npm run agent                       # 무제한 — 모든 미완료 목표 처리
+npm run agent -- -n 5               # 파이프라인 5회 제한 (Observer→Planner→Impl→Reviewer 5번 돌면 종료)
 npm run agent:review                # Standalone Review만
 npm run agent:observe               # 관찰만
 ```
+
+> **`-n N` 의미**: 1 cycle = Observer→Planner→Impl→Reviewer 1회 실행. goal 중간에서든 goal 사이에서든 N회 도달 시 즉시 종료, 미완료 목표는 다음 실행으로 이월.
 
 자세한 변경 이력은 [agent/CHANGELOG.md](agent/CHANGELOG.md) 참고.
 
