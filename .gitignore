@@ -6,3 +6,4 @@ agent/logs/
 agent/observations/
 agent/pending-commit.json
 .vscode/
+.claude/
