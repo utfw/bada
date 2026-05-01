@@ -100,7 +100,7 @@ export class Ocean {
 
     const material = new THREE.ShaderMaterial({
       uniforms: {
-        uColor: { value: new THREE.Color(0x88aacc) },
+        uColor: { value: new THREE.Color(0x99ccaa) },
         uOpacity: { value: 0.6 },
         uSizeScale: { value: 1.0 },
       },

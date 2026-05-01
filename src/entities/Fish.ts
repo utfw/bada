@@ -75,7 +75,7 @@ export class FishSchool {
 
     for (let i = 0; i < FISH_COUNT; i++) {
       const schoolIndex = i % FISH_SCHOOL_COUNT;
-      const scale = 0.3 + Math.random() * 1.2;
+      const scale = 0.35 + Math.random() * 0.65;
       const { mesh, disposables } = this.createFishMesh(scale);
 
       // Spawn near this group's initial orbit anchor ±14 units (wide spread to avoid initial clumping)

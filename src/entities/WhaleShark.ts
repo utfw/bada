@@ -102,8 +102,8 @@ export class WhaleShark {
       color: 0x3a4e63,
       roughness: 0.25,
       metalness: 0.04,
-      emissive: new THREE.Color(0x1a2a36),
-      emissiveIntensity: 0.10,
+      emissive: new THREE.Color(0x1a2530),
+      emissiveIntensity: 0.18,
       vertexColors: false,
     });
 
