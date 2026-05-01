@@ -94,33 +94,48 @@ export class WhaleShark {
     );
     this.originalPositions.set(latheGeo.attributes.position.array);
 
-    // Y좌표 기반 vertex color: 배(y≈-1.58) → 크림색, 등(y≈+1.58) → 회청색
-    const posArr = latheGeo.attributes.position.array as Float32Array;
-    const vertCount = latheGeo.attributes.position.count;
-    const colorData = new Float32Array(vertCount * 3);
-    const bellyColor = new THREE.Color(0xe0e8d0);
-    const backColor = new THREE.Color(0x4a6a80);
-    const tmpColor = new THREE.Color();
-    const yRange = 1.58; // max radius 2.1 × scale 0.75 ≈ 1.58
-
-    for (let i = 0; i < vertCount; i++) {
-      const y = posArr[i * 3 + 1];
-      const t = Math.max(0, Math.min(1, (y + yRange) / (yRange * 2)));
-      tmpColor.lerpColors(bellyColor, backColor, t);
-      colorData[i * 3]     = tmpColor.r;
-      colorData[i * 3 + 1] = tmpColor.g;
-      colorData[i * 3 + 2] = tmpColor.b;
-    }
-    latheGeo.setAttribute('color', new THREE.BufferAttribute(colorData, 3));
+    // sRGB → linear 변환: 셰이더 내부는 리니어 색 공간
+    const bellyLinear = new THREE.Color(0xbecdd8).convertSRGBToLinear();
+    const dorsalLinear = new THREE.Color(0x3a4e63).convertSRGBToLinear();
 
     const material = new THREE.MeshStandardMaterial({
-      color: 0xffffff, // vertex color와 곱해지므로 흰색 필수
+      color: 0x3a4e63,
       roughness: 0.25,
       metalness: 0.04,
       emissive: new THREE.Color(0x1a2a36),
-      emissiveIntensity: 0.25,
-      vertexColors: true,
+      emissiveIntensity: 0.10,
+      vertexColors: false,
     });
+
+    // PBR 조명과 무관하게 Y축 기반 배색 그라디언트를 강제 적용.
+    // vertexColors만으로는 복부가 광원을 등질 때 diffuse≈0이 되어
+    // emissive(어두운 네이비)만 남아 복부가 등색으로 보이는 문제를 해결한다.
+    material.onBeforeCompile = (shader: THREE.WebGLProgramParametersWithUniforms): void => {
+      shader.uniforms.uBellyColor = { value: bellyLinear };
+      shader.uniforms.uDorsalColor = { value: dorsalLinear };
+
+      shader.vertexShader =
+        'varying float vBodyY;\n' + shader.vertexShader;
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\nvBodyY = position.y;',
+      );
+
+      shader.fragmentShader =
+        'uniform vec3 uBellyColor;\nuniform vec3 uDorsalColor;\nvarying float vBodyY;\n' +
+        shader.fragmentShader;
+      // clamp 구간 [-1.58, +1.58]: max radius 2.1 × Y scale 0.75 ≈ 1.575
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <color_fragment>',
+        [
+          '#include <color_fragment>',
+          'float bodyT = clamp((vBodyY + 1.58) / 3.16, 0.0, 1.0);',
+          'diffuseColor.rgb = mix(uBellyColor, uDorsalColor, bodyT);',
+        ].join('\n'),
+      );
+    };
+    // 캐시 키 없으면 다른 머티리얼과 WebGL 프로그램을 공유해 셰이더가 누락될 수 있음
+    material.customProgramCacheKey = (): string => 'whaleSharkBody';
 
     this.disposables.push(latheGeo, material);
     this.group.add(new THREE.Mesh(latheGeo, material));
@@ -324,16 +339,17 @@ export class WhaleShark {
    */
   private createSpots(): void {
     const spotGeo = new THREE.CircleGeometry(0.38, 8);
+    const spotGeoSmall = new THREE.CircleGeometry(0.16, 8);
     const spotMat = new THREE.MeshBasicMaterial({
       color: 0xf0f4f8,
       side: THREE.DoubleSide,
     });
-    this.disposables.push(spotGeo, spotMat);
+    this.disposables.push(spotGeo, spotGeoSmall, spotMat);
 
     const rows = 10;
     const cols = 8;
     for (let r = 0; r < rows; r++) {
-      const t = 0.15 + (r / rows) * 0.7; // 머리와 꼬리 끝 제외
+      const t = 0.12 + (r / rows) * 0.76; // 머리와 꼬리 끝 제외, 꼬리 쪽 확장
       const bodyZ = -SHARK_LENGTH / 2 + t * SHARK_LENGTH;
       // 몸체 폭에 맞춰 적당한 원주 반지름 추정
       const bodyRadius = 2.0 * Math.pow(1 - Math.abs(t - 0.45) / 0.5, 0.8);
@@ -345,7 +361,8 @@ export class WhaleShark {
 
         const x = Math.cos(angle) * (bodyRadius * 1.1);
         const y = Math.sin(angle) * (bodyRadius * 0.75); // 편평한 단면 반영
-        const spot = new THREE.Mesh(spotGeo, spotMat);
+        const geo = r / rows > 0.7 ? spotGeoSmall : spotGeo;
+        const spot = new THREE.Mesh(geo, spotMat);
         spot.position.set(x, y, bodyZ);
         // 반점이 몸체 바깥을 향하도록 회전
         spot.lookAt(
