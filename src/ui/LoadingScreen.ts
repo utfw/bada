@@ -38,7 +38,12 @@ export class LoadingScreen {
 
   hide(): void {
     const inner = this.container.firstElementChild as HTMLElement;
-    if (inner) inner.style.opacity = '0';
+    if (inner) {
+      inner.style.opacity = '0';
+      // Immediately stop blocking touch/pointer events so the canvas
+      // receives input during the 1-second CSS fade-out.
+      inner.style.pointerEvents = 'none';
+    }
     setTimeout(() => {
       this.container.style.display = 'none';
     }, 1000);
@@ -53,11 +58,7 @@ export class LoadingScreen {
 
   waitForTap(): Promise<void> {
     return new Promise((resolve) => {
-      this.container.addEventListener(
-        'pointerdown',
-        () => resolve(),
-        { once: true },
-      );
+      this.container.addEventListener('pointerdown', () => resolve(), { once: true });
     });
   }
 }

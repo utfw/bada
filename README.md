@@ -1,6 +1,6 @@
 # 바다 (Bada)
 
-모바일 웹 기반 3D 해양 체험. 고래상어와 물고기 떼가 유영하는 수중 씬을 스마트폰 자이로스코프로 360° 탐험합니다.
+모바일 웹 기반 3D 해양 체험. 고래상어와 물고기 떼가 유영하는 수중 씬을 터치 드래그로 360° 탐험합니다.
 
 > **실험적 프로젝트** — 3D 씬 자체와 더불어, Claude Code 자율 에이전트(Observer → Planner → Implementer → Reviewer 파이프라인)가 코드를 스스로 관찰·수정·검증하는 워크플로우를 실험하기 위한 프로젝트입니다.
 
@@ -74,7 +74,7 @@ npm run agent:observe               # 관찰만
 - **물고기 떼** — 5개 school, 120마리. Boids(분리·정렬·응집) 알고리즘 + 독립 타원 궤도로 360° 씬에 분산
 - **실시간 날씨** — OpenWeatherMap API + Geolocation으로 현재 위치 날씨 반영 (안개 밀도·조명색 변화)
 - **God Ray** — 수면에서 내려오는 볼류메트릭 광선
-- **컨트롤** — DeviceOrientation → 터치 드래그 → 마우스 순서로 자동 fallback
+- **컨트롤** — 모바일 터치 드래그 / 데스크탑 마우스 드래그 (Pointer Events)
 
 ## 시작하기
 
@@ -121,7 +121,7 @@ src/
     WhaleShark.ts       # 고래상어 모델 + 유영 애니메이션
     Fish.ts             # Boids 군집 시스템
   controls/
-    DeviceControls.ts   # 자이로 / 터치 / 마우스 입력
+    DeviceControls.ts   # 터치 / 마우스 드래그 입력
   weather/
     WeatherService.ts   # 날씨 API
   ui/

@@ -19,7 +19,6 @@ async function init() {
   const hud = new HUD();
   hud.update(weatherData);
 
-  // Wait for user tap (required for iOS gyro permission)
   await loadingScreen.waitForTap();
   loadingScreen.hide();
 

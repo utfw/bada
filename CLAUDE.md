@@ -26,7 +26,7 @@ src/
     WhaleShark.ts          # 고래상어 프로시저럴 생성 (LatheGeometry 몸체, 수직 heterocercal 꼬리, 회청색+흰 반점). 꼬리 좌우 스윕(상어 특징), CatmullRomCurve3 경로
     Fish.ts                # Boids 군집 시스템 (Separation/Alignment/Cohesion), 저폴리 메시, 꼬리 진동
   controls/
-    DeviceControls.ts      # DeviceOrientationEvent → 터치 → 마우스 fallback
+    DeviceControls.ts      # 터치 드래그 / 마우스 드래그 (Pointer Events 기반)
   weather/
     WeatherService.ts      # OpenWeatherMap API 호출, Geolocation
   ui/

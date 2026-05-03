@@ -659,11 +659,19 @@ TITLE_END
   }
   const match = output.match(/TITLE_START\s*\n?(.+?)\n?\s*TITLE_END/);
   if (!match) {
-    console.log(`  ⚠ 제목 응답 포맷 실패 — 기본값 사용`);
+    console.log(`  ⚠ 제목 응답 포맷 실패 — 기본값 사용. 응답 발췌:\n    ${output.slice(0, 400).replace(/\n/g, "\n    ")}`);
     return fallback;
   }
   const title = match[1].trim();
-  if (title.length === 0 || title.length > 80) return fallback;
+  if (title.length === 0) {
+    console.log(`  ⚠ 제목 비어있음 — 기본값 사용`);
+    return fallback;
+  }
+  if (title.length > 100) {
+    console.log(`  ⚠ 제목 너무 김 (${title.length}자) — 기본값 사용. 받은 제목: "${title.slice(0, 80)}..."`);
+    return fallback;
+  }
+  console.log(`  ✓ 합성 제목: "${title}"`);
   return title;
 }
 
