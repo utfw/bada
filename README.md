@@ -33,7 +33,7 @@ Three.js · TypeScript · Vite
          │    계획대로 코드 수정, npx tsc --noEmit 통과 확인
          │    출력 마지막에 COMMIT_MSG + IMPL_COMPLETE
          │
-         └─ 4. Reviewer [Claude opus 4.6]
+         └─ 4. Reviewer [Claude sonnet]
               체크리스트 점검 + 스크린샷 시각 검증 + 타입체크
               REVIEW_FAIL → Implementer 재시도 (최대 2회)
               REVIEW_PASS → SUGGESTIONS 블록 (시각 개선 제안 ≥3개) 추출 → goals.md
@@ -49,7 +49,7 @@ Three.js · TypeScript · Vite
 
 - **REVIEW_CHECKLIST.md** — 과거 발견된 버그 패턴이 누적되는 단일 진실원천. Reviewer가 새 패턴 발견 시 직접 갱신
 - **SUGGESTIONS 자동 목표화** — Reviewer가 매 실행마다 시각 개선 제안 3개 이상 생성 → 다음 사이클에서 처리
-- **중복 제거** — 신규 목표 추가 시 + 시작 시점 모두 Ollama로 의미 기반 중복 검사
+- **중복 제거** — 신규 목표 추가 시 Ollama로 의미 기반 중복 검사. 미완료 목표가 10개 이상일 때만 전체 목록 중복 정리 실행
 - **자동 커밋 범위 제한** — `src/`, `goals.md`, `agent/REVIEW_CHECKLIST.md`만 (에이전트 자체 코드는 제외)
 - **모델 분리** — 가벼운 분류 작업(목표 생성, dedup, 커밋 제목)은 로컬 Ollama, 본 단계는 Claude
 

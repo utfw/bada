@@ -524,6 +524,46 @@ runGoals()  ← 정리된 목록으로 진행
 
 ---
 
+## [2026-05-03] Reviewer 토큰 최적화
+
+### 배경
+Reviewer 단계가 파이프라인 전체에서 가장 많은 토큰을 소비하고 있었음.
+주요 원인 세 가지:
+1. `claude-opus-4-6` 사용 — Sonnet 대비 ~5배 비용
+2. 프롬프트에 REVIEW_CHECKLIST.md 내용을 중복 기술 — Reviewer가 어차피 직접 읽는데 프롬프트에도 반복
+3. `--max-turns 20` — 실제 필요보다 많은 여유
+
+### loop.ts
+- **모델 변경**: `runReviewer()`에서 `claude-opus-4-6` → `claude-sonnet-4-6` 교체
+- **max-turns 축소**: 20 → 15
+- **프롬프트 ~47% 단축**: REVIEW_CHECKLIST.md와 중복되는 아래 섹션들 제거
+  - ⛔ 절대 금지 (lookAt 수식 관련) — 체크리스트 §1에 이미 기재
+  - 체크리스트 갱신 규칙 상세 설명 — 체크리스트 서문에 동일 내용
+  - 검증 체크리스트 1번의 세부 코드 확인 지침 — 체크리스트 §3/§3-2에 커버
+- 탑뷰 관찰 출력 형식 및 `isValidReviewPass()` 검증에 필요한 핵심 내용은 유지
+
+---
+
+## [2026-05-03] 중복 정리 조건부 실행
+
+### 배경
+`deduplicateExistingGoals()`가 에이전트 시작 시 미완료 목표 수와 무관하게 항상 실행.
+`qwen2.5-coder:7b`가 비슷해 보이는 목표를 과도하게 중복으로 판정해 목록이 의도치 않게 줄어드는 부작용 발생.
+신규 목표 추가 시점에는 이미 `appendGoals()` 내 `deduplicateGoalsWithOllama()`가 동작하므로,
+기존 목록에 대한 전체 재검사는 목록이 실제로 과잉 누적됐을 때만 필요함.
+
+### loop.ts
+- **변경 전**: `main()`에서 pending 목표 유무와 무관하게 `deduplicateExistingGoals()` 항상 실행
+- **변경 후**: pending 목표가 `SUGGESTION_SUPPRESS_THRESHOLD`(=10)개 이상일 때만 실행
+  ```
+  if (pendingBeforeDedup.length >= SUGGESTION_SUPPRESS_THRESHOLD) {
+    deduplicateExistingGoals();
+  }
+  ```
+- 신규 추가 시 삽입 시점 dedup(`appendGoals` 내)은 그대로 유지
+
+---
+
 ## [2026-05-01] 단계 중단 시 파이프라인 전체 정지
 
 ### 배경
