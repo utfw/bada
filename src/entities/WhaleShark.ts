@@ -102,7 +102,7 @@ export class WhaleShark {
       color: 0x3a4e63,
       roughness: 0.25,
       metalness: 0.04,
-      emissive: new THREE.Color(0x1a2530),
+      emissive: new THREE.Color(0x1a2e3a),
       emissiveIntensity: 0.18,
       vertexColors: false,
     });
@@ -150,8 +150,8 @@ export class WhaleShark {
     this.tailGroup.position.set(0, 0, SHARK_LENGTH / 2);
 
     const finMat = new THREE.MeshStandardMaterial({
-      color: 0x2e3f52,
-      roughness: 0.75,
+      color: 0x3a5068,
+      roughness: 0.6,
       side: THREE.DoubleSide,
     });
     this.disposables.push(finMat);
@@ -212,8 +212,8 @@ export class WhaleShark {
     };
     const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     const mat = new THREE.MeshStandardMaterial({
-      color: 0x2e3f52,
-      roughness: 0.75,
+      color: 0x3a5068,
+      roughness: 0.6,
       side: THREE.DoubleSide,
     });
     this.disposables.push(geo, mat);
@@ -225,7 +225,7 @@ export class WhaleShark {
 
     // 작은 두 번째 등지느러미 (상어 특징)
     const secondGeo = geo.clone();
-    secondGeo.scale(0.45, 0.45, 1);
+    secondGeo.scale(0.62, 0.65, 1);
     this.disposables.push(secondGeo);
     this.secondDorsal = new THREE.Mesh(secondGeo, mat);
     this.secondDorsal.position.set(-0.05, 0.24, SHARK_LENGTH * 0.3);
@@ -251,8 +251,8 @@ export class WhaleShark {
     };
     const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     const mat = new THREE.MeshStandardMaterial({
-      color: 0x2e3f52,
-      roughness: 0.75,
+      color: 0x3a5068,
+      roughness: 0.6,
       side: THREE.DoubleSide,
     });
     this.disposables.push(geo, mat);

@@ -81,9 +81,9 @@ export class DeviceControls {
     this.boundListeners.push({ target, type, listener, options });
   }
 
-  setPresetView(position: THREE.Vector3, target: THREE.Vector3): void {
-    this.camera.position.copy(position);
-    this.camera.lookAt(target);
+  setPresetView(position: { x: number; y: number; z: number }, target: { x: number; y: number; z: number }): void {
+    this.camera.position.set(position.x, position.y, position.z);
+    this.camera.lookAt(target.x, target.y, target.z);
     const euler = new THREE.Euler().setFromQuaternion(this.camera.quaternion, 'YXZ');
     this.dragPitch = euler.x;
     this.dragYaw   = euler.y;

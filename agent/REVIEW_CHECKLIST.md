@@ -154,3 +154,4 @@ Reviewer 또는 사람이 항목을 추가·수정할 때마다 한 줄 기록. 
 - (2026-04-26) [human] §3 보강: dorsal/secondDorsal rotation.y를 animateBodyUndulation에서 body tilt 각도로 동기화하지 않으면 position.x 추적만으로는 fin이 기울어진 body 표면에서 수직으로 떠 있어 시각 분리 발생 — 실패 기준 및 SUGGESTIONS 트리거 명시. §3-2 보강: FishSchool 단일 orbitPath 공유 시 씬 단조로움 실패 기준 및 궤도 중심 분산 기준 추가 — 수치 검증 통과해도 이 구조 문제는 별도 코드 확인 필요.
 - (2026-04-27) [human] §1 추가: Fish forwardDot 역방향 이슈를 HUMAN_VERIFICATION_REQUIRED로 분류 — Reviewer가 이 항목을 REVIEW_FAIL로 반복 보고하지 않도록 명시.
 - (2026-04-29) [reviewer] §9 신설: 버블 파티클 크기 최대값(sizes max) ≤ 0.2, 기저 알파 X ≤ 0.15 초과 시 고래상어보다 버블이 두드러지는 시각 불균형 발생 — 코드 수치 검증 기준 추가.
+- (2026-05-03) [reviewer] §4 보강: whaleshark-*.png 뿐 아니라 topview-t1/t2.png도 3D 뷰포트 검은색이면 엔티티 방향 탑뷰 검증이 불가 — HUMAN_VERIFICATION_REQUIRED로 분류하고 Observer의 setPresetView/topview 카메라 로직 이상을 사람에게 보고. §4 원인 후보(DeviceControls 경합, plain 객체 lookAt)가 topview에도 동일하게 적용됨.
