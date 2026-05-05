@@ -33,6 +33,7 @@ export class WhaleShark {
   // Pre-allocated Vector3s to avoid per-frame GC pressure
   private readonly _pathPoint = new THREE.Vector3();
   private readonly _pathTangent = new THREE.Vector3();
+  private readonly _lookTarget = new THREE.Vector3();
 
   constructor(scene: THREE.Scene) {
     this.group = new THREE.Group();
@@ -389,8 +390,8 @@ export class WhaleShark {
         new THREE.Vector3(6, -3.5, -19),  // 우측 이탈 완충 (z=-19, x=6, arctan≈18° < FOV)
         new THREE.Vector3(8, -4, -16),    // ★ 우측 완만한 이탈
         new THREE.Vector3(14, -5, -8),    // 오른쪽-앞 (축소)
-        new THREE.Vector3(18, -5, 5),     // 오른쪽 (축소)
-        new THREE.Vector3(14, -6, 14),    // 후방-우 (축소)
+        new THREE.Vector3(18, -5, 0),     // 오른쪽 (z=0으로 축소)
+        new THREE.Vector3(14, -6, 0),    // 후방-우 (z=0으로 축소)
         new THREE.Vector3(0, -3.5, -24),  // ★ 정중앙 체류점 (신규, PASS2 직전 진입호)
         new THREE.Vector3(-2, -4, -24),   // ✓ 정면 PASS 2 (x=-2, z=-24, 심화)
         new THREE.Vector3(-3, -3.8, -22), // z<-18 체류 연장 경유점 (arctan≈7.8° < FOV)
@@ -398,8 +399,8 @@ export class WhaleShark {
         new THREE.Vector3(-6, -3.5, -19), // 좌측 이탈 완충 (z=-19, x=-6, arctan≈18° < FOV)
         new THREE.Vector3(-8, -4, -16),   // ★ 좌측 완만한 이탈
         new THREE.Vector3(-14, -5, -8),   // 왼쪽-앞 (축소)
-        new THREE.Vector3(-18, -4, 5),    // 왼쪽 (축소)
-        new THREE.Vector3(-14, -5, 14),   // 후방-좌 (축소)
+        new THREE.Vector3(-18, -4, 0),    // 왼쪽 (z=0으로 축소)
+        new THREE.Vector3(-14, -5, 0),   // 후방-좌 (z=0으로 축소)
         new THREE.Vector3(-5, -4, -20),   // ✓ 정면 재진입 경유점 (좌후방→전방 구간)
       ],
       true,
@@ -426,8 +427,8 @@ export class WhaleShark {
 
     // 진행 방향으로 몸체를 향하게 — lookAt은 -Z를 타겟으로 정렬하므로 tangent를 더함
     this.swimPath.getTangentAt(this.pathProgress, this._pathTangent);
-    const lookTarget = this._pathPoint.clone().sub(this._pathTangent);
-    this.group.lookAt(lookTarget);
+    this._lookTarget.copy(this._pathPoint).sub(this._pathTangent);
+    this.group.lookAt(this._lookTarget);
 
     // 몸체 좌우 물결 (상어 특유의 사인 곡선 웨이브)
     this.animateBodyUndulation(elapsed);
@@ -489,6 +490,7 @@ export class WhaleShark {
     const pectoralWave = finWave(-SHARK_LENGTH * 0.25);
     this.leftPectoral.position.x = this.pectoralBaseX + pectoralWave;
     this.rightPectoral.position.x = -this.pectoralBaseX + pectoralWave;
+    this.tailGroup.position.x = finWave(SHARK_LENGTH * 0.5);
   }
 
   /** 런타임 관찰용 상태 스냅샷 (agent/observe.ts에서 사용) */
