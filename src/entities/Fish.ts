@@ -136,6 +136,8 @@ export class FishSchool {
       color,
       roughness: 0.4,
       metalness: 0.3,
+      emissive: 0x080808,
+      emissiveIntensity: 0.06,
       side: THREE.DoubleSide,
     });
 

@@ -334,7 +334,7 @@ export class WhaleShark {
    * 작은 흰 디스크를 몸체 표면 위에 격자 형태로 살짝 띄워 배치.
    */
   private createSpots(): void {
-    const spotGeo = new THREE.CircleGeometry(0.38, 8);
+    const spotGeo = new THREE.CircleGeometry(0.20, 8);
     const spotGeoSmall = new THREE.CircleGeometry(0.16, 8);
     const spotMat = new THREE.MeshBasicMaterial({
       color: 0xf0f4f8,
@@ -351,7 +351,7 @@ export class WhaleShark {
       const bodyRadius = 2.0 * Math.pow(1 - Math.abs(t - 0.45) / 0.5, 0.8);
 
       for (let c = 0; c < cols; c++) {
-        const angle = (c / cols) * Math.PI * 2 + r * 0.71 + ((r * 17 + c * 11) % 7) * 0.09;
+        const angle = (c / cols) * Math.PI * 2 + r * 0.4 + (Math.random() - 0.5) * 0.5;
         // 아래쪽(배)은 반점 생략
         if (Math.sin(angle) < -0.3) continue;
 
@@ -365,7 +365,7 @@ export class WhaleShark {
           new THREE.Vector3(x * 2, y * 2, bodyZ),
         );
         // 크기 살짝 랜덤 변주
-        const s = 0.7 + ((r * 13 + c * 7) % 10) / 15;
+        const s = 0.6 + ((r * 13 + c * 7) % 10) / 25;
         spot.scale.set(s, s, s);
         this.group.add(spot);
       }
