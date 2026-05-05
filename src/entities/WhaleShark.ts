@@ -100,8 +100,8 @@ export class WhaleShark {
 
     const material = new THREE.MeshStandardMaterial({
       color: 0x3a4e63,
-      roughness: 0.25,
-      metalness: 0.04,
+      roughness: 0.6,
+      metalness: 0.0,
       emissive: new THREE.Color(0x1a2e3a),
       emissiveIntensity: 0.18,
       vertexColors: false,
@@ -292,12 +292,12 @@ export class WhaleShark {
    * 아가미 구멍 5쌍 — 머리 뒤쪽 양옆에 수직 슬릿.
    */
   private createGillSlits(): void {
-    const slitMat = new THREE.MeshStandardMaterial({ color: 0x151f29 });
+    const slitMat = new THREE.MeshStandardMaterial({ color: 0x0a1420 });
     this.disposables.push(slitMat);
 
     for (let side = -1; side <= 1; side += 2) {
       for (let i = 0; i < 5; i++) {
-        const geo = new THREE.BoxGeometry(0.08, 0.9, 0.05);
+        const geo = new THREE.BoxGeometry(0.14, 0.9, 0.05);
         this.disposables.push(geo);
         const slit = new THREE.Mesh(geo, slitMat);
         slit.position.set(
@@ -384,20 +384,22 @@ export class WhaleShark {
     this.swimPath = new THREE.CatmullRomCurve3(
       [
         new THREE.Vector3(2, -3, -24),    // ✓ 정면 PASS 1 (x=2,  z=-24, 심화)
+        new THREE.Vector3(3, -3.3, -22),  // z<-18 체류 연장 경유점 (arctan≈7.8° < FOV)
         new THREE.Vector3(4, -3.2, -21),  // 정면 통과 체류 연장 (z=-21, x=4, arctan≈11° < FOV)
         new THREE.Vector3(6, -3.5, -19),  // 우측 이탈 완충 (z=-19, x=6, arctan≈18° < FOV)
         new THREE.Vector3(8, -4, -16),    // ★ 우측 완만한 이탈
-        new THREE.Vector3(22, -5, -8),    // 오른쪽-앞
-        new THREE.Vector3(28, -5, 6),     // 오른쪽
-        new THREE.Vector3(20, -6, 22),    // 후방-우
+        new THREE.Vector3(14, -5, -8),    // 오른쪽-앞 (축소)
+        new THREE.Vector3(18, -5, 5),     // 오른쪽 (축소)
+        new THREE.Vector3(14, -6, 14),    // 후방-우 (축소)
         new THREE.Vector3(0, -3.5, -24),  // ★ 정중앙 체류점 (신규, PASS2 직전 진입호)
         new THREE.Vector3(-2, -4, -24),   // ✓ 정면 PASS 2 (x=-2, z=-24, 심화)
+        new THREE.Vector3(-3, -3.8, -22), // z<-18 체류 연장 경유점 (arctan≈7.8° < FOV)
         new THREE.Vector3(-4, -3.5, -21), // 좌측 정면 통과 체류 연장 (z=-21, x=-4, arctan≈11° < FOV)
         new THREE.Vector3(-6, -3.5, -19), // 좌측 이탈 완충 (z=-19, x=-6, arctan≈18° < FOV)
         new THREE.Vector3(-8, -4, -16),   // ★ 좌측 완만한 이탈
-        new THREE.Vector3(-22, -5, -8),   // 왼쪽-앞
-        new THREE.Vector3(-28, -4, 6),    // 왼쪽
-        new THREE.Vector3(-20, -5, 22),   // 후방-좌
+        new THREE.Vector3(-14, -5, -8),   // 왼쪽-앞 (축소)
+        new THREE.Vector3(-18, -4, 5),    // 왼쪽 (축소)
+        new THREE.Vector3(-14, -5, 14),   // 후방-좌 (축소)
         new THREE.Vector3(-5, -4, -20),   // ✓ 정면 재진입 경유점 (좌후방→전방 구간)
       ],
       true,
