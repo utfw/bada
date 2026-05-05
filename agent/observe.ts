@@ -10,7 +10,7 @@
  * 출력: agent/observations/latest.json (+ screenshot PNG 몇 장)
  */
 
-import { chromium, type Browser } from "@playwright/test";
+import { chromium, type Browser, type Page } from "@playwright/test";
 import { spawn, type ChildProcess } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
@@ -81,27 +81,26 @@ function vecDist(a: Vec3, b: Vec3): number {
 }
 
 /**
- * PNG 파일 크기를 휴리스틱으로 사용해 "거의 단색 검은 화면"을 감지.
- * 단색에 가까운 PNG는 압축률이 매우 높아 파일 크기가 극도로 작아진다.
- * 1024x768 PNG가 10KB 미만이면 사실상 아무것도 렌더되지 않은 것으로 본다.
+ * 뷰포트 중앙 100×100px 클립을 별도로 캡처해 단색 검은 화면 여부를 판정.
+ * HUD·버튼 UI가 전체 스크린샷 파일 크기를 부풀리는 문제를 우회한다.
+ * 단색 100×100 PNG는 ~200B이므로 500B 미만이면 렌더 없음으로 판정.
  */
-async function analyzeBrightness(relativePaths: string[]): Promise<string[]> {
-  const anomalies: string[] = [];
-  const DARK_BYTES_THRESHOLD = 10_000;
-  for (const rel of relativePaths) {
-    const abs = path.join(ROOT, rel);
-    try {
-      const stat = fs.statSync(abs);
-      if (stat.size < DARK_BYTES_THRESHOLD) {
-        anomalies.push(
-          `${rel}가 거의 단색(${(stat.size / 1024).toFixed(1)}KB) — 카메라 또는 조명 오작동 의심`,
-        );
-      }
-    } catch {
-      // ignore missing files
+async function isCenterDark(page: Page, label: string): Promise<string | null> {
+  const DARK_BYTES = 500;
+  const vp = page.viewportSize()!;
+  const cx = Math.floor(vp.width / 2) - 50;
+  const cy = Math.floor(vp.height / 2) - 50;
+  const tmp = path.join(OBS_DIR, `.dark-check-${Date.now()}.png`);
+  try {
+    await page.screenshot({ path: tmp, clip: { x: cx, y: cy, width: 100, height: 100 } });
+    const size = fs.statSync(tmp).size;
+    if (size < DARK_BYTES) {
+      return `${label} 뷰포트 중앙이 검은색(${size}B) — 카메라 또는 렌더 오작동`;
     }
+    return null;
+  } finally {
+    try { fs.unlinkSync(tmp); } catch { /* ignore */ }
   }
-  return anomalies;
 }
 
 /**
@@ -248,6 +247,7 @@ async function observe(): Promise<Observation> {
     const sampleCount = Math.floor((durationSec * 1000) / intervalMs);
     const samples: Sample[] = [];
     const screenshots: string[] = [];
+    const anomalies: string[] = [];
 
     console.log(`[observer] ${durationSec}초 × ${sampleCount}샘플 수집 시작`);
 
@@ -405,7 +405,10 @@ async function observe(): Promise<Observation> {
       await page.waitForTimeout(400);
       const shotPath = path.join(OBS_DIR, `whaleshark-${angle.name}.png`);
       await page.screenshot({ path: shotPath });
+      const label = `whaleshark-${angle.name}.png`;
       screenshots.push(path.relative(ROOT, shotPath));
+      const darkMsg = await isCenterDark(page, label);
+      if (darkMsg) anomalies.push(darkMsg);
     }
 
     // ── 탑뷰 시간차 스냅샷: 수영 방향 확인용 ──────────────────────────
@@ -439,6 +442,8 @@ async function observe(): Promise<Observation> {
       const topPath1 = path.join(OBS_DIR, "topview-t1.png");
       await page.screenshot({ path: topPath1 });
       screenshots.push(path.relative(ROOT, topPath1));
+      const darkTop1 = await isCenterDark(page, "topview-t1.png");
+      if (darkTop1) anomalies.push(darkTop1);
 
       // 2초 대기 후 두 번째 탑뷰 스냅샷 (위치 변화로 이동 방향 확인)
       await page.waitForTimeout(2000);
@@ -447,11 +452,11 @@ async function observe(): Promise<Observation> {
       const topPath2 = path.join(OBS_DIR, "topview-t2.png");
       await page.screenshot({ path: topPath2 });
       screenshots.push(path.relative(ROOT, topPath2));
+      const darkTop2 = await isCenterDark(page, "topview-t2.png");
+      if (darkTop2) anomalies.push(darkTop2);
     }
 
-    const anomalies = detectAnomalies(samples);
-    const darkShots = await analyzeBrightness(screenshots);
-    anomalies.push(...darkShots);
+    anomalies.push(...detectAnomalies(samples));
 
     const observation: Observation = {
       capturedAt: new Date().toISOString(),

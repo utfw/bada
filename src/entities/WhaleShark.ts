@@ -183,12 +183,9 @@ export class WhaleShark {
 
     const upperFin = new THREE.Mesh(upperGeo, finMat);
     upperFin.position.set(-0.06, 0, 0);
-    // 상어 꼬리는 수직 평면. 살짝 뒤로 젖힘
-    upperFin.rotation.y = Math.PI / 2;
 
     const lowerFin = new THREE.Mesh(lowerGeo, finMat);
     lowerFin.position.set(-0.06, 0, 0);
-    lowerFin.rotation.y = Math.PI / 2;
 
     this.tailGroup.add(upperFin, lowerFin);
     this.group.add(this.tailGroup);
@@ -220,7 +217,7 @@ export class WhaleShark {
 
     this.dorsal = new THREE.Mesh(geo, mat);
     this.dorsal.position.set(-0.05, 1.4, SHARK_LENGTH * 0.05);
-    this.dorsal.rotation.y = Math.PI / 2;
+    this.dorsal.rotation.y = -Math.PI / 2;
     this.group.add(this.dorsal);
 
     // 작은 두 번째 등지느러미 (상어 특징)
@@ -229,7 +226,7 @@ export class WhaleShark {
     this.disposables.push(secondGeo);
     this.secondDorsal = new THREE.Mesh(secondGeo, mat);
     this.secondDorsal.position.set(-0.05, 0.24, SHARK_LENGTH * 0.3);
-    this.secondDorsal.rotation.y = Math.PI / 2;
+    this.secondDorsal.rotation.y = -Math.PI / 2;
     this.group.add(this.secondDorsal);
   }
 
@@ -259,11 +256,11 @@ export class WhaleShark {
 
     this.leftPectoral = new THREE.Mesh(geo, mat);
     this.leftPectoral.position.set(2.2, -0.4, -SHARK_LENGTH * 0.25);
-    this.leftPectoral.rotation.set(0.1, 0, -0.25);
+    this.leftPectoral.rotation.set(-Math.PI / 2, 0, -0.25);
 
     this.rightPectoral = new THREE.Mesh(geo, mat);
     this.rightPectoral.position.set(-2.2, -0.4, -SHARK_LENGTH * 0.25);
-    this.rightPectoral.rotation.set(0.1, Math.PI, 0.25);
+    this.rightPectoral.rotation.set(-Math.PI / 2, Math.PI, 0.25);
 
     this.group.add(this.leftPectoral, this.rightPectoral);
   }
@@ -272,9 +269,8 @@ export class WhaleShark {
    * 배지느러미(pelvic fins): 몸 아래쪽 후방에 작게.
    */
   private createPelvicFins(): void {
-    const geo = new THREE.ConeGeometry(0.35, 1.0, 6);
-    geo.rotateX(Math.PI / 2);
-    geo.scale(1, 0.3, 1);
+    const geo = new THREE.ConeGeometry(0.3, 0.9, 6);
+    geo.scale(1, 0.5, 1);
     const mat = new THREE.MeshStandardMaterial({
       color: 0x2e3f52,
       roughness: 0.75,
@@ -282,12 +278,12 @@ export class WhaleShark {
     this.disposables.push(geo, mat);
 
     const left = new THREE.Mesh(geo, mat);
-    left.position.set(0.9, -1.0, SHARK_LENGTH * 0.2);
-    left.rotation.z = -0.4;
+    left.position.set(0.7, -1.1, SHARK_LENGTH * 0.2);
+    left.rotation.set(0, 0, -0.5);
 
     const right = new THREE.Mesh(geo, mat);
-    right.position.set(-0.9, -1.0, SHARK_LENGTH * 0.2);
-    right.rotation.z = 0.4;
+    right.position.set(-0.7, -1.1, SHARK_LENGTH * 0.2);
+    right.rotation.set(0, 0, 0.5);
 
     this.group.add(left, right);
   }
@@ -435,7 +431,7 @@ export class WhaleShark {
     this.animateBodyUndulation(elapsed);
 
     // 꼬리지느러미 좌우 스윕 (whale은 상하였지만 shark는 좌우)
-    this.tailGroup.rotation.y = Math.PI / 2 + Math.sin(elapsed * 2.5) * 0.45;
+    this.tailGroup.rotation.y = -Math.PI / 2 + Math.sin(elapsed * 2.5) * 0.45;
 
     // 가슴지느러미 완만한 균형잡기
     this.leftPectoral.rotation.z = -0.25 + Math.sin(elapsed * 1.5) * 0.08;
@@ -485,9 +481,9 @@ export class WhaleShark {
     };
 
     this.dorsal.position.x = this.dorsalBaseX + finWave(SHARK_LENGTH * 0.05);
-    this.dorsal.rotation.y = Math.PI / 2 + Math.atan(finWaveSlope(SHARK_LENGTH * 0.05));
+    this.dorsal.rotation.y = -Math.PI / 2 + Math.atan(finWaveSlope(SHARK_LENGTH * 0.05));
     this.secondDorsal.position.x = this.secondDorsalBaseX + finWave(SHARK_LENGTH * 0.3);
-    this.secondDorsal.rotation.y = Math.PI / 2 + Math.atan(finWaveSlope(SHARK_LENGTH * 0.3));
+    this.secondDorsal.rotation.y = -Math.PI / 2 + Math.atan(finWaveSlope(SHARK_LENGTH * 0.3));
     const pectoralWave = finWave(-SHARK_LENGTH * 0.25);
     this.leftPectoral.position.x = this.pectoralBaseX + pectoralWave;
     this.rightPectoral.position.x = -this.pectoralBaseX + pectoralWave;

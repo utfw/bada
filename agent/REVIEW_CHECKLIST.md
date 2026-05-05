@@ -57,6 +57,12 @@
 
 - **꼬리지느러미(caudal) 접합**: `tailGroup.position.z = SHARK_LENGTH / 2`로 꼬리 끝에 배치되어야 한다. Reviewer는 `createCaudalFin()`에서 tailGroup position이 body 끝점과 일치하는지 확인.
 
+- **[코드 검증] 등지느러미 방향 — rotation.y 부호**: `createDorsalFin()`에서 dorsal·secondDorsal의 `rotation.y`는 반드시 **음수(-π/2)** 여야 한다. 양수(+π/2)이면 shape X축이 머리 방향(-Z)으로 전개되어 지느러미가 앞으로 젖혀진 것처럼 보인다. `animateBodyUndulation()`의 tilt 보정식도 `-Math.PI/2 + atan(...)` 형태인지 함께 확인. **양수 기반이면 실패.**
+
+- **[코드 검증] 꼬리지느러미 이중 회전 버그**: `createCaudalFin()`에서 tailGroup 내부의 개별 fin 메시(upperFin, lowerFin)에 `rotation.y`가 설정되어 있으면 안 된다. tailGroup 자체가 `update()`에서 `-Math.PI/2 + sin(...)` 회전을 받으므로, 내부 메시에 추가로 `rotation.y = Math.PI/2`를 설정하면 합산이 0이 되어 꼬리지느러미가 수평으로 눕는다. **내부 메시에 rotation.y가 있으면 실패.**
+
+- **[코드 검증] 가슴지느러미 수평 방향 — rotation.x**: `createPectoralFins()`에서 pectoral fin의 `rotation.x`는 반드시 **약 ±π/2** 여야 한다. `rotation.x ≈ 0`이면 shape이 XY 수직 평면에 위치해 측면에서 얇은 막대기로 보인다. 올바른 설정은 `rotation.x = -Math.PI/2`로 shape을 XZ 수평 평면(날개 방향)에 눕히는 것이다. **|rotation.x| < 0.5이면 실패.**
+
 ## 3-1. Fish 모델 완성도
 
 - 물고기는 반드시 **몸통(body)**, **꼬리지느러미(tail fin)**, **지느러미(dorsal/pectoral fin)** 파츠를 가져야 한다. 몸통만 있고 꼬리·지느러미가 없으면 **실패**.
@@ -155,3 +161,4 @@ Reviewer 또는 사람이 항목을 추가·수정할 때마다 한 줄 기록. 
 - (2026-04-27) [human] §1 추가: Fish forwardDot 역방향 이슈를 HUMAN_VERIFICATION_REQUIRED로 분류 — Reviewer가 이 항목을 REVIEW_FAIL로 반복 보고하지 않도록 명시.
 - (2026-04-29) [reviewer] §9 신설: 버블 파티클 크기 최대값(sizes max) ≤ 0.2, 기저 알파 X ≤ 0.15 초과 시 고래상어보다 버블이 두드러지는 시각 불균형 발생 — 코드 수치 검증 기준 추가.
 - (2026-05-03) [reviewer] §4 보강: whaleshark-*.png 뿐 아니라 topview-t1/t2.png도 3D 뷰포트 검은색이면 엔티티 방향 탑뷰 검증이 불가 — HUMAN_VERIFICATION_REQUIRED로 분류하고 Observer의 setPresetView/topview 카메라 로직 이상을 사람에게 보고. §4 원인 후보(DeviceControls 경합, plain 객체 lookAt)가 topview에도 동일하게 적용됨.
+- (2026-05-05) [human] §3 보강: 등지느러미 rotation.y 부호 검증(음수 필수), 꼬리지느러미 내부 메시 이중 rotation.y 버그(합산 0→수평), 가슴지느러미 rotation.x 수평 방향 검증(|rotation.x| < 0.5이면 실패) 항목 추가. 세 버그 모두 에이전트가 수치 체크만으로 탐지하지 못해 사람이 직접 발견함.

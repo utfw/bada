@@ -5,6 +5,43 @@
 
 ---
 
+## [2026-05-05] 고래상어 지느러미 방향 수정 + Observer 검은 화면 탐지 개선
+
+### 배경 — 에이전트가 이 버그들을 발견하지 못한 이유
+
+두 가지 원인이 겹쳤다:
+
+1. **근접샷 검은 화면 (2026-04-27 이후)**: Pointer Events 기반 터치 컨트롤 도입 이후 `DeviceControls.setPresetView()`가 plain `{x,y,z}` 객체를 받으면서 Three.js `lookAt()`이 `isVector3` 플래그 부재로 NaN을 생성 → whaleshark-*.png / topview-*.png 전부 검은 화면. Reviewer가 이미지를 열어도 아무것도 볼 수 없었음.
+
+2. **체크리스트에 방향 검증 항목 없음 (구조적)**: 근접샷이 보이던 시기에도 REVIEW_CHECKLIST.md §3은 수치 기반 검증(position.x vs radius, rotation.y 갱신 여부)만 있었고, rotation 부호·합산 오류·수평/수직 방향 검증 항목이 없었음. Reviewer가 코드를 읽어도 `Math.PI/2`라는 값 자체가 "올바른 수치"처럼 보여 지나쳤음.
+
+### 수정 내용
+
+#### `src/controls/DeviceControls.ts`
+- `setPresetView()` 파라미터 타입 `THREE.Vector3` → `{ x: number; y: number; z: number }`
+- `camera.position.copy(position)` → `.set(position.x, position.y, position.z)`
+- `camera.lookAt(target)` → `.lookAt(target.x, target.y, target.z)` (3-인자 형식으로 NaN 방지)
+
+#### `src/entities/WhaleShark.ts`
+- **등지느러미(dorsal·secondDorsal)**: `rotation.y = +Math.PI/2` → `-Math.PI/2`. `+π/2`는 shape X가 머리 방향(-Z)으로 전개되어 지느러미가 앞으로 젖혀짐. `animateBodyUndulation()` tilt 보정식도 `-Math.PI/2 + atan(...)` 형태로 동일 수정.
+- **꼬리지느러미(caudal)**: `createCaudalFin()` 내 upperFin·lowerFin 개별 메시의 `rotation.y = Math.PI/2` 제거. tailGroup 자체가 `update()`에서 `-Math.PI/2 + sin(...)` 회전을 받으므로 내부에 `+π/2`가 하나 더 있으면 합산 0 → 꼬리지느러미 수평.
+- **가슴지느러미(pectoral)**: `rotation.x: 0.1` → `-Math.PI/2`. `rotation.x ≈ 0`이면 shape이 XY 수직 평면에 위치해 측면에서 얇은 막대기처럼 보임. `-π/2`로 XZ 수평 평면(날개 방향)에 눕힘.
+- **배지느러미(pelvic)**: `rotateX(Math.PI/2)` 제거 → cone이 꼬리 방향(+Z)으로 뾰족하게 나오는 것을 아래쪽(-Y)을 향하도록 수정. 크기도 소폭 조정(0.35→0.3, scale Y 0.3→0.5).
+
+#### `agent/observe.ts`
+- **`analyzeBrightness()` 제거**: 전체 스크린샷 파일 크기(<10KB) 기준 → HUD·버튼 UI 오버레이가 있으면 10KB를 초과해도 뷰포트는 검은색인 케이스를 탐지하지 못함.
+- **`isCenterDark()` 신설**: 뷰포트 중앙 100×100px 클립만 별도로 캡처해 파일 크기 <500B 이면 검은 화면 판정. UI 오버레이 영향 없음.
+- whaleshark 근접샷 4장 + topview 2장 캡처 직후 각각 `isCenterDark()` 호출해 anomaly로 즉시 기록.
+- `anomalies` 배열 선언을 관찰 루프 시작 전으로 앞당겨 캡처 중에도 dark anomaly 누적 가능.
+
+#### `agent/REVIEW_CHECKLIST.md`
+- §3에 3개 항목 추가:
+  - 등지느러미 `rotation.y` 부호 검증 (음수 필수, 양수이면 실패)
+  - 꼬리지느러미 내부 메시 이중 `rotation.y` 버그 (합산 0 → 수평, 내부 메시 rotation.y 있으면 실패)
+  - 가슴지느러미 `rotation.x` 수평 방향 검증 (`|rotation.x| < 0.5` 이면 실패)
+
+---
+
 ## [2026-04-12] 기반 구조 구축
 
 ### loop.ts — 4단계 파이프라인 초기 설계
