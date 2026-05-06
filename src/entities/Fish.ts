@@ -46,10 +46,10 @@ export class FishSchool {
     // [cx, cz, yBase, semi_a, semi_b, yWave]
     const schoolDefs: [number, number, number, number, number, number][] = [
       [-16,  -4,  -4, 12,  8, 2.5],  // 0: left-front,  shallow
-      [ 16,   8,  -8, 10,  9, 2.0],  // 1: right-back,  mid
+      [  8,  -8,  -8, 10,  9, 2.0],  // 1: right-front, mid
       [  0, -20,  -6, 14,  6, 1.5],  // 2: far back,    mid-deep
-      [ 14, -14, -11,  9, 11, 2.0],  // 3: right-front, deep
-      [-12,  14,  -3, 11,  7, 3.0],  // 4: left-back,   near surface
+      [  7, -14, -11,  9, 11, 2.0],  // 3: right-front, deep
+      [-12,  -8,  -3, 11,  7, 3.0],  // 4: left-front,  near surface
     ];
     const N = 8;
     this.orbitPaths = schoolDefs.map(([cx, cz, yBase, semi_a, semi_b, yWave]) => {
