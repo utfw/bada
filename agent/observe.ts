@@ -411,6 +411,31 @@ async function observe(): Promise<Observation> {
       if (darkMsg) anomalies.push(darkMsg);
     }
 
+    // ── 수면 하방 샷: 아래에서 위를 바라보는 각도로 수면·조명 확인 ──────
+    console.log(`[observer] 수면 하방 샷 촬영`);
+    const surfaceUpOk = await page.evaluate(() => {
+      const w = window as unknown as {
+        __controls?: {
+          setPresetView(
+            position: { x: number; y: number; z: number },
+            target: { x: number; y: number; z: number },
+          ): void;
+        };
+      };
+      const ctrl = w.__controls;
+      if (!ctrl) return false;
+      ctrl.setPresetView({ x: 0, y: -10, z: 0 }, { x: 0, y: 15, z: 0 });
+      return true;
+    });
+    if (surfaceUpOk) {
+      await page.waitForTimeout(500);
+      const surfacePath = path.join(OBS_DIR, "surface-up.png");
+      await page.screenshot({ path: surfacePath });
+      screenshots.push(path.relative(ROOT, surfacePath));
+      const darkSurface = await isCenterDark(page, "surface-up.png");
+      if (darkSurface) anomalies.push(darkSurface);
+    }
+
     // ── 탑뷰 시간차 스냅샷: 수영 방향 확인용 ──────────────────────────
     console.log(`[observer] 탑뷰 이동 방향 확인 스냅샷 촬영`);
     const topViewHeight = 50;

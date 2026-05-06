@@ -538,9 +538,12 @@ ${fileList}
 검증 절차 (순서대로):
 1. agent/REVIEW_CHECKLIST.md Read → 모든 항목 점검 (금지 규칙·갱신 규칙 포함)
 2. agent/observations/topview-t1.png, topview-t2.png Read → 머리/이동 방향 비교
-3. agent/observations/screenshot-1~4.png, whaleshark-front/side/top/below.png Read → 육안 확인
+3. agent/observations/screenshot-1~4.png, whaleshark-front/side/top/below.png, surface-up.png Read → 육안 확인
+   - surface-up.png: 아래에서 위를 바라본 샷. 수면 투시·갓레이·조명 분위기 확인 (§10 기준)
 4. npx tsc --noEmit Bash 실행 → 타입 에러 없어야 함
 5. 변경 파일 코드 Read → 목표 구현 여부, any 타입, dispose() 누락 확인
+   - src/scene/Ocean.ts: 갓레이 메시 생성, 수면 material 시간 갱신 구조 (§10)
+   - src/scene/Lighting.ts: AmbientLight/DirectionalLight 비율, fog 색상 (§10)
 6. 새 버그 패턴 발견 시 REVIEW_CHECKLIST.md 갱신 (갱신 로그에 오늘 날짜·요약 추가)
 
 출력에 반드시 포함 (이 섹션 없는 REVIEW_PASS는 무효):

@@ -123,6 +123,20 @@
 
 ---
 
+## 10. 조명·수면 시각 품질 (Lighting & Ocean Surface)
+
+- **[코드 검증] 갓레이(God Ray) 존재**: `Ocean.ts`에 `GOD_RAY_COUNT` 개수만큼 ConeGeometry 기반 볼류메트릭 광선 메시가 생성되고 씬에 add 되어야 한다. `GOD_RAY_MAX_OPACITY`가 0이거나 geometry를 씬에 추가하지 않으면 **실패**.
+
+- **[시각 검증] 갓레이 가시성**: `screenshot-1~4.png` 중 최소 1장에서 수면에서 내려오는 밝은 쐐기형 광선 줄기가 보여야 한다. 4장 모두에서 광선이 보이지 않으면 opacity·위치·각도 문제이므로 **실패 징후** — SUGGESTIONS에 갓레이 opacity/위치 개선 추가.
+
+- **[코드 검증] 수면 애니메이션**: `Ocean.ts`의 수면 material(또는 ShaderMaterial) 에 `time` 또는 `elapsed` 기반 uniform 갱신 코드가 `update()` 또는 `animate()` 내에 있어야 한다. 정적 material(갱신 없음)이면 수면이 고정된 평면으로 보이므로 **실패**.
+
+- **[시각 검증] surface-up.png 수면 투시**: Observer가 아래에서 위를 바라보는 `surface-up.png`를 촬영한다(카메라 y=-10, target y=15). 이 이미지에서 수면이 단일 불투명 면이거나 빛의 변화가 전혀 없으면 투명도·굴절 미구현을 의미한다 — SUGGESTIONS에 수면 투명도 또는 굴절 효과 개선 추가.
+
+- **[코드 검증] AmbientLight vs DirectionalLight 비율**: `Lighting.ts`의 맑은 날씨(clear) 기준 AmbientLight intensity가 DirectionalLight intensity의 60% 초과이면 수중 depth감이 없어진다. Reviewer는 두 값을 코드에서 확인. `ambient.intensity > directional.intensity × 0.6`이면 **경고** (치명 실패 아님).
+
+- **[코드 검증] 수중 안개 색상**: `Lighting.ts` 또는 `SceneManager.ts`에서 fog color가 청록색 계열(예: `0x1188bb`)이고 density가 0보다 크게 설정되어야 한다. fog가 없거나 회색/무채색이면 수중 분위기가 없다 — SUGGESTIONS에 fog 색상 개선 추가.
+
 ## 9. 파티클 시각적 균형 (Particle Visual Balance)
 
 - **버블 파티클 크기/알파 상한 검증**: `Ocean.ts`의 `createBubbles()`에서 `sizes[i]` 최댓값(`random * range + min`)이 **0.2 이상**이거나, fragment shader의 기저 알파(`float alpha = X + ring * Y`)에서 **X ≥ 0.2**이면 버블이 고래상어·물고기보다 시각적으로 두드러질 수 있다. Reviewer는 이 두 값을 코드에서 직접 확인하고, `sizes 최대값 > 0.2` 또는 `기저 알파 X > 0.15`이면 **실패** 판정.
