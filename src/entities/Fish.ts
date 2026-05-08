@@ -22,7 +22,7 @@ interface FishInstance {
   mesh: THREE.Group;
   velocity: THREE.Vector3;
   schoolIndex: number;
-  disposables: Array<THREE.BufferGeometry | THREE.Material>;
+  disposables: Array<THREE.BufferGeometry | THREE.Material | THREE.Texture>;
 }
 
 export class FishSchool {
@@ -111,7 +111,7 @@ export class FishSchool {
     }
   }
 
-  private createFishMesh(scale: number): { mesh: THREE.Group; disposables: Array<THREE.BufferGeometry | THREE.Material> } {
+  private createFishMesh(scale: number): { mesh: THREE.Group; disposables: Array<THREE.BufferGeometry | THREE.Material | THREE.Texture> } {
     // outer는 lookAt 대상 그룹(로컬 -Z가 진행 방향).
     // inner는 모델 파츠를 +X 축을 머리로 조립한 뒤 Y로 +90° 회전해
     // inner의 +X(머리)가 outer의 -Z에 정렬되도록 한다.
@@ -132,13 +132,19 @@ export class FishSchool {
       color = 0x99aabb;
     }
 
-    const mat = new THREE.MeshStandardMaterial({
+    const gradientData = new Uint8Array([40, 120, 180, 255]);
+    const gradientMap = new THREE.DataTexture(gradientData, 4, 1);
+    gradientMap.format = THREE.RedFormat;
+    gradientMap.minFilter = THREE.NearestFilter;
+    gradientMap.magFilter = THREE.NearestFilter;
+    gradientMap.needsUpdate = true;
+
+    const mat = new THREE.MeshToonMaterial({
       color,
-      roughness: 0.4,
-      metalness: 0.3,
       emissive: 0x080808,
       emissiveIntensity: 0.06,
       side: THREE.DoubleSide,
+      gradientMap,
     });
 
     const bodyGeo = new THREE.SphereGeometry(1, 8, 6);
@@ -195,7 +201,7 @@ export class FishSchool {
     const rightPectoral = new THREE.Mesh(rightPectoralGeo, mat);
     inner.add(rightPectoral);
 
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+    const eyeMat = new THREE.MeshToonMaterial({ color: 0x111111, gradientMap });
     const eyeGeo = new THREE.SphereGeometry(0.1, 6, 6);
     const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
     leftEye.position.set(1.0, 0.2, 0.35);
@@ -205,7 +211,7 @@ export class FishSchool {
 
     group.scale.setScalar(scale);
 
-    const disposables: Array<THREE.BufferGeometry | THREE.Material> = [
+    const disposables: Array<THREE.BufferGeometry | THREE.Material | THREE.Texture> = [
       bodyGeo,
       tailGeo,
       dorsalGeo,
@@ -214,6 +220,7 @@ export class FishSchool {
       mat,
       eyeGeo,
       eyeMat,
+      gradientMap,
     ];
     return { mesh: group, disposables };
   }

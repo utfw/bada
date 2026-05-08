@@ -20,7 +20,7 @@ export class WhaleShark {
   private leftPectoral!: THREE.Mesh;
   private rightPectoral!: THREE.Mesh;
   private originalPositions!: Float32Array;
-  private disposables: Array<THREE.BufferGeometry | THREE.Material> = [];
+  private disposables: Array<THREE.BufferGeometry | THREE.Material | THREE.Texture> = [];
   // Base X positions for fin wave correction (must match createDorsalFin / createPectoralFins)
   private readonly dorsalBaseX = -0.05;
   private readonly secondDorsalBaseX = -0.05;
@@ -99,13 +99,19 @@ export class WhaleShark {
     const bellyLinear = new THREE.Color(0xbecdd8).convertSRGBToLinear();
     const dorsalLinear = new THREE.Color(0x3a4e63).convertSRGBToLinear();
 
-    const material = new THREE.MeshStandardMaterial({
+    const gradientData = new Uint8Array([40, 120, 180, 255]);
+    const gradientMap = new THREE.DataTexture(gradientData, 4, 1);
+    gradientMap.format = THREE.RedFormat;
+    gradientMap.minFilter = THREE.NearestFilter;
+    gradientMap.magFilter = THREE.NearestFilter;
+    gradientMap.needsUpdate = true;
+
+    const material = new THREE.MeshToonMaterial({
       color: 0x3a4e63,
-      roughness: 0.6,
-      metalness: 0.0,
       emissive: new THREE.Color(0x1a2e3a),
       emissiveIntensity: 0.18,
       vertexColors: false,
+      gradientMap,
     });
 
     // PBR 조명과 무관하게 Y축 기반 배색 그라디언트를 강제 적용.
@@ -136,9 +142,9 @@ export class WhaleShark {
       );
     };
     // 캐시 키 없으면 다른 머티리얼과 WebGL 프로그램을 공유해 셰이더가 누락될 수 있음
-    material.customProgramCacheKey = (): string => 'whaleSharkBody';
+    material.customProgramCacheKey = (): string => 'whaleSharkBodyToon';
 
-    this.disposables.push(latheGeo, material);
+    this.disposables.push(latheGeo, material, gradientMap);
     this.group.add(new THREE.Mesh(latheGeo, material));
   }
 
@@ -150,12 +156,18 @@ export class WhaleShark {
     this.tailGroup = new THREE.Group();
     this.tailGroup.position.set(0, 0, SHARK_LENGTH / 2);
 
-    const finMat = new THREE.MeshStandardMaterial({
+    const finGradientData = new Uint8Array([40, 120, 180, 255]);
+    const finGradientMap = new THREE.DataTexture(finGradientData, 4, 1);
+    finGradientMap.format = THREE.RedFormat;
+    finGradientMap.minFilter = THREE.NearestFilter;
+    finGradientMap.magFilter = THREE.NearestFilter;
+    finGradientMap.needsUpdate = true;
+    const finMat = new THREE.MeshToonMaterial({
       color: 0x3a5068,
-      roughness: 0.6,
       side: THREE.DoubleSide,
+      gradientMap: finGradientMap,
     });
-    this.disposables.push(finMat);
+    this.disposables.push(finGradientMap, finMat);
 
     // 상엽 (큰 쪽)
     const upperShape = new THREE.Shape();
@@ -209,12 +221,18 @@ export class WhaleShark {
       bevelSize: 0.03,
     };
     const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    const mat = new THREE.MeshStandardMaterial({
+    const dorsalGradientData = new Uint8Array([40, 120, 180, 255]);
+    const dorsalGradientMap = new THREE.DataTexture(dorsalGradientData, 4, 1);
+    dorsalGradientMap.format = THREE.RedFormat;
+    dorsalGradientMap.minFilter = THREE.NearestFilter;
+    dorsalGradientMap.magFilter = THREE.NearestFilter;
+    dorsalGradientMap.needsUpdate = true;
+    const mat = new THREE.MeshToonMaterial({
       color: 0x3a5068,
-      roughness: 0.6,
       side: THREE.DoubleSide,
+      gradientMap: dorsalGradientMap,
     });
-    this.disposables.push(geo, mat);
+    this.disposables.push(geo, dorsalGradientMap, mat);
 
     this.dorsal = new THREE.Mesh(geo, mat);
     this.dorsal.position.set(-0.05, 1.4, SHARK_LENGTH * 0.05);
@@ -248,12 +266,18 @@ export class WhaleShark {
       bevelSize: 0.03,
     };
     const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    const mat = new THREE.MeshStandardMaterial({
+    const pectoralGradientData = new Uint8Array([40, 120, 180, 255]);
+    const pectoralGradientMap = new THREE.DataTexture(pectoralGradientData, 4, 1);
+    pectoralGradientMap.format = THREE.RedFormat;
+    pectoralGradientMap.minFilter = THREE.NearestFilter;
+    pectoralGradientMap.magFilter = THREE.NearestFilter;
+    pectoralGradientMap.needsUpdate = true;
+    const mat = new THREE.MeshToonMaterial({
       color: 0x3a5068,
-      roughness: 0.6,
       side: THREE.DoubleSide,
+      gradientMap: pectoralGradientMap,
     });
-    this.disposables.push(geo, mat);
+    this.disposables.push(geo, pectoralGradientMap, mat);
 
     this.leftPectoral = new THREE.Mesh(geo, mat);
     this.leftPectoral.position.set(2.2, -0.4, -SHARK_LENGTH * 0.25);
@@ -272,11 +296,17 @@ export class WhaleShark {
   private createPelvicFins(): void {
     const geo = new THREE.ConeGeometry(0.3, 0.9, 6);
     geo.scale(1, 0.5, 1);
-    const mat = new THREE.MeshStandardMaterial({
+    const pelvicGradientData = new Uint8Array([40, 120, 180, 255]);
+    const pelvicGradientMap = new THREE.DataTexture(pelvicGradientData, 4, 1);
+    pelvicGradientMap.format = THREE.RedFormat;
+    pelvicGradientMap.minFilter = THREE.NearestFilter;
+    pelvicGradientMap.magFilter = THREE.NearestFilter;
+    pelvicGradientMap.needsUpdate = true;
+    const mat = new THREE.MeshToonMaterial({
       color: 0x2e3f52,
-      roughness: 0.75,
+      gradientMap: pelvicGradientMap,
     });
-    this.disposables.push(geo, mat);
+    this.disposables.push(geo, pelvicGradientMap, mat);
 
     const left = new THREE.Mesh(geo, mat);
     left.position.set(0.7, -1.1, SHARK_LENGTH * 0.2);
@@ -293,8 +323,14 @@ export class WhaleShark {
    * 아가미 구멍 5쌍 — 머리 뒤쪽 양옆에 수직 슬릿.
    */
   private createGillSlits(): void {
-    const slitMat = new THREE.MeshStandardMaterial({ color: 0x0a1420 });
-    this.disposables.push(slitMat);
+    const gillGradientData = new Uint8Array([40, 120, 180, 255]);
+    const gillGradientMap = new THREE.DataTexture(gillGradientData, 4, 1);
+    gillGradientMap.format = THREE.RedFormat;
+    gillGradientMap.minFilter = THREE.NearestFilter;
+    gillGradientMap.magFilter = THREE.NearestFilter;
+    gillGradientMap.needsUpdate = true;
+    const slitMat = new THREE.MeshToonMaterial({ color: 0x0a1420, gradientMap: gillGradientMap });
+    this.disposables.push(gillGradientMap, slitMat);
 
     for (let side = -1; side <= 1; side += 2) {
       for (let i = 0; i < 5; i++) {
@@ -382,26 +418,26 @@ export class WhaleShark {
     // 고래상어가 반드시 카메라 시야권을 통과하도록 한다.
     // 카메라 위치: (0,0,0), FOV=75°, 전방=-Z
     // z=-18에서 |x|≤13 이면 시야 내 (tan(37.5°)≈0.77 → 18*0.77≈14)
+    // 후방(+Z) 포인트 3개 추가로 완전한 타원 궤도: 카메라 앞+뒤 모두 통과
     this.swimPath = new THREE.CatmullRomCurve3(
       [
-        new THREE.Vector3(2, -3, -24),    // ✓ 정면 PASS 1 (x=2,  z=-24, 심화)
-        new THREE.Vector3(3, -3.3, -22),  // z<-18 체류 연장 경유점 (arctan≈7.8° < FOV)
-        new THREE.Vector3(4, -3.2, -21),  // 정면 통과 체류 연장 (z=-21, x=4, arctan≈11° < FOV)
-        new THREE.Vector3(6, -3.5, -19),  // 우측 이탈 완충 (z=-19, x=6, arctan≈18° < FOV)
-        new THREE.Vector3(8, -4, -16),    // ★ 우측 완만한 이탈
-        new THREE.Vector3(14, -5, -8),    // 오른쪽-앞 (축소)
-        new THREE.Vector3(18, -5, 0),     // 오른쪽 (z=0으로 축소)
-        new THREE.Vector3(14, -6, 0),    // 후방-우 (z=0으로 축소)
-        new THREE.Vector3(0, -3.5, -24),  // ★ 정중앙 체류점 (신규, PASS2 직전 진입호)
-        new THREE.Vector3(-2, -4, -24),   // ✓ 정면 PASS 2 (x=-2, z=-24, 심화)
-        new THREE.Vector3(-3, -3.8, -22), // z<-18 체류 연장 경유점 (arctan≈7.8° < FOV)
-        new THREE.Vector3(-4, -3.5, -21), // 좌측 정면 통과 체류 연장 (z=-21, x=-4, arctan≈11° < FOV)
-        new THREE.Vector3(-6, -3.5, -19), // 좌측 이탈 완충 (z=-19, x=-6, arctan≈18° < FOV)
-        new THREE.Vector3(-8, -4, -16),   // ★ 좌측 완만한 이탈
-        new THREE.Vector3(-14, -5, -8),   // 왼쪽-앞 (축소)
-        new THREE.Vector3(-18, -4, 0),    // 왼쪽 (z=0으로 축소)
-        new THREE.Vector3(-14, -5, 0),   // 후방-좌 (z=0으로 축소)
-        new THREE.Vector3(-5, -4, -20),   // ✓ 정면 재진입 경유점 (좌후방→전방 구간)
+        new THREE.Vector3(2, -3, -24),    // ✓ 정면 PASS 1 (x=2,  z=-24)
+        new THREE.Vector3(3, -3.3, -22),  // 전방 우측 체류 연장
+        new THREE.Vector3(4, -3.2, -21),  // 전방 통과 체류 연장
+        new THREE.Vector3(6, -3.5, -19),  // 우측 이탈 완충
+        new THREE.Vector3(8, -4, -16),    // 우측 완만한 이탈
+        new THREE.Vector3(13, -5, -8),    // 오른쪽-앞
+        new THREE.Vector3(14, -5, 0),     // 오른쪽 측면
+        new THREE.Vector3(12, -5, 4),     // 우측 후방 전환점 (NEW)
+        new THREE.Vector3(0, -3, 6),      // 카메라 정후방 중심 (NEW)
+        new THREE.Vector3(-12, -5, 4),    // 좌측 후방 전환점 (NEW)
+        new THREE.Vector3(-14, -4, 0),    // 왼쪽 측면
+        new THREE.Vector3(-13, -5, -8),   // 왼쪽-앞
+        new THREE.Vector3(-8, -4, -16),   // 좌측 완만한 이탈
+        new THREE.Vector3(-6, -3.5, -19), // 좌측 이탈 완충
+        new THREE.Vector3(-4, -3.5, -21), // 전방 좌측 체류 연장
+        new THREE.Vector3(-3, -3.8, -22), // 전방 좌측 체류 연장
+        new THREE.Vector3(-2, -4, -24),   // ✓ 정면 PASS 2 (x=-2, z=-24)
       ],
       true,
       'catmullrom',

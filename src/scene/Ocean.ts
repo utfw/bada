@@ -31,7 +31,7 @@ export class Ocean {
       uniforms: {
         uTime: { value: 0 },
         uSurfaceColor: { value: new THREE.Color(0x0077be) },
-        uDeepColor: { value: new THREE.Color(0x004488) },
+        uDeepColor: { value: new THREE.Color(0x0D73B8) },
         uOpacity: { value: 0.4 },
       },
       vertexShader: `
@@ -227,7 +227,7 @@ export class Ocean {
     switch (data.condition) {
       case 'clear':
         surfaceUniforms.uSurfaceColor.value.set(0x0099dd);
-        surfaceUniforms.uDeepColor.value.set(0x004488);
+        surfaceUniforms.uDeepColor.value.set(0x0D73B8);
         surfaceUniforms.uOpacity.value = 0.35;
         break;
       case 'cloudy':

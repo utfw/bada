@@ -87,12 +87,16 @@ export class Lighting {
   private fillLight: THREE.DirectionalLight;
   private underFillPoint: THREE.PointLight;
   private dorsalFillLight: THREE.DirectionalLight;
+  private hemisphereLight: THREE.HemisphereLight;
   private godRaySpots: THREE.SpotLight[] = [];
   private godRayCones: THREE.Mesh[] = [];
 
   constructor(scene: THREE.Scene) {
     this.ambientLight = new THREE.AmbientLight(0x88bbdd, 1.0);
     scene.add(this.ambientLight);
+
+    this.hemisphereLight = new THREE.HemisphereLight(0x88ccff, 0x004466, 1.0);
+    scene.add(this.hemisphereLight);
 
     this.sunLight = new THREE.DirectionalLight(0xffeedd, 2.0);
     this.sunLight.position.set(5, SURFACE_HEIGHT + 10, 3);
@@ -207,6 +211,7 @@ export class Lighting {
   }
 
   dispose(): void {
+    this.hemisphereLight.dispose();
     this.dorsalFillLight.dispose();
     this.underFillPoint.dispose();
     this.godRayCones.forEach((cone) => {
