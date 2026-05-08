@@ -74,7 +74,7 @@ const godRayFragmentShader = /* glsl */ `
   uniform vec3 uColor;
   varying vec2 vUv;
   void main() {
-    float fade = smoothstep(0.0, 0.3, vUv.y) * (1.0 - vUv.y);
+    float fade = smoothstep(0.0, 0.4, vUv.y) * (1.0 - vUv.y);
     float shimmer = 0.7 + 0.3 * sin(uTime * 0.5 + vUv.x * 6.2832);
     float alpha = uOpacity * fade * shimmer;
     gl_FragColor = vec4(uColor, alpha);
@@ -116,8 +116,8 @@ export class Lighting {
 
     // Under-fill point light — mitigates PBR under-belly darkening on WhaleShark
     // decay=1.5 (less than physical 2.0) for even coverage across belly at y≈-3~-5
-    this.underFillPoint = new THREE.PointLight(0x5588bb, 0.6, 40, 1.5);
-    this.underFillPoint.position.set(0, -15, 0);
+    this.underFillPoint = new THREE.PointLight(0x5588bb, 1.2, 40, 1.5);
+    this.underFillPoint.position.set(0, -8, 0);
     scene.add(this.underFillPoint);
 
     // God Rays (SpotLights) — straight down from surface

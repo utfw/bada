@@ -61,7 +61,7 @@ export const FISH_ORBIT_WEIGHT = 0.8;
 export const GOD_RAY_COUNT = 3;
 export const GOD_RAY_HEIGHT = SURFACE_HEIGHT + OCEAN_DEPTH;
 export const GOD_RAY_RADIUS = 3.5;
-export const GOD_RAY_MAX_OPACITY = 0.18;
+export const GOD_RAY_MAX_OPACITY = 0.11;
 export const GOD_RAY_RADIAL_SEGMENTS = 16;
 export const GOD_RAY_HEIGHT_SEGMENTS = 1;
 

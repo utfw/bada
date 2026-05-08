@@ -45,11 +45,11 @@ export class FishSchool {
     // Centers spread across all 4 quadrants at varied depths for a rich 360° scene.
     // [cx, cz, yBase, semi_a, semi_b, yWave]
     const schoolDefs: [number, number, number, number, number, number][] = [
-      [-16,  -4,  -4, 12,  8, 2.5],  // 0: left-front,  shallow
-      [  8,  -8,  -8, 10,  9, 2.0],  // 1: right-front, mid
-      [  0, -20,  -6, 14,  6, 1.5],  // 2: far back,    mid-deep
-      [  7, -14, -11,  9, 11, 2.0],  // 3: right-front, deep
-      [-12,  -8,  -3, 11,  7, 3.0],  // 4: left-front,  near surface
+      [-16,  -4,  -4, 16, 12, 2.5],  // 0: left-front,  shallow
+      [  8,  -8,  -8, 14, 13, 2.0],  // 1: right-front, mid
+      [  0, -20,  -6, 18, 10, 1.5],  // 2: far back,    mid-deep
+      [  7, -14, -11, 13, 15, 2.0],  // 3: right-front, deep
+      [-12,  -8,  -3, 15, 11, 3.0],  // 4: left-front,  near surface
     ];
     const N = 8;
     this.orbitPaths = schoolDefs.map(([cx, cz, yBase, semi_a, semi_b, yWave]) => {
@@ -75,7 +75,7 @@ export class FishSchool {
 
     for (let i = 0; i < FISH_COUNT; i++) {
       const schoolIndex = i % FISH_SCHOOL_COUNT;
-      const scale = 0.35 + Math.random() * 0.65;
+      const scale = 0.30 + Math.random() * 0.45;
       const { mesh, disposables } = this.createFishMesh(scale);
 
       // Spawn near this group's initial orbit anchor ±14 units (wide spread to avoid initial clumping)

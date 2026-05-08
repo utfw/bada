@@ -125,7 +125,7 @@
 
 ## 10. 조명·수면 시각 품질 (Lighting & Ocean Surface)
 
-- **[코드 검증] 갓레이(God Ray) 존재**: `Ocean.ts`에 `GOD_RAY_COUNT` 개수만큼 ConeGeometry 기반 볼류메트릭 광선 메시가 생성되고 씬에 add 되어야 한다. `GOD_RAY_MAX_OPACITY`가 0이거나 geometry를 씬에 추가하지 않으면 **실패**.
+- **[코드 검증] 갓레이(God Ray) 존재**: `Lighting.ts`의 constructor에 `GOD_RAY_COUNT` 개수만큼 ConeGeometry 기반 볼류메트릭 광선 메시가 생성되고 씬에 add 되어야 한다. `GOD_RAY_MAX_OPACITY`가 0이거나 geometry를 씬에 추가하지 않으면 **실패**.
 
 - **[시각 검증] 갓레이 가시성**: `screenshot-1~4.png` 중 최소 1장에서 수면에서 내려오는 밝은 쐐기형 광선 줄기가 보여야 한다. 4장 모두에서 광선이 보이지 않으면 opacity·위치·각도 문제이므로 **실패 징후** — SUGGESTIONS에 갓레이 opacity/위치 개선 추가.
 
@@ -176,3 +176,5 @@ Reviewer 또는 사람이 항목을 추가·수정할 때마다 한 줄 기록. 
 - (2026-04-29) [reviewer] §9 신설: 버블 파티클 크기 최대값(sizes max) ≤ 0.2, 기저 알파 X ≤ 0.15 초과 시 고래상어보다 버블이 두드러지는 시각 불균형 발생 — 코드 수치 검증 기준 추가.
 - (2026-05-03) [reviewer] §4 보강: whaleshark-*.png 뿐 아니라 topview-t1/t2.png도 3D 뷰포트 검은색이면 엔티티 방향 탑뷰 검증이 불가 — HUMAN_VERIFICATION_REQUIRED로 분류하고 Observer의 setPresetView/topview 카메라 로직 이상을 사람에게 보고. §4 원인 후보(DeviceControls 경합, plain 객체 lookAt)가 topview에도 동일하게 적용됨.
 - (2026-05-05) [human] §3 보강: 등지느러미 rotation.y 부호 검증(음수 필수), 꼬리지느러미 내부 메시 이중 rotation.y 버그(합산 0→수평), 가슴지느러미 rotation.x 수평 방향 검증(|rotation.x| < 0.5이면 실패) 항목 추가. 세 버그 모두 에이전트가 수치 체크만으로 탐지하지 못해 사람이 직접 발견함.
+- (2026-05-07) [reviewer] §10 정정: 갓레이 메시 생성 위치를 "Ocean.ts에"에서 "Lighting.ts의 constructor에"로 수정 — 실제 구현이 Lighting.ts에 있으며 Ocean.ts에는 god ray 관련 코드 없음. 미정정 시 미래 Reviewer가 잘못된 파일을 점검할 위험.
+- (2026-05-07) [reviewer] §10 갓레이 opacity 감소 후 시각 검증: GOD_RAY_MAX_OPACITY 0.18→0.11 + godRayFragmentShader smoothstep 0.3→0.4 조합으로 whaleshark-front 기준 과노출 기둥 형태 해소 확인. wide 앵글(screenshot-1~4)에서 갓레이가 미세해지는 것은 의도된 결과이므로 실패 미해당.
