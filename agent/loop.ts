@@ -17,6 +17,7 @@ import { execSync, execFileSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { runNumericChecks, summarizeChecks, type CheckResult } from "./checks/numeric.js";
 
 const ROOT = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const GOALS_FILE = path.join(ROOT, "goals.md");
@@ -282,6 +283,157 @@ function summarizeObservation(obs: Observation | null): string {
   return lines.join("\n");
 }
 
+interface AestheticEval {
+  score: number; // -1 = 평가 실패 (suggestions 추가 금지)
+  feedback: string;
+  suggestions: string[];
+  rubric: { criterion: string; score: number; max: number; reason: string }[];
+}
+
+/**
+ * 미적 평가에 사용할 스크린샷만 선별.
+ * - 전체 씬 4장(screenshot-1~4) + 수면 하방 1장(surface-up) = 5장
+ * - whaleshark-front/side/top/below, topview-* 는 모델 정확도/방향 검증용이라 제외
+ */
+function selectAestheticScreenshots(screenshotPaths: string[]): string[] {
+  return screenshotPaths.filter((p) => {
+    const name = path.basename(p);
+    return /^screenshot-\d\.png$/.test(name) || name === "surface-up.png";
+  });
+}
+
+function runAestheticEvaluator(screenshotPaths: string[]): AestheticEval {
+  const selected = selectAestheticScreenshots(screenshotPaths);
+  const absScreenshots = selected
+    .map((p) => path.join(ROOT, p))
+    .filter((p) => fs.existsSync(p));
+
+  if (absScreenshots.length === 0) {
+    return { score: -1, feedback: "(스크린샷 없음)", suggestions: [], rubric: [] };
+  }
+
+  const screenshotList = absScreenshots.map((p) => `- ${p}`).join("\n");
+
+  const prompt = `
+당신은 3D 수중 씬의 미적 품질을 측정 가능한 기준으로 평가하는 심사자입니다.
+주관적 인상이 아니라 아래 5개 항목을 **이미지에서 직접 식별 가능한 시각 특성**으로만 채점하세요.
+
+평가 대상 이미지 (Read 도구로 모두 열어 분석):
+${screenshotList}
+
+채점 항목 (각 0~2점, 총 10점):
+
+[1] 색상 채도 (Saturation)
+- 2점: 화면 도미넌트 색이 채도 높은 청록/코발트 계열(#0a78aa~#1ec0e0 등)이고, 무채색·갈색 영역이 화면의 20% 미만
+- 1점: 청록 계열이긴 하나 회색이 섞여 채도가 낮음
+- 0점: 화면이 무채색·갈색·검은색 위주로 채도가 거의 없음
+
+[2] 수직 깊이감 (Vertical Gradient)
+- 2점: 화면 상단(수면 쪽 밝은 청록) → 하단(심해 쪽 어두운 남색)으로 명도/색상 그라디언트가 식별됨
+- 1점: 약한 그라디언트는 있으나 단조로움
+- 0점: 배경이 균일한 단색
+
+[3] 광선 효과 (God Rays)
+- 2점: 수직 광선 줄기가 1개 이상 식별 가능, 윤곽이 부드럽고 폭이 자연스러움(과노출 기둥 아님)
+- 1점: 광선이 있으나 너무 흐리거나 과노출된 두꺼운 흰색 기둥
+- 0점: 광선 효과가 보이지 않음
+
+[4] 셰이딩 스타일 (Stylization)
+- 2점: 캐릭터(고래상어/물고기) 표면에 단계적 음영(셀/툰 쉐이딩)이 보이고, 사실적 specular highlight가 없음
+- 1점: 부드러운 PBR이지만 색조가 과장되어 만화적 느낌이 있음
+- 0점: 사실적 PBR + 회색 highlight, 사진 같은 음영
+
+[5] 시각 균형 (Composition)
+- 2점: 카메라 정면에 주체(고래상어 또는 물고기 군집)가 식별 가능하고, 단일 요소(버블/근접 물고기)가 화면 60% 이상 가리지 않음
+- 1점: 일부 요소가 두드러져 주체 인식이 어려움
+- 0점: 화면이 비어있거나 한 요소가 압도
+
+각 항목마다 "이미지에서 본 것"을 근거로 점수를 부여하세요. "느낌상" 채점 금지.
+
+출력 형식 — 정확히 이 형식만 출력하고 다른 잡담 금지:
+
+AESTHETIC_RUBRIC_START
+[1] 색상 채도: <0|1|2> — <근거 한 줄>
+[2] 수직 깊이감: <0|1|2> — <근거 한 줄>
+[3] 광선 효과: <0|1|2> — <근거 한 줄>
+[4] 셰이딩 스타일: <0|1|2> — <근거 한 줄>
+[5] 시각 균형: <0|1|2> — <근거 한 줄>
+AESTHETIC_RUBRIC_END
+
+AESTHETIC_SCORE: <위 5개 항목 점수의 합, 0~10 정수>
+AESTHETIC_FEEDBACK: <가장 점수가 낮은 항목 1~2개의 원인을 2줄로>
+AESTHETIC_SUGGESTIONS:
+1. <가장 점수가 낮은 항목을 끌어올리는 코드 수정 — 파일/함수/수치 명시>
+2. <두 번째로 낮은 항목 개선 — 파일/함수/수치 명시>
+3. <세 번째 — 없으면 생략 가능>
+`.trim();
+
+  const result = runClaude(prompt, "Read", 5, "claude-sonnet-4-6");
+
+  const rubricMatch = result.output.match(/AESTHETIC_RUBRIC_START([\s\S]*?)AESTHETIC_RUBRIC_END/);
+  const scoreMatch = result.output.match(/AESTHETIC_SCORE:\s*(\d+(?:\.\d+)?)/);
+  const feedbackMatch = result.output.match(/AESTHETIC_FEEDBACK:\s*([\s\S]+?)(?=AESTHETIC_SUGGESTIONS:|$)/);
+  const suggestionsMatch = result.output.match(/AESTHETIC_SUGGESTIONS:\s*([\s\S]+)/);
+
+  // 두 핵심 마커가 모두 없으면 파싱 실패로 간주
+  if (!scoreMatch || !rubricMatch) {
+    return {
+      score: -1,
+      feedback: "(평가 응답 파싱 실패 — 점수·항목 파싱 불가)",
+      suggestions: [],
+      rubric: [],
+    };
+  }
+
+  const rubric: { criterion: string; score: number; max: number; reason: string }[] = [];
+  if (rubricMatch) {
+    const rubricLines = rubricMatch[1].trim().split("\n");
+    for (const line of rubricLines) {
+      const m = line.match(/\[\d\]\s*(.+?):\s*(\d)\s*[—\-]\s*(.+)/);
+      if (m) {
+        rubric.push({ criterion: m[1].trim(), score: parseInt(m[2], 10), max: 2, reason: m[3].trim() });
+      }
+    }
+  }
+
+  return {
+    score: parseFloat(scoreMatch[1]),
+    feedback: feedbackMatch ? feedbackMatch[1].trim() : "",
+    suggestions: suggestionsMatch
+      ? suggestionsMatch[1]
+          .split("\n")
+          .map((s) => s.replace(/^\d+\.\s*/, "").trim())
+          .filter((s) => s.length > 0)
+          .slice(0, 3)
+      : [],
+    rubric,
+  };
+}
+
+function formatAestheticSummary(ae: AestheticEval): string {
+  if (ae.score < 0) {
+    return `\n## 미적 평가\n- 평가 실패: ${ae.feedback}`;
+  }
+  const lines = [
+    `\n## 미적 평가 (객관적 채점, 5개 항목 × 2점 = 10점 만점)`,
+    `- 총점: ${ae.score}/10`,
+  ];
+  if (ae.rubric.length > 0) {
+    lines.push(`- 항목별:`);
+    for (const r of ae.rubric) {
+      lines.push(`  - ${r.criterion}: ${r.score}/${r.max} — ${r.reason}`);
+    }
+  }
+  if (ae.feedback) {
+    lines.push(`- 핵심 약점: ${ae.feedback}`);
+  }
+  if (ae.suggestions.length > 0) {
+    lines.push(`- 개선 방향(Planner는 현재 목표 구현 시 이 방향성을 참고만 할 것, 별도 목표로 추가 금지):`);
+    for (const s of ae.suggestions) lines.push(`  - ${s}`);
+  }
+  return lines.join("\n");
+}
+
 interface StageResult {
   output: string;
   success: boolean;
@@ -399,6 +551,11 @@ ${observationSummary}
 - 콘솔 에러는 런타임 예외이므로 우선순위 높게 처리
 - 이상 패턴이 없고 목표가 관찰된 동작과 일치하면 "수정 불필요"로 계획해도 됨
 
+미적 평가(있는 경우) 활용:
+- "## 미적 평가" 섹션은 객관 채점(5항목×2점)이며 별도 목표가 아니라 **참고 문맥**이다.
+- 점수 0~1점인 항목과 현재 목표가 같은 파일·관심사를 다루면, 그 약점을 함께 해소하는 방향으로 구현 접근을 잡아라(예: 색상·material·조명 관련 목표 + 채도/스타일 항목 0점).
+- 미적 평가만을 근거로 새 파일·새 기능을 추가하지 말 것 — 현재 목표 범위 안에서만 반영.
+
 ⛔ **계획에 절대 포함하지 말 것:**
 - Fish.ts의 lookTarget 계산식(add/sub 부호), inner.rotation.y 값 변경
 - WhaleShark.ts의 lookAt 타겟 수식 변경
@@ -464,7 +621,7 @@ ${plan}
    COMMIT_MSG: <conventional commit 한 줄>
    IMPL_COMPLETE
    - COMMIT_MSG 형식: "feat(WhaleShark): sync dorsal rotation with body wave" — 수정한 파일/함수를 scope로, 동사로 시작하는 영문 50자 이내
-   - type은 feat / fix / refactor / perf 중 선택, 실제로 구현 완료한 내용만 반영
+   - type은 feat / fix / perf 중 선택 (refactor 금지). 실제로 구현 완료한 내용만 반영
 5. 계획에 없는 파일을 만지지 말 것 (꼭 필요하면 이유 남기고 진행)
 `.trim();
 
@@ -515,13 +672,15 @@ SUGGESTIONS_END`;
 function runReviewer(
   goalText: string,
   plan: string,
-  changedFiles: string[]
+  changedFiles: string[],
+  numericChecks: CheckResult[]
 ): StageResult {
   const fileList = changedFiles.length > 0
     ? changedFiles.map((f) => `- ${f}`).join("\n")
     : "(변경 파일 없음)";
   const pendingCount = parsePendingGoals().length;
   const suggestionPolicy = buildSuggestionPolicy(pendingCount);
+  const numericReport = summarizeChecks(numericChecks);
 
   const prompt = `
 당신은 Project BADA의 리뷰어(Reviewer)입니다.
@@ -535,16 +694,21 @@ ${plan}
 변경된 파일:
 ${fileList}
 
+자동 수치 검증 (LLM 미사용, 코드로 결정론적 평가 — 산술/위치 검증 재수행 금지):
+${numericReport}
+
 검증 절차 (순서대로):
-1. agent/REVIEW_CHECKLIST.md Read → 모든 항목 점검 (금지 규칙·갱신 규칙 포함)
+1. agent/REVIEW_CHECKLIST.md Read → 모든 항목 점검 (금지 규칙·갱신 규칙 포함).
+   다만 [코드 수치 검증] 표기 항목 중 위 자동 수치 검증에 포함된 항목(pectoral/dorsal 위치, rotation 부호, 가중치 비율, GOD_RAY_MAX_OPACITY, createSpots scale)은 **자동 결과를 그대로 인용**하고 재검증하지 말 것.
 2. agent/observations/topview-t1.png, topview-t2.png Read → 머리/이동 방향 비교
-3. agent/observations/screenshot-1~4.png, whaleshark-front/side/top/below.png, surface-up.png Read → 육안 확인
+3. agent/observations/screenshot-1~4.png, whaleshark-front/side/top/below.png, surface-up.png Read → 육안 확인 (자동 검증이 못 잡는 동적 gap·시각 품질 영역)
    - surface-up.png: 아래에서 위를 바라본 샷. 수면 투시·갓레이·조명 분위기 확인 (§10 기준)
 4. npx tsc --noEmit Bash 실행 → 타입 에러 없어야 함
 5. 변경 파일 코드 Read → 목표 구현 여부, any 타입, dispose() 누락 확인
    - src/scene/Ocean.ts: 갓레이 메시 생성, 수면 material 시간 갱신 구조 (§10)
    - src/scene/Lighting.ts: AmbientLight/DirectionalLight 비율, fog 색상 (§10)
 6. 새 버그 패턴 발견 시 REVIEW_CHECKLIST.md 갱신 (갱신 로그에 오늘 날짜·요약 추가)
+   - 자동 수치 검증으로 이미 커버되는 항목은 추가하지 말 것.
 
 출력에 반드시 포함 (이 섹션 없는 REVIEW_PASS는 무효):
 
@@ -618,7 +782,7 @@ ${msgLines.map((m, i) => `${i + 1}. ${m}`).join("\n")}
 규칙:
 - 영문 50자 이내
 - 형식: type(scope): summary
-- type은 feat / fix / refactor / perf 중 가장 빈도 높은 것 선택
+- type은 feat / fix / perf 중 가장 빈도 높은 것 선택 (refactor 금지)
 - scope는 변경된 모듈 1~3개를 콤마로 묶거나(scope1, scope2), 공통 주제로 통합
 - summary는 동사 원형으로 시작, 무엇을 했는지 한 줄로
 
@@ -757,9 +921,38 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
     const observationSummary = summarizeObservation(observation);
     console.log(observationSummary);
 
+    // ── 0.5. Aesthetic Evaluator — cycle 0에서만, 비용·중복 방지 ──
+    let fullObservationSummary = observationSummary;
+    if (cycle === 0) {
+      console.log(`\n🎨 [1.5/4] Aesthetic Evaluator — 객관 채점 (5항목 × 2점)`);
+      const aestheticEval = runAestheticEvaluator(observation?.screenshots ?? []);
+      if (aestheticEval.score < 0) {
+        console.log(`  ⚠ ${aestheticEval.feedback} — 이번 사이클 평가 결과 무시`);
+      } else {
+        console.log(`  총점: ${aestheticEval.score}/10`);
+        for (const r of aestheticEval.rubric) {
+          console.log(`    - ${r.criterion}: ${r.score}/${r.max} (${r.reason})`);
+        }
+        const pendingNow = parsePendingGoals().length;
+        const aestheticSuppressed = pendingNow >= SUGGESTION_SUPPRESS_THRESHOLD;
+        if (
+          aestheticEval.suggestions.length > 0 &&
+          aestheticEval.score < 7 &&
+          !aestheticSuppressed
+        ) {
+          appendGoals(aestheticEval.suggestions);
+          console.log(`  💡 점수 ${aestheticEval.score}/10 < 7 → 개선 제안 ${aestheticEval.suggestions.length}개 goals.md에 추가`);
+          for (const s of aestheticEval.suggestions) console.log(`    - ${s}`);
+        } else if (aestheticSuppressed) {
+          console.log(`  ⏸  미완료 목표 ${pendingNow}개 ≥ 임계치(${SUGGESTION_SUPPRESS_THRESHOLD}) — Aesthetic 제안 추가 보류`);
+        }
+      }
+      fullObservationSummary = observationSummary + formatAestheticSummary(aestheticEval);
+    }
+
     // ── 1. Planner ───────────────────────────────────────────────
     console.log(`\n🧭 [2/4] Planner${cycleLabel} — 구현 계획 수립`);
-    const planResult = runPlanner(goal.text, observationSummary);
+    const planResult = runPlanner(goal.text, fullObservationSummary);
     const planCheck = logAndCheck(planResult, log, goalIndex, "plan", cycle, "Planner");
     if (planCheck === "rate-limited") {
       markGoal(goal.lineIndex, "pending");
@@ -803,7 +996,11 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
       console.log(`\n🔍 [4/4] Reviewer${cycleLabel}${attemptLabel}`);
       const changedSoFar = getChangedFiles().filter((f) => !filesBefore.has(f));
       const checklistBefore = readChecklistHash();
-      const reviewResult = runReviewer(goal.text, plan, changedSoFar);
+      const numericResults = runNumericChecks();
+      const numericFailed = numericResults.filter((r) => !r.ok && r.severity === "fail");
+      console.log(`  📐 자동 수치 검증: 통과 ${numericResults.filter((r) => r.ok).length}/${numericResults.length}` +
+        (numericFailed.length > 0 ? `, 실패 ${numericFailed.length}건` : ""));
+      const reviewResult = runReviewer(goal.text, plan, changedSoFar, numericResults);
       const checklistAfter = readChecklistHash();
       const reviewCheck = logAndCheck(reviewResult, log, goalIndex, "review", cycle * (MAX_REVIEW_RETRIES + 1) + attempt, `Reviewer${cycleLabel}${attemptLabel}`);
       if (reviewCheck === "rate-limited") {
@@ -889,15 +1086,27 @@ function runStandaloneReview(budget: RunBudget): void {
   const observationSummary = summarizeObservation(observation);
   console.log(observationSummary);
 
+  // ── Aesthetic Evaluator
+  console.log(`\n🎨 Aesthetic Evaluator — 애니메이션 스타일 평가`);
+  const aestheticEval = runAestheticEvaluator(observation?.screenshots ?? []);
+  console.log(`  점수: ${aestheticEval.score}/10`);
+  console.log(`  피드백: ${aestheticEval.feedback}`);
+  const fullObservationSummary = observationSummary + formatAestheticSummary(aestheticEval);
+
   // Reviewer 실행 (목표 없이, 전체 체크리스트 점검)
   console.log(`\n🔍 Reviewer — 체크리스트 전체 점검`);
   const changedFiles = getChangedFiles();
   const checklistBefore = readChecklistHash();
+  const numericResults = runNumericChecks();
+  const numericFailed = numericResults.filter((r) => !r.ok && r.severity === "fail");
+  console.log(`  📐 자동 수치 검증: 통과 ${numericResults.filter((r) => r.ok).length}/${numericResults.length}` +
+    (numericFailed.length > 0 ? `, 실패 ${numericFailed.length}건` : ""));
 
   const reviewResult = runReviewer(
     "체크리스트 전체 점검 (단독 리뷰 모드)",
-    `런타임 관찰 요약:\n${observationSummary}`,
+    `런타임 관찰 요약:\n${fullObservationSummary}`,
     changedFiles,
+    numericResults,
   );
   log.stage(0, "review", 0, reviewResult.output);
   // 탑뷰 관찰 섹션이 앞부분에 있으므로 앞 600자 + 뒤 1200자 모두 출력

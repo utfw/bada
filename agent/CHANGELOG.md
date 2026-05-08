@@ -5,6 +5,105 @@
 
 ---
 
+## [2026-05-09] 결정론적 수치 검증 코드 추출 (Reviewer 토큰 절감)
+
+### 배경
+REVIEW_CHECKLIST.md §3·§3-2의 [코드 수치 검증] 항목들은 본질적으로 산술 비교다
+(예: `pectoral.position.x` vs `body radius × 1.1 = 2.31`,
+`BOID_SEPARATION_WEIGHT ≥ BOID_COHESION_WEIGHT × 3`). 그럼에도 매 사이클
+Reviewer(Sonnet)가 코드를 읽어 LLM으로 산술하고 있어 세 가지 문제:
+1. 산술 실수 위험 (LLM은 가끔 계산을 틀림)
+2. 토큰 낭비 (단순 grep + 비교를 LLM에 위임)
+3. 회귀 테스트로 활용 불가 (LLM 호출은 결정론적이지 않음)
+
+사용자 관찰: 이런 정적 위치 검증으로는 body undulation 도중 동적으로 벌어지는
+시각적 gap은 못 잡는다(그건 시각 검증 영역). 그래도 회귀 방지 — 누가 sync
+코드를 지웠을 때 즉시 잡기 — 에 가치가 있어 자동화 추진.
+
+### agent/checks/numeric.ts (신설)
+- 8개 결정론 검증 함수 + `runNumericChecks()` 일괄 실행기, `summarizeChecks()` 보고 포맷터
+- 검증 항목:
+  - `checkPectoralPositionX` — `leftPectoral.position.x` vs `body radius × 1.1`, gap ≤ 0.3
+  - `checkPectoralRotationX` — `|rotation.x| ≥ 0.5` (수평 평면 확인)
+  - `checkDorsalRotationYSign` — 음수 표현(-Math.PI/2) 필수
+  - `checkCaudalDoubleRotation` — tailGroup 자식 mesh에 rotation.y 금지 (이중 회전 버그)
+  - `checkOrbitVsSeparationWeight` — `FISH_ORBIT_WEIGHT ≤ SEPARATION × 0.5`
+  - `checkSeparationVsCohesion` — `SEPARATION ≥ COHESION × 3`
+  - `checkGodRayOpacity` — `GOD_RAY_MAX_OPACITY > 0`
+  - `checkSpotScale` — `createSpots` 메서드 영역 내 ×1.1, ×0.75 multiplier 검출
+- `severity: "fail" | "warn"` 분류 — 차단 vs 권고 구분
+- 단독 실행 가능: `npx tsx agent/checks/numeric.ts` → exit code로 회귀 테스트 활용
+
+### agent/loop.ts
+- `runNumericChecks` / `summarizeChecks` import 추가 (`./checks/numeric.js`)
+- `runReviewer()` 시그니처에 `numericChecks: CheckResult[]` 4번째 파라미터 추가
+- Reviewer 프롬프트 상단에 자동 수치 검증 결과 주입 + **"재검증 금지, 그대로 인용"** 명시
+- 검증 절차 1번에 "[코드 수치 검증] 표기 항목 중 자동 검증된 것은 결과 그대로 인용" 단서
+- 검증 절차 6번에 "자동 수치 검증 커버 항목은 체크리스트에 추가하지 말 것" 추가
+- `runGoal` / `runStandaloneReview` 호출부에서 Reviewer 직전 `runNumericChecks()` 실행
+- 콘솔 출력 `📐 자동 수치 검증: 통과 N/M` 표시
+
+### 한계 (사용자 지적과 일치)
+- 정적 위치/상수만 검증 가능
+- body undulation 중 동적으로 벌어지는 시각적 gap은 못 잡음 → Reviewer 시각 검증 영역으로 유지
+- 진짜 가치: 회귀 안전망 + 산술 정확도 + 토큰 절감
+
+---
+
+## [2026-05-08] Aesthetic Evaluator 신설 + 객관 채점 rubric
+
+### 배경
+에이전트가 시각 품질을 "전체적인 분위기" 수준에서 개선하지 못하는 문제. goals.md의
+목표가 텍스트로만 기술되어 "얼마나 달성됐는지" Reviewer가 판단할 수 없었음.
+사용자가 "애니메이션 같은 느낌"을 목표로 제시했으나 추상적이라 LLM이 일관되게
+판정 불가. 같은 스크린샷에 대해 호출마다 점수가 5/10 → 7/10 → 4/10처럼 흔들릴 위험.
+
+해결책: 스크린샷을 비전 모델에게 보여주고 **이미지에서 식별 가능한 시각 특성**으로만
+채점하는 별도 단계 추가. SDK 설치 없이 `claude -p` + `Read` 도구 권한으로 호출.
+
+### loop.ts (Aesthetic Evaluator 단계 신설)
+- `AestheticEval { score, feedback, suggestions, rubric[] }` 인터페이스 추가
+- `runAestheticEvaluator(screenshotPaths)` — `runClaude` 래퍼로 호출, `--allowedTools Read` 만 허용
+- 파이프라인 단계 추가: Observer → **Aesthetic Evaluator** → Planner → Implementer → Reviewer
+- 채점 항목 (5항목 × 2점 = 10점, 각각 이미지에서 식별 가능한 시각 특성으로 0/1/2):
+  - **색상 채도** — 도미넌트 색이 #0a78aa~#1ec0e0 청록 계열인가, 무채색·갈색 영역 < 20%
+  - **수직 깊이감** — 상단(밝은 청록) → 하단(어두운 남색) 명도/색상 그라디언트
+  - **광선 효과** — 수직 갓레이 줄기 식별 가능, 과노출 기둥 아님
+  - **셰이딩 스타일** — 셀/툰 쉐이딩 vs 사실적 PBR specular
+  - **시각 균형** — 단일 요소(버블/근접 물고기)가 화면 60% 이상 가리지 않음
+- 응답 포맷 `AESTHETIC_RUBRIC_START/END` + `AESTHETIC_SCORE` + `AESTHETIC_FEEDBACK` + `AESTHETIC_SUGGESTIONS`
+- 점수 < 7 → 개선 제안 자동으로 `goals.md` 추가
+
+### loop.ts (구조적 보호 장치)
+- **Cycle 0 게이팅**: 체크리스트 갱신으로 cycle 2,3 돌 때 평가 중복 호출 방지
+- **SUGGESTION_SUPPRESS_THRESHOLD(10) 적용**: 미완료 목표 누적 시 Aesthetic 제안도 보류
+  (Reviewer SUGGESTIONS 정책과 동일하게 — 기존엔 우회되던 사각지대)
+- **스크린샷 5장 제한**: `screenshot-1~4` + `surface-up.png`만 평가 대상.
+  `selectAestheticScreenshots()`로 whaleshark 근접샷·탑뷰는 제외
+  (모델 정확도/방향 검증 전용이라 분위기 평가에 부적절)
+- **파싱 실패 sentinel**: 응답에 `AESTHETIC_SCORE` 또는 `AESTHETIC_RUBRIC` 마커 누락 시
+  `score: -1`로 분리해 0과 구분, 가짜 점수 트리거로 빈 제안 추가되는 사고 차단
+- **Planner 프롬프트에 활용 지침 추가**: "미적 평가 섹션은 별도 목표가 아닌 **참고 문맥**.
+  점수 0~1점 항목과 현재 목표가 같은 파일·관심사를 다루면 함께 해소.
+  미적 평가만을 근거로 새 파일·새 기능 추가 금지"
+
+### loop.ts (사용자 메모리 충돌 정리)
+- Implementer 프롬프트의 COMMIT_MSG type에서 `refactor` 제거
+  (사용자 메모리 `feedback_commit_convention.md` — refactor 금지와 충돌)
+- `summarizeCommitTitle` Ollama 프롬프트도 동일 적용
+
+### goals.md
+- 애니메이션 스타일 시작점 목표 2개 추가:
+  - `MeshStandardMaterial` → `MeshToonMaterial` 교체 + HemisphereLight 추가 (셀쉐이딩)
+  - 수면 fragmentShader 베이스 색 채도 상향 + fog 청록색
+
+### 효과
+- 추상적 "느낌" 평가 → 5개 항목 객관 채점 → 점수 노이즈 감소
+- 항목별 근거가 출력에 박혀 재현성 ↑
+- Cycle 게이팅 + 임계치로 비용·백로그 폭증 방지
+
+---
+
 ## [2026-05-05] 고래상어 지느러미 방향 수정 + Observer 검은 화면 탐지 개선
 
 ### 배경 — 에이전트가 이 버그들을 발견하지 못한 이유

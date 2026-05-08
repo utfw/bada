@@ -117,3 +117,10 @@
 - [x] `Lighting.ts`에서 fill light(`new THREE.PointLight(0x5588bb, ...)`)의 intensity를 0.5→1.2로, position을 `(0,-15,0)`→`(0,-8,0)`으로 상향해 whaleshark-below.png에서 복부가 여전히 매우 어두운 실루엣으로 보이는 문제 개선 — 여러 사이클에 걸쳐 emissive와 fill light를 추가했지만 하면 앙각에서 복부가 아직 거의 검은색에 가까움
 - [x] `whaleshark-front.png` 오른쪽에 god ray cone이 두꺼운 불투명 수직 기둥으로 과노출됨 — `constants.ts`에서 `GOD_RAY_MAX_OPACITY`를 현재보다 40% 낮추고(예: 0.18→0.11), `Lighting.ts` godRayFragmentShader의 fade 식을 `smoothstep(0.0, 0.4, vUv.y) * (1.0 - vUv.y)` 로 상단 fade 구간을 늘려 카메라 근접 각도에서 god ray가 선명한 기둥 형태로 보이지 않도록 개선
 - [x] `screenshot-2`·`screenshot-1`에서 카메라 바로 앞 물고기가 화면 절반 이상을 차지해 고래상어와 수중 분위기를 가림 — `Fish.ts constructor()` schoolDefs의 모든 school `radius`를 현재보다 3~5 단위 증가시키고(궤도 반경 확장), `Fish.ts constructor()` L78의 scale 상한을 `0.35 + Math.random() * 0.65`(max 1.0)에서 `0.30 + Math.random() * 0.45`(max 0.75)로 낮춰 카메라 근접 물고기가 뷰를 과도하게 차지하는 현상 방지
+
+## 애니메이션 스타일 목표 (Aesthetic Agent 자동 생성)
+
+- [ ] `src/entities/WhaleShark.ts` `createBody()`와 `src/entities/Fish.ts` `createFishMesh()`의 `MeshStandardMaterial`을 `MeshToonMaterial`로 교체하고, `src/scene/Lighting.ts`에 `THREE.DirectionalLight`를 `THREE.HemisphereLight(0x88ccff, 0x004466, 1.0)`로 보완해 셀쉐이딩(애니메이션 음영 계단) 효과를 활성화 — 현재 PBR 음영이 사실적이어서 지브리/원피스 스타일과 거리가 있음
+- [ ] `src/scene/Ocean.ts`의 수면 ShaderMaterial `fragmentShader`에서 베이스 색상을 `vec3(0.0, 0.27, 0.55)`(어두운 네이비)에서 `vec3(0.05, 0.45, 0.72)`(채도 높은 코발트블루)로 올리고, fog color(`scene.fog`)를 `0x006994`(깊은 청록)로 설정해 수중 배경 전체의 채도와 색감을 애니메이션 스타일에 맞게 상향
+- [ ] [5] 구도 개선: `src/entities/WhaleShark.ts`의 `CatmullRomCurve3` 웨이포인트 배열에 `new THREE.Vector3(0, -3, 6)` 등 카메라 정면 Z=4~8 범위를 통과하는 포인트를 추가해 고래상어가 화면 중앙을 가로지르는 경로를 확보
+- [ ] [1] 채도 개선: `src/scene/Lighting.ts`의 underwater `AmbientLight` color를 현재 추정값 `0x0d1f3c` → `0x0a5f8a`, `DirectionalLight` color를 `0x2196f3` → `0x00b4d8`로 조정해 전체 씬 기조를 고채도 청록 계열로 이동
