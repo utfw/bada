@@ -19,9 +19,9 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x88bbdd,
+    ambientColor: 0x0d5080,
     ambientIntensity: 1.0,
-    sunColor: 0xffeedd,
+    sunColor: 0x00b4d8,
     sunIntensity: 2.0,
     godRayIntensity: 3.0,
   },
@@ -76,7 +76,8 @@ const godRayFragmentShader = /* glsl */ `
   void main() {
     float fade = smoothstep(0.0, 0.4, vUv.y) * (1.0 - vUv.y);
     float shimmer = 0.7 + 0.3 * sin(uTime * 0.5 + vUv.x * 6.2832);
-    float alpha = uOpacity * fade * shimmer;
+    float radialFade = smoothstep(0.0, 0.25, vUv.x) * smoothstep(1.0, 0.75, vUv.x);
+    float alpha = uOpacity * fade * shimmer * radialFade;
     gl_FragColor = vec4(uColor, alpha);
   }
 `;
@@ -92,13 +93,13 @@ export class Lighting {
   private godRayCones: THREE.Mesh[] = [];
 
   constructor(scene: THREE.Scene) {
-    this.ambientLight = new THREE.AmbientLight(0x88bbdd, 1.0);
+    this.ambientLight = new THREE.AmbientLight(0x0d5080, 1.0);
     scene.add(this.ambientLight);
 
     this.hemisphereLight = new THREE.HemisphereLight(0x88ccff, 0x004466, 1.0);
     scene.add(this.hemisphereLight);
 
-    this.sunLight = new THREE.DirectionalLight(0xffeedd, 2.0);
+    this.sunLight = new THREE.DirectionalLight(0x00b4d8, 2.0);
     this.sunLight.position.set(5, SURFACE_HEIGHT + 10, 3);
     this.sunLight.target.position.set(0, -SURFACE_HEIGHT, 0);
     scene.add(this.sunLight);

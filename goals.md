@@ -123,5 +123,10 @@
 - [x] `src/entities/WhaleShark.ts` `createBody()`와 `src/entities/Fish.ts` `createFishMesh()`의 `MeshStandardMaterial`을 `MeshToonMaterial`로 교체하고, `src/scene/Lighting.ts`에 `THREE.DirectionalLight`를 `THREE.HemisphereLight(0x88ccff, 0x004466, 1.0)`로 보완해 셀쉐이딩(애니메이션 음영 계단) 효과를 활성화 — 현재 PBR 음영이 사실적이어서 지브리/원피스 스타일과 거리가 있음
 - [x] `src/scene/Ocean.ts`의 수면 ShaderMaterial `fragmentShader`에서 베이스 색상을 `vec3(0.0, 0.27, 0.55)`(어두운 네이비)에서 `vec3(0.05, 0.45, 0.72)`(채도 높은 코발트블루)로 올리고, fog color(`scene.fog`)를 `0x006994`(깊은 청록)로 설정해 수중 배경 전체의 채도와 색감을 애니메이션 스타일에 맞게 상향
 - [x] [5] 구도 개선: `src/entities/WhaleShark.ts`의 `CatmullRomCurve3` 웨이포인트 배열에 `new THREE.Vector3(0, -3, 6)` 등 카메라 정면 Z=4~8 범위를 통과하는 포인트를 추가해 고래상어가 화면 중앙을 가로지르는 경로를 확보
-- [ ] [1] 채도 개선: `src/scene/Lighting.ts`의 underwater `AmbientLight` color를 현재 추정값 `0x0d1f3c` → `0x0a5f8a`, `DirectionalLight` color를 `0x2196f3` → `0x00b4d8`로 조정해 전체 씬 기조를 고채도 청록 계열로 이동
-- [ ] **색상 채도** — `src/scene/Lighting.ts`에서 ambient 색을 `0x0a2040` → `0x0d5080`으로, fog 색을 `0x062030` → `0x0a6090`으로 각각 상향 조정하여 중간 수심 배경이 밝은 코발트 계열(#0a78aa 근접)로 보이게 할 것
+- [x] [1] 채도 개선: `src/scene/Lighting.ts`의 underwater `AmbientLight` color를 현재 추정값 `0x0d1f3c` → `0x0a5f8a`, `DirectionalLight` color를 `0x2196f3` → `0x00b4d8`로 조정해 전체 씬 기조를 고채도 청록 계열로 이동
+- [x] **색상 채도** — `src/scene/Lighting.ts`에서 ambient 색을 `0x0a2040` → `0x0d5080`으로, fog 색을 `0x062030` → `0x0a6090`으로 각각 상향 조정하여 중간 수심 배경이 밝은 코발트 계열(#0a78aa 근접)로 보이게 할 것
+- [x] `src/scene/Lighting.ts` `godRayFragmentShader` fragColor 계산부에 방사 방향 페이드 추가: `float radialFade = smoothstep(0.0, 0.25, vUv.x) * smoothstep(1.0, 0.75, vUv.x);` 를 `alpha`에 곱해 whaleshark-front에서 확인되는 다각형 경계 직선 엣지를 부드럽게 처리할 것
+- [ ] `src/utils/constants.ts` `DEFAULT_FOG_DENSITY`를 `0.02` → `0.015`로 낮춰 screenshot 하단 심해 구역의 짙은 남색을 완화하고 `0x0a6090` 코발트 색이 더 넓은 깊이 범위에서 보이게 할 것 (`WeatherService.ts` FOG_MAP.clear.density `0.004`는 유지)
+- [ ] `src/scene/Lighting.ts`의 `ambientLight.color`를 `0x1a6090`→`0x1ec0e0` 계열로, intensity를 현재값 +0.25~0.3 상향 조정하여 배경 채도를 목표 청록/코발트 계열로 끌어올릴 것
+- [ ] `src/entities/WhaleShark.ts`의 `CatmullRomCurve3` 경로 포인트 x/z 반경을 현재 대비 30~40% 축소하여 고래상어가 카메라(원점) 정면 6~10m 이내에 항상 가시적으로 위치하도록 제한할 것
+- [ ] `src/scene/Lighting.ts`(또는 `Ocean.ts`)에서 수면 방향 `PointLight` intensity를 현재 대비 50% 감소시키고 god ray sprite의 `opacity`를 0.15~0.25로 낮춰 surface-up 과노출 광원을 자연스러운 빛줄기로 교체할 것
