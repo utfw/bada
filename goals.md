@@ -126,7 +126,15 @@
 - [x] [1] 채도 개선: `src/scene/Lighting.ts`의 underwater `AmbientLight` color를 현재 추정값 `0x0d1f3c` → `0x0a5f8a`, `DirectionalLight` color를 `0x2196f3` → `0x00b4d8`로 조정해 전체 씬 기조를 고채도 청록 계열로 이동
 - [x] **색상 채도** — `src/scene/Lighting.ts`에서 ambient 색을 `0x0a2040` → `0x0d5080`으로, fog 색을 `0x062030` → `0x0a6090`으로 각각 상향 조정하여 중간 수심 배경이 밝은 코발트 계열(#0a78aa 근접)로 보이게 할 것
 - [x] `src/scene/Lighting.ts` `godRayFragmentShader` fragColor 계산부에 방사 방향 페이드 추가: `float radialFade = smoothstep(0.0, 0.25, vUv.x) * smoothstep(1.0, 0.75, vUv.x);` 를 `alpha`에 곱해 whaleshark-front에서 확인되는 다각형 경계 직선 엣지를 부드럽게 처리할 것
-- [ ] `src/utils/constants.ts` `DEFAULT_FOG_DENSITY`를 `0.02` → `0.015`로 낮춰 screenshot 하단 심해 구역의 짙은 남색을 완화하고 `0x0a6090` 코발트 색이 더 넓은 깊이 범위에서 보이게 할 것 (`WeatherService.ts` FOG_MAP.clear.density `0.004`는 유지)
-- [ ] `src/scene/Lighting.ts`의 `ambientLight.color`를 `0x1a6090`→`0x1ec0e0` 계열로, intensity를 현재값 +0.25~0.3 상향 조정하여 배경 채도를 목표 청록/코발트 계열로 끌어올릴 것
-- [ ] `src/entities/WhaleShark.ts`의 `CatmullRomCurve3` 경로 포인트 x/z 반경을 현재 대비 30~40% 축소하여 고래상어가 카메라(원점) 정면 6~10m 이내에 항상 가시적으로 위치하도록 제한할 것
+- [x] `src/utils/constants.ts` `DEFAULT_FOG_DENSITY`를 `0.02` → `0.015`로 낮춰 screenshot 하단 심해 구역의 짙은 남색을 완화하고 `0x0a6090` 코발트 색이 더 넓은 깊이 범위에서 보이게 할 것 (`WeatherService.ts` FOG_MAP.clear.density `0.004`는 유지)
+- [x] `src/scene/Lighting.ts`의 `ambientLight.color`를 `0x1a6090`→`0x1ec0e0` 계열로, intensity를 현재값 +0.25~0.3 상향 조정하여 배경 채도를 목표 청록/코발트 계열로 끌어올릴 것
+- [x] `src/entities/WhaleShark.ts`의 `CatmullRomCurve3` 경로 포인트 x/z 반경을 현재 대비 30~40% 축소하여 고래상어가 카메라(원점) 정면 6~10m 이내에 항상 가시적으로 위치하도록 제한할 것
 - [ ] `src/scene/Lighting.ts`(또는 `Ocean.ts`)에서 수면 방향 `PointLight` intensity를 현재 대비 50% 감소시키고 god ray sprite의 `opacity`를 0.15~0.25로 낮춰 surface-up 과노출 광원을 자연스러운 빛줄기로 교체할 것
+- [ ] [광선 효과] `src/scene/Ocean.ts` 또는 `SceneManager.ts`의 조명 초기화 블록에 `THREE.SpotLight`(angle=0.18, penumbra=0.7, intensity=3.0) 4~6개를 수면 위(y=30~50) 랜덤 XZ 위치에 배치하고, 추가로 `THREE.PlaneGeometry`(width=2, height=40) + `MeshBasicMaterial({ color:0x88ddff, transparent:true, opacity:0.06, blending:THREE.AdditiveBlending, depthWrite:false })`를 각 스팟라이트 아래로 드리워 god ray 볼륨을 시각화할 것
+- [ ] [셰이딩 스타일] `src/entities/Fish.ts`와 `WhaleShark.ts`의 `MeshLambertMaterial`을 `MeshToonMaterial({ gradientMap: 3단계 DataTexture })` 또는 `ShaderMaterial`로 교체해 diffuse를 `step(0.3, NdotL) * 0.5 + step(0.7, NdotL) * 0.5`로 2단계 양자화; outline pass는 `MeshBasicMaterial`을 뒤집어 씌우는 방식으로 추가
+- [ ] [시각 균형] `src/scene/SceneManager.ts`의 `update()` 내 카메라 추적 로직에서 `camera.lookAt`을 항상 `whaleShark.mesh.position`으로 바인딩하고, 고래상어가 카메라 NDC 기준 ±0.35 이상 벗어날 경우 오프셋을 보정하는 soft-follow clamp를 추가해 주체가 화면 중앙 70% 구역에 유지되도록 할 것
+- [ ] `src/scene/Ocean.ts`의 god ray 구현(또는 신규 추가): `ShaderMaterial`로 수직 방향 볼류메트릭 광선 8~12개를 수면 위에서 아래로 뻗도록 생성, 광선 색 `#7de8ff` opacity 0.08~0.15, 폭 0.3~0.8 단위, `additive` blending 적용
+- [ ] `src/scene/Lighting.ts`의 `ambientLight` 색상을 현재 추정치 `#0a1a3a`(저채도 네이비)에서 `#083d6e`(코발트)로, `directionalLight` 색을 `#6ec6e8`(채도 +30%) 로 변경하여 배경 전반의 채도를 끌어올림
+- [ ] `src/scene/Lighting.ts` — `update()` 또는 씬 초기화 함수 내에서 `SpotLight` 또는 `PointLight`를 수면 위에 배치하고 `THREE.FogExp2` 안에서 additive blending `PlaneGeometry` 빔 메시(opacity 0.08~0.12, color #a8d8ff) 5~7개를 Y축 방향으로 배열해 god ray 효과 구현
+- [ ] `src/scene/Lighting.ts` — `ambientLight.color`를 현재 추정값(#082060)에서 `#0a5a9f`로 올리고, `scene.fog` 색상을 `#06102a` → `#0a3060`으로 밝게 수정해 배경 채도 향상
+- [ ] `src/entities/WhaleShark.ts` / `src/entities/Fish.ts` — 현재 `MeshLambertMaterial` 또는 `MeshPhongMaterial` 추정 재질을 `MeshToonMaterial`로 교체하고 `gradientMap`에 3단계(어두움/중간/밝음) 텍스처를 지정해 셀 쉐이딩 밴드 명시화

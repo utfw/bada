@@ -421,23 +421,23 @@ export class WhaleShark {
     // 후방(+Z) 포인트 3개 추가로 완전한 타원 궤도: 카메라 앞+뒤 모두 통과
     this.swimPath = new THREE.CatmullRomCurve3(
       [
-        new THREE.Vector3(2, -3, -24),    // ✓ 정면 PASS 1 (x=2,  z=-24)
-        new THREE.Vector3(3, -3.3, -22),  // 전방 우측 체류 연장
-        new THREE.Vector3(4, -3.2, -21),  // 전방 통과 체류 연장
-        new THREE.Vector3(6, -3.5, -19),  // 우측 이탈 완충
-        new THREE.Vector3(8, -4, -16),    // 우측 완만한 이탈
-        new THREE.Vector3(13, -5, -8),    // 오른쪽-앞
-        new THREE.Vector3(14, -5, 0),     // 오른쪽 측면
-        new THREE.Vector3(12, -5, 4),     // 우측 후방 전환점 (NEW)
-        new THREE.Vector3(0, -3, 6),      // 카메라 정후방 중심 (NEW)
-        new THREE.Vector3(-12, -5, 4),    // 좌측 후방 전환점 (NEW)
-        new THREE.Vector3(-14, -4, 0),    // 왼쪽 측면
-        new THREE.Vector3(-13, -5, -8),   // 왼쪽-앞
-        new THREE.Vector3(-8, -4, -16),   // 좌측 완만한 이탈
-        new THREE.Vector3(-6, -3.5, -19), // 좌측 이탈 완충
-        new THREE.Vector3(-4, -3.5, -21), // 전방 좌측 체류 연장
-        new THREE.Vector3(-3, -3.8, -22), // 전방 좌측 체류 연장
-        new THREE.Vector3(-2, -4, -24),   // ✓ 정면 PASS 2 (x=-2, z=-24)
+        new THREE.Vector3(1.3, -3, -15.6),    // ✓ 정면 PASS 1
+        new THREE.Vector3(2.0, -3.3, -14.3),  // 전방 우측 체류 연장
+        new THREE.Vector3(2.6, -3.2, -13.7),  // 전방 통과 체류 연장
+        new THREE.Vector3(3.9, -3.5, -12.4),  // 우측 이탈 완충
+        new THREE.Vector3(5.2, -4, -10.4),    // 우측 완만한 이탈
+        new THREE.Vector3(8.5, -5, -5.2),     // 오른쪽-앞
+        new THREE.Vector3(9.1, -5, 0),        // 오른쪽 측면
+        new THREE.Vector3(7.8, -5, 2.6),      // 우측 후방 전환점
+        new THREE.Vector3(0, -3, 3.9),        // 카메라 정후방 중심
+        new THREE.Vector3(-7.8, -5, 2.6),     // 좌측 후방 전환점
+        new THREE.Vector3(-9.1, -4, 0),       // 왼쪽 측면
+        new THREE.Vector3(-8.5, -5, -5.2),    // 왼쪽-앞
+        new THREE.Vector3(-5.2, -4, -10.4),   // 좌측 완만한 이탈
+        new THREE.Vector3(-3.9, -3.5, -12.4), // 좌측 이탈 완충
+        new THREE.Vector3(-2.6, -3.5, -13.7), // 전방 좌측 체류 연장
+        new THREE.Vector3(-2.0, -3.8, -14.3), // 전방 좌측 체류 연장
+        new THREE.Vector3(-1.3, -4, -15.6),   // ✓ 정면 PASS 2
       ],
       true,
       'catmullrom',
