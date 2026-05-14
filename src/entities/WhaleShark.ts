@@ -99,8 +99,8 @@ export class WhaleShark {
     const bellyLinear = new THREE.Color(0xbecdd8).convertSRGBToLinear();
     const dorsalLinear = new THREE.Color(0x3a4e63).convertSRGBToLinear();
 
-    const gradientData = new Uint8Array([40, 120, 180, 255]);
-    const gradientMap = new THREE.DataTexture(gradientData, 4, 1);
+    const gradientData = new Uint8Array([0, 0, 0, 128, 128, 128, 128, 255, 255, 255]);
+    const gradientMap = new THREE.DataTexture(gradientData, 10, 1);
     gradientMap.format = THREE.RedFormat;
     gradientMap.minFilter = THREE.NearestFilter;
     gradientMap.magFilter = THREE.NearestFilter;
@@ -144,8 +144,12 @@ export class WhaleShark {
     // 캐시 키 없으면 다른 머티리얼과 WebGL 프로그램을 공유해 셰이더가 누락될 수 있음
     material.customProgramCacheKey = (): string => 'whaleSharkBodyToon';
 
-    this.disposables.push(latheGeo, material, gradientMap);
+    const bodyOutlineMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide });
+    const bodyOutlineMesh = new THREE.Mesh(latheGeo, bodyOutlineMat);
+    bodyOutlineMesh.scale.setScalar(1.03);
+    this.disposables.push(latheGeo, material, gradientMap, bodyOutlineMat);
     this.group.add(new THREE.Mesh(latheGeo, material));
+    this.group.add(bodyOutlineMesh);
   }
 
   /**
@@ -156,8 +160,8 @@ export class WhaleShark {
     this.tailGroup = new THREE.Group();
     this.tailGroup.position.set(0, 0, SHARK_LENGTH / 2);
 
-    const finGradientData = new Uint8Array([40, 120, 180, 255]);
-    const finGradientMap = new THREE.DataTexture(finGradientData, 4, 1);
+    const finGradientData = new Uint8Array([0, 0, 0, 128, 128, 128, 128, 255, 255, 255]);
+    const finGradientMap = new THREE.DataTexture(finGradientData, 10, 1);
     finGradientMap.format = THREE.RedFormat;
     finGradientMap.minFilter = THREE.NearestFilter;
     finGradientMap.magFilter = THREE.NearestFilter;
@@ -221,8 +225,8 @@ export class WhaleShark {
       bevelSize: 0.03,
     };
     const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    const dorsalGradientData = new Uint8Array([40, 120, 180, 255]);
-    const dorsalGradientMap = new THREE.DataTexture(dorsalGradientData, 4, 1);
+    const dorsalGradientData = new Uint8Array([0, 0, 0, 128, 128, 128, 128, 255, 255, 255]);
+    const dorsalGradientMap = new THREE.DataTexture(dorsalGradientData, 10, 1);
     dorsalGradientMap.format = THREE.RedFormat;
     dorsalGradientMap.minFilter = THREE.NearestFilter;
     dorsalGradientMap.magFilter = THREE.NearestFilter;
@@ -266,8 +270,8 @@ export class WhaleShark {
       bevelSize: 0.03,
     };
     const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    const pectoralGradientData = new Uint8Array([40, 120, 180, 255]);
-    const pectoralGradientMap = new THREE.DataTexture(pectoralGradientData, 4, 1);
+    const pectoralGradientData = new Uint8Array([0, 0, 0, 128, 128, 128, 128, 255, 255, 255]);
+    const pectoralGradientMap = new THREE.DataTexture(pectoralGradientData, 10, 1);
     pectoralGradientMap.format = THREE.RedFormat;
     pectoralGradientMap.minFilter = THREE.NearestFilter;
     pectoralGradientMap.magFilter = THREE.NearestFilter;
@@ -296,8 +300,8 @@ export class WhaleShark {
   private createPelvicFins(): void {
     const geo = new THREE.ConeGeometry(0.3, 0.9, 6);
     geo.scale(1, 0.5, 1);
-    const pelvicGradientData = new Uint8Array([40, 120, 180, 255]);
-    const pelvicGradientMap = new THREE.DataTexture(pelvicGradientData, 4, 1);
+    const pelvicGradientData = new Uint8Array([0, 0, 0, 128, 128, 128, 128, 255, 255, 255]);
+    const pelvicGradientMap = new THREE.DataTexture(pelvicGradientData, 10, 1);
     pelvicGradientMap.format = THREE.RedFormat;
     pelvicGradientMap.minFilter = THREE.NearestFilter;
     pelvicGradientMap.magFilter = THREE.NearestFilter;
@@ -323,8 +327,8 @@ export class WhaleShark {
    * 아가미 구멍 5쌍 — 머리 뒤쪽 양옆에 수직 슬릿.
    */
   private createGillSlits(): void {
-    const gillGradientData = new Uint8Array([40, 120, 180, 255]);
-    const gillGradientMap = new THREE.DataTexture(gillGradientData, 4, 1);
+    const gillGradientData = new Uint8Array([0, 0, 0, 128, 128, 128, 128, 255, 255, 255]);
+    const gillGradientMap = new THREE.DataTexture(gillGradientData, 10, 1);
     gillGradientMap.format = THREE.RedFormat;
     gillGradientMap.minFilter = THREE.NearestFilter;
     gillGradientMap.magFilter = THREE.NearestFilter;

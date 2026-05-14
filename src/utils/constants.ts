@@ -57,13 +57,11 @@ export const BOID_BOUNDARY_FORCE = 5;
 export const FISH_ORBIT_SPEED = 0.06;
 export const FISH_ORBIT_WEIGHT = 0.8;
 
-// ── God Rays (volumetric cones) ───────────────────
-export const GOD_RAY_COUNT = 3;
-export const GOD_RAY_HEIGHT = SURFACE_HEIGHT + OCEAN_DEPTH;
-export const GOD_RAY_RADIUS = 3.5;
-export const GOD_RAY_MAX_OPACITY = 0.11;
-export const GOD_RAY_RADIAL_SEGMENTS = 16;
-export const GOD_RAY_HEIGHT_SEGMENTS = 1;
+// ── God Rays (volumetric planes) ─────────────────
+export const GOD_RAY_COUNT = 5;
+export const GOD_RAY_HEIGHT = 40;
+export const GOD_RAY_PLANE_WIDTH = 2;
+export const GOD_RAY_MAX_OPACITY = 0.06;
 
 // ── Controls ───────────────────────────────────────
 export const GYRO_SMOOTHING = 0.08;

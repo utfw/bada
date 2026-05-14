@@ -132,8 +132,8 @@ export class FishSchool {
       color = 0x99aabb;
     }
 
-    const gradientData = new Uint8Array([40, 120, 180, 255]);
-    const gradientMap = new THREE.DataTexture(gradientData, 4, 1);
+    const gradientData = new Uint8Array([0, 0, 0, 128, 128, 128, 128, 255, 255, 255]);
+    const gradientMap = new THREE.DataTexture(gradientData, 10, 1);
     gradientMap.format = THREE.RedFormat;
     gradientMap.minFilter = THREE.NearestFilter;
     gradientMap.magFilter = THREE.NearestFilter;
@@ -151,6 +151,11 @@ export class FishSchool {
     bodyGeo.scale(1.6, 0.7, 0.5);
     const body = new THREE.Mesh(bodyGeo, mat);
     inner.add(body);
+
+    const outlineMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide });
+    const outline = new THREE.Mesh(bodyGeo, outlineMat);
+    outline.scale.setScalar(1.05);
+    inner.add(outline);
 
     const tailGeo = new THREE.ConeGeometry(0.5, 1.0, 4);
     tailGeo.rotateZ(Math.PI / 2);
@@ -221,6 +226,7 @@ export class FishSchool {
       eyeGeo,
       eyeMat,
       gradientMap,
+      outlineMat,
     ];
     return { mesh: group, disposables };
   }
