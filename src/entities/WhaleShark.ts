@@ -17,14 +17,27 @@ export class WhaleShark {
   private tailGroup!: THREE.Group;
   private dorsal!: THREE.Mesh;
   private secondDorsal!: THREE.Mesh;
-  private leftPectoral!: THREE.Mesh;
-  private rightPectoral!: THREE.Mesh;
+  private leftPectoralGroup!: THREE.Group;
+  private rightPectoralGroup!: THREE.Group;
+  private leftPelvic!: THREE.Mesh;
+  private rightPelvic!: THREE.Mesh;
+  private spots: Array<{ mesh: THREE.Mesh; baseX: number; z: number }> = [];
+  private gills: Array<{ mesh: THREE.Mesh; baseX: number; z: number }> = [];
   private originalPositions!: Float32Array;
   private disposables: Array<THREE.BufferGeometry | THREE.Material | THREE.Texture> = [];
   // Base X positions for fin wave correction (must match createDorsalFin / createPectoralFins)
   private readonly dorsalBaseX = -0.05;
   private readonly secondDorsalBaseX = -0.05;
-  private readonly pectoralBaseX = 2.2;
+  // pectoralBaseX는 몸통 표면(t=0.25에서 X-half ≈ 2.23, y=-0.4 단면에서 ≈ 2.23)보다
+  // 안쪽으로 두어 fin의 곡선 root 부분을 몸통에 묻는다. 그러지 않으면 fin 안쪽 곡선이
+  // 몸통 바깥으로 튀어나와 root 부근에 검은 틈이 생긴다.
+  private readonly pectoralBaseX = 1.5;
+  // 배지느러미: blade 형태(평평한 삼각). z=L*0.2(t=0.7)에서 몸통 Y-half≈0.65 라 좁다.
+  // 중심에 가깝게(X=0.3) 두어야 root edge가 몸통 곡면에 묻히고 apex만 아래로 노출됨.
+  private readonly leftPelvicBaseX = 0.3;
+  private readonly rightPelvicBaseX = -0.3;
+  private readonly pelvicBaseY = -0.45;
+  private readonly pelvicZ = SHARK_LENGTH * 0.2;
 
   // Swim animation — closed loop path, always swimming
   private swimPath!: THREE.CatmullRomCurve3;
@@ -255,6 +268,9 @@ export class WhaleShark {
 
   /**
    * 가슴지느러미: 길고 넓은 paddle 형태. 바깥쪽으로 완만히 펼쳐짐.
+   * Shape이 비대칭(leading edge ≠ trailing edge)이므로 좌우 대칭을 만들려면
+   * 단순 Y축 회전이 아닌 geometry 자체를 X축 미러링해야 한다.
+   * 또한 group을 pivot으로 두면 rotation.z 가 직접 dihedral/flap 으로 작용한다.
    */
   private createPectoralFins(): void {
     const shape = new THREE.Shape();
@@ -269,7 +285,13 @@ export class WhaleShark {
       bevelThickness: 0.03,
       bevelSize: 0.03,
     };
-    const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    // 기준 geometry: shape XY평면 → XZ평면으로 눕히고 leading edge가 머리(-Z)를 향하도록.
+    const leftGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    leftGeo.rotateX(-Math.PI / 2);
+    // 우측 fin은 X축 미러링한 사본. DoubleSide라 winding 반전은 문제없음.
+    const rightGeo = leftGeo.clone();
+    rightGeo.scale(-1, 1, 1);
+
     const pectoralGradientData = new Uint8Array([0, 0, 0, 128, 128, 128, 128, 255, 255, 255]);
     const pectoralGradientMap = new THREE.DataTexture(pectoralGradientData, 10, 1);
     pectoralGradientMap.format = THREE.RedFormat;
@@ -281,25 +303,43 @@ export class WhaleShark {
       side: THREE.DoubleSide,
       gradientMap: pectoralGradientMap,
     });
-    this.disposables.push(geo, pectoralGradientMap, mat);
+    this.disposables.push(leftGeo, rightGeo, pectoralGradientMap, mat);
 
-    this.leftPectoral = new THREE.Mesh(geo, mat);
-    this.leftPectoral.position.set(2.2, -0.4, -SHARK_LENGTH * 0.25);
-    this.leftPectoral.rotation.set(-Math.PI / 2, 0, -0.25);
+    this.leftPectoralGroup = new THREE.Group();
+    this.leftPectoralGroup.position.set(this.pectoralBaseX, -0.4, -SHARK_LENGTH * 0.25);
+    this.leftPectoralGroup.rotation.z = -0.25; // 끝이 아래로 처짐(dihedral)
+    this.leftPectoralGroup.add(new THREE.Mesh(leftGeo, mat));
 
-    this.rightPectoral = new THREE.Mesh(geo, mat);
-    this.rightPectoral.position.set(-2.2, -0.4, -SHARK_LENGTH * 0.25);
-    this.rightPectoral.rotation.set(-Math.PI / 2, Math.PI, 0.25);
+    this.rightPectoralGroup = new THREE.Group();
+    this.rightPectoralGroup.position.set(-this.pectoralBaseX, -0.4, -SHARK_LENGTH * 0.25);
+    this.rightPectoralGroup.rotation.z = 0.25; // 미러 공간이라 부호 반전
+    this.rightPectoralGroup.add(new THREE.Mesh(rightGeo, mat));
 
-    this.group.add(this.leftPectoral, this.rightPectoral);
+    this.group.add(this.leftPectoralGroup, this.rightPectoralGroup);
   }
 
   /**
-   * 배지느러미(pelvic fins): 몸 아래쪽 후방에 작게.
+   * 배지느러미(pelvic fins): 몸 아래쪽 후방, 수평으로 펼쳐진 삼각 blade.
+   * Geometry를 X축 -π/2 회전으로 눕혀 apex가 꼬리(+Z) 방향을 향하게 함 →
+   * 측면 시점에서도 삼각형 윤곽이 보인다. 좌/우는 X 미러된 geometry로 대칭.
    */
   private createPelvicFins(): void {
-    const geo = new THREE.ConeGeometry(0.3, 0.9, 6);
-    geo.scale(1, 0.5, 1);
+    const shape = new THREE.Shape();
+    shape.moveTo(-0.25, 0);                            // 안쪽 root
+    shape.quadraticCurveTo(0.05, 0.08, 0.4, 0);        // 바깥 root edge
+    shape.quadraticCurveTo(0.5, -0.35, 0.25, -0.8);    // 바깥 → apex
+    shape.quadraticCurveTo(-0.05, -0.6, -0.25, 0);     // apex → 안쪽 root
+    const extrudeSettings: THREE.ExtrudeGeometryOptions = {
+      depth: 0.06,
+      bevelEnabled: true,
+      bevelThickness: 0.02,
+      bevelSize: 0.02,
+    };
+    const leftGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+    leftGeo.rotateX(-Math.PI / 2); // shape -Y → world +Z (수평 + apex 꼬리쪽)
+    const rightGeo = leftGeo.clone();
+    rightGeo.scale(-1, 1, 1); // 좌우 대칭
+
     const pelvicGradientData = new Uint8Array([0, 0, 0, 128, 128, 128, 128, 255, 255, 255]);
     const pelvicGradientMap = new THREE.DataTexture(pelvicGradientData, 10, 1);
     pelvicGradientMap.format = THREE.RedFormat;
@@ -307,20 +347,22 @@ export class WhaleShark {
     pelvicGradientMap.magFilter = THREE.NearestFilter;
     pelvicGradientMap.needsUpdate = true;
     const mat = new THREE.MeshToonMaterial({
-      color: 0x2e3f52,
+      color: 0x3a5068,
+      side: THREE.DoubleSide,
       gradientMap: pelvicGradientMap,
     });
-    this.disposables.push(geo, pelvicGradientMap, mat);
+    this.disposables.push(leftGeo, rightGeo, pelvicGradientMap, mat);
 
-    const left = new THREE.Mesh(geo, mat);
-    left.position.set(0.7, -1.1, SHARK_LENGTH * 0.2);
-    left.rotation.set(0, 0, -0.5);
+    this.leftPelvic = new THREE.Mesh(leftGeo, mat);
+    this.leftPelvic.position.set(this.leftPelvicBaseX, this.pelvicBaseY, this.pelvicZ);
+    // X(+0.5)로 apex가 아래로 처지게(≈28°), Z(+0.2)로 바깥쪽 root를 살짝 들어올림
+    this.leftPelvic.rotation.set(0.5, 0, 0.2);
 
-    const right = new THREE.Mesh(geo, mat);
-    right.position.set(-0.7, -1.1, SHARK_LENGTH * 0.2);
-    right.rotation.set(0, 0, 0.5);
+    this.rightPelvic = new THREE.Mesh(rightGeo, mat);
+    this.rightPelvic.position.set(this.rightPelvicBaseX, this.pelvicBaseY, this.pelvicZ);
+    this.rightPelvic.rotation.set(0.5, 0, -0.2);
 
-    this.group.add(left, right);
+    this.group.add(this.leftPelvic, this.rightPelvic);
   }
 
   /**
@@ -341,13 +383,19 @@ export class WhaleShark {
         const geo = new THREE.BoxGeometry(0.14, 0.9, 0.05);
         this.disposables.push(geo);
         const slit = new THREE.Mesh(geo, slitMat);
-        slit.position.set(
-          side * 1.95,
-          0.15,
-          -SHARK_LENGTH * 0.35 + i * 0.28,
-        );
+        const z = -SHARK_LENGTH * 0.35 + i * 0.28;
+        // 슬릿마다 위치의 몸통 반경에 맞춰 X를 산정 — 그래야 전 슬릿이 표면에 보임.
+        // createBody의 반경식과 동일: head 성장 구간(t<0.2)과 max 구간(0.2≤t<0.45) 분기.
+        const t = (z + SHARK_LENGTH / 2) / SHARK_LENGTH;
+        const radius = t < 0.2
+          ? 1.6 + ((t - 0.08) / 0.12) * 0.5
+          : 2.1;
+        const bodyXHalf = radius * 1.1; // createBody의 X 스케일
+        const baseX = side * (bodyXHalf - 0.04); // 표면 살짝 안쪽
+        slit.position.set(baseX, 0.15, z);
         slit.rotation.z = side * 0.1;
         this.group.add(slit);
+        this.gills.push({ mesh: slit, baseX, z });
       }
     }
   }
@@ -409,6 +457,8 @@ export class WhaleShark {
         const s = 0.6 + ((r * 13 + c * 7) % 10) / 25;
         spot.scale.set(s, s, s);
         this.group.add(spot);
+        // wave 보정용으로 base X 와 Z 보관 → 몸통 undulation과 동기화
+        this.spots.push({ mesh: spot, baseX: x, z: bodyZ });
       }
     }
   }
@@ -476,9 +526,12 @@ export class WhaleShark {
     // 꼬리지느러미 좌우 스윕 (whale은 상하였지만 shark는 좌우)
     this.tailGroup.rotation.y = -Math.PI / 2 + Math.sin(elapsed * 2.5) * 0.45;
 
-    // 가슴지느러미 완만한 균형잡기
-    this.leftPectoral.rotation.z = -0.25 + Math.sin(elapsed * 1.5) * 0.08;
-    this.rightPectoral.rotation.z = 0.25 - Math.sin(elapsed * 1.5) * 0.08;
+    // 가슴지느러미 flap: group의 rotation.z 가 직접 dihedral 각도이므로
+    // sin 진동을 그대로 더하면 끝(tip)이 위아래로 펄럭이는 효과가 된다.
+    // 좌우는 미러 공간이라 동기적으로 펄럭이려면 부호 반대.
+    const flap = Math.sin(elapsed * 1.5) * 0.22;
+    this.leftPectoralGroup.rotation.z = -0.25 + flap;
+    this.rightPectoralGroup.rotation.z = 0.25 - flap;
   }
 
   /**
@@ -528,9 +581,28 @@ export class WhaleShark {
     this.secondDorsal.position.x = this.secondDorsalBaseX + finWave(SHARK_LENGTH * 0.3);
     this.secondDorsal.rotation.y = -Math.PI / 2 + Math.atan(finWaveSlope(SHARK_LENGTH * 0.3));
     const pectoralWave = finWave(-SHARK_LENGTH * 0.25);
-    this.leftPectoral.position.x = this.pectoralBaseX + pectoralWave;
-    this.rightPectoral.position.x = -this.pectoralBaseX + pectoralWave;
+    this.leftPectoralGroup.position.x = this.pectoralBaseX + pectoralWave;
+    this.rightPectoralGroup.position.x = -this.pectoralBaseX + pectoralWave;
+    const pelvicWave = finWave(this.pelvicZ);
+    this.leftPelvic.position.x = this.leftPelvicBaseX + pelvicWave;
+    this.rightPelvic.position.x = this.rightPelvicBaseX + pelvicWave;
     this.tailGroup.position.x = finWave(SHARK_LENGTH * 0.5);
+
+    // 흰 반점들도 같은 wave에 묶어 몸통과 함께 흔들리게 한다
+    for (let i = 0; i < this.spots.length; i++) {
+      const s = this.spots[i];
+      s.mesh.position.x = s.baseX + finWave(s.z);
+    }
+
+    // 아가미 슬릿도 동일 wave에 동기화
+    for (let i = 0; i < this.gills.length; i++) {
+      const g = this.gills[i];
+      g.mesh.position.x = g.baseX + finWave(g.z);
+    }
+  }
+
+  getWorldPosition(target: THREE.Vector3): void {
+    this.group.getWorldPosition(target);
   }
 
   /** 런타임 관찰용 상태 스냅샷 (agent/observe.ts에서 사용) */

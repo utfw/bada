@@ -16,6 +16,9 @@ import {
   TONE_MAPPING_EXPOSURE,
 } from '../utils/constants';
 
+const SOFT_FOLLOW_RATE = 1.5;
+const SOFT_FOLLOW_DECAY = 3.0;
+
 export class SceneManager {
   private scene!: THREE.Scene;
   private camera!: THREE.PerspectiveCamera;
@@ -30,6 +33,10 @@ export class SceneManager {
   private container!: HTMLElement;
   private isRunning = false;
   private animationFrameId = 0;
+  private readonly _sharkWorldPos = new THREE.Vector3();
+  private readonly _sharkNDC = new THREE.Vector3();
+  private _followYawOffset = 0;
+  private _followPitchOffset = 0;
 
   async init(): Promise<void> {
     this.container = document.getElementById('scene-container')!;
@@ -175,6 +182,24 @@ export class SceneManager {
     this.fishSchool.update(elapsed, delta);
     this.lighting.update(elapsed);
     this.skyBox.update(elapsed);
+
+    this.whaleShark.getWorldPosition(this._sharkWorldPos);
+    this._sharkNDC.copy(this._sharkWorldPos).project(this.camera);
+    if (this._sharkNDC.z > 0 && this._sharkNDC.z < 1) {
+      const excessX = this._sharkNDC.x - THREE.MathUtils.clamp(this._sharkNDC.x, -0.35, 0.35);
+      const excessY = this._sharkNDC.y - THREE.MathUtils.clamp(this._sharkNDC.y, -0.35, 0.35);
+      if (excessX !== 0) {
+        this._followYawOffset -= excessX * SOFT_FOLLOW_RATE * delta;
+      } else {
+        this._followYawOffset *= Math.exp(-SOFT_FOLLOW_DECAY * delta);
+      }
+      if (excessY !== 0) {
+        this._followPitchOffset += excessY * SOFT_FOLLOW_RATE * delta;
+      } else {
+        this._followPitchOffset *= Math.exp(-SOFT_FOLLOW_DECAY * delta);
+      }
+    }
+    this.controls.setSoftFollowOffset(this._followPitchOffset, this._followYawOffset);
 
     this.renderer.render(this.scene, this.camera);
   };
