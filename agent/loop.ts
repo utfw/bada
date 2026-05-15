@@ -434,19 +434,72 @@ function formatAestheticSummary(ae: AestheticEval): string {
   return lines.join("\n");
 }
 
+interface StageMetrics {
+  durationMs: number;
+  apiDurationMs: number;
+  costUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  numTurns: number;
+}
+
 interface StageResult {
   output: string;
   success: boolean;
   rateLimited: boolean;
+  metrics?: StageMetrics;
+}
+
+interface ClaudeJsonResult {
+  type: string;
+  subtype?: string;
+  is_error?: boolean;
+  result?: string;
+  duration_ms?: number;
+  duration_api_ms?: number;
+  num_turns?: number;
+  total_cost_usd?: number;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    cache_read_input_tokens?: number;
+    cache_creation_input_tokens?: number;
+  };
+}
+
+function parseClaudeJson(raw: string): { output: string; metrics?: StageMetrics; isError: boolean } {
+  try {
+    const parsed = JSON.parse(raw) as ClaudeJsonResult;
+    const metrics: StageMetrics = {
+      durationMs: parsed.duration_ms ?? 0,
+      apiDurationMs: parsed.duration_api_ms ?? 0,
+      costUsd: parsed.total_cost_usd ?? 0,
+      inputTokens: parsed.usage?.input_tokens ?? 0,
+      outputTokens: parsed.usage?.output_tokens ?? 0,
+      cacheReadTokens: parsed.usage?.cache_read_input_tokens ?? 0,
+      cacheCreationTokens: parsed.usage?.cache_creation_input_tokens ?? 0,
+      numTurns: parsed.num_turns ?? 0,
+    };
+    return { output: parsed.result ?? "", metrics, isError: parsed.is_error === true };
+  } catch {
+    return { output: raw, isError: false };
+  }
 }
 
 function runClaude(prompt: string, allowedTools: string, maxTurns: number, model?: string): StageResult {
   try {
-    const args = ["-p", prompt, "--allowedTools", allowedTools, "--max-turns", String(maxTurns)];
+    const args = [
+      "-p", prompt,
+      "--allowedTools", allowedTools,
+      "--max-turns", String(maxTurns),
+      "--output-format", "json",
+    ];
     if (model) {
       args.push("--model", model);
     }
-    const output = execFileSync(
+    const raw = execFileSync(
       CLAUDE_BIN,
       args,
       {
@@ -456,12 +509,16 @@ function runClaude(prompt: string, allowedTools: string, maxTurns: number, model
         env: process.env,
       }
     );
-    return { output, success: true, rateLimited: false };
+    const { output, metrics, isError } = parseClaudeJson(raw);
+    return { output, success: !isError, rateLimited: false, metrics };
   } catch (e: unknown) {
     const err = e as { stdout?: string; stderr?: string; status?: number };
-    const output = `${err.stdout ?? ""}\n${err.stderr ?? ""}`.trim();
-    const rateLimited = /rate.?limit|too many requests|429|usage.?limit|quota/i.test(output);
-    return { output, success: false, rateLimited };
+    const rawOut = `${err.stdout ?? ""}\n${err.stderr ?? ""}`.trim();
+    // JSON 응답이 stdout에 일부 있을 수 있음 — 우선 파싱 시도
+    const { output, metrics } = parseClaudeJson(rawOut);
+    const finalOutput = output || rawOut;
+    const rateLimited = /rate.?limit|too many requests|429|usage.?limit|quota/i.test(finalOutput);
+    return { output: finalOutput, success: false, rateLimited, metrics };
   }
 }
 
@@ -746,10 +803,21 @@ function readChecklistHash(): string {
 
 // ── 자동 커밋 ────────────────────────────────────────────────────────────────
 
+interface GoalMetrics {
+  durationMs: number;
+  costUsd: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheCreationTokens: number;
+  stages: { stage: string; durationMs: number; costUsd: number }[];
+}
+
 interface CommitEntry {
   goal: string;
   commitMsg: string;
   completedAt: string;
+  metrics?: GoalMetrics;
 }
 
 function loadPendingCommit(): CommitEntry[] {
@@ -822,7 +890,18 @@ function autoCommitAndPush(entries: CommitEntry[]): void {
   const msgLines = entries.map((e) => e.commitMsg || e.goal.slice(0, 72));
   const title = summarizeCommitTitle(msgLines);
   const body = msgLines.length > 1 ? "\n\n" + msgLines.map((m) => `- ${m}`).join("\n") : "";
-  const message = title + body;
+
+  // 메트릭 합계 (있는 entry만)
+  const withMetrics = entries.filter((e) => e.metrics);
+  let metricsBlock = "";
+  if (withMetrics.length > 0) {
+    const totalDur = withMetrics.reduce((s, e) => s + (e.metrics?.durationMs ?? 0), 0);
+    const totalCost = withMetrics.reduce((s, e) => s + (e.metrics?.costUsd ?? 0), 0);
+    const totalIn = withMetrics.reduce((s, e) => s + (e.metrics?.inputTokens ?? 0), 0);
+    const totalOut = withMetrics.reduce((s, e) => s + (e.metrics?.outputTokens ?? 0), 0);
+    metricsBlock = `\n\nMetrics: ${(totalDur / 1000).toFixed(1)}s, $${totalCost.toFixed(4)}, in=${totalIn}, out=${totalOut}`;
+  }
+  const message = title + body + metricsBlock;
   try {
     execFileSync("git", ["add", "src/", "goals.md", "agent/REVIEW_CHECKLIST.md"], {
       cwd: ROOT,
@@ -842,11 +921,14 @@ function extractCommitMsg(output: string): string {
   return match ? match[1].trim() : "";
 }
 
-function recordCompletedGoal(goalText: string, commitMsg: string): void {
+function recordCompletedGoal(goalText: string, commitMsg: string, metrics?: GoalMetrics): void {
   const entries = loadPendingCommit();
-  entries.push({ goal: goalText, commitMsg, completedAt: new Date().toISOString() });
+  entries.push({ goal: goalText, commitMsg, completedAt: new Date().toISOString(), metrics });
   savePendingCommit(entries);
   console.log(`\n📝 커밋 대기열: ${entries.length}/${AUTO_COMMIT_THRESHOLD}개 누적`);
+  if (metrics) {
+    console.log(`  goal 누적: ${(metrics.durationMs / 1000).toFixed(1)}s, $${metrics.costUsd.toFixed(4)}, in=${metrics.inputTokens}, out=${metrics.outputTokens}`);
+  }
   if (entries.length >= AUTO_COMMIT_THRESHOLD) {
     autoCommitAndPush(entries);
   }
@@ -861,6 +943,15 @@ type GoalResult = "completed" | "failed" | "interrupted" | "rate-limited" | "bud
 // "rate-limited"     — API 사용량 초과
 // "budget-exhausted" — -n 옵션으로 지정한 총 파이프라인 횟수 도달
 
+function formatMetrics(m: StageMetrics): string {
+  const sec = (m.durationMs / 1000).toFixed(1);
+  const cost = m.costUsd.toFixed(4);
+  const inTok = m.inputTokens.toLocaleString();
+  const outTok = m.outputTokens.toLocaleString();
+  const cacheRead = m.cacheReadTokens > 0 ? `, cache_read=${m.cacheReadTokens.toLocaleString()}` : "";
+  return `${sec}s, $${cost}, in=${inTok}, out=${outTok}${cacheRead}, turns=${m.numTurns}`;
+}
+
 function logAndCheck(
   result: StageResult,
   log: AgentLog,
@@ -871,6 +962,9 @@ function logAndCheck(
 ): "ok" | "rate-limited" | "stage-failed" {
   log.stage(goalIndex, stage, attempt, result.output);
   console.log(result.output.slice(-1200));
+  if (result.metrics) {
+    console.log(`\n📊 ${label}: ${formatMetrics(result.metrics)}`);
+  }
   if (result.rateLimited) {
     console.log(`\n⏸  ${label}: API 사용량 한도 도달`);
     return "rate-limited";
@@ -892,6 +986,25 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
 
   const filesBefore = new Set(getChangedFiles());
 
+  const goalMetrics: GoalMetrics = {
+    durationMs: 0,
+    costUsd: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheCreationTokens: 0,
+    stages: [],
+  };
+  const accumulate = (stage: string, m?: StageMetrics): void => {
+    if (!m) return;
+    goalMetrics.durationMs += m.durationMs;
+    goalMetrics.costUsd += m.costUsd;
+    goalMetrics.inputTokens += m.inputTokens;
+    goalMetrics.outputTokens += m.outputTokens;
+    goalMetrics.cacheReadTokens += m.cacheReadTokens;
+    goalMetrics.cacheCreationTokens += m.cacheCreationTokens;
+    goalMetrics.stages.push({ stage, durationMs: m.durationMs, costUsd: m.costUsd });
+  };
   for (let cycle = 0; cycle < MAX_CHECKLIST_CYCLES; cycle++) {
     if (budget.remaining <= 0) {
       console.log(`\n⚙ 파이프라인 한도(${budget.total}) 도달 — 종료`);
@@ -953,6 +1066,7 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
     // ── 1. Planner ───────────────────────────────────────────────
     console.log(`\n🧭 [2/4] Planner${cycleLabel} — 구현 계획 수립`);
     const planResult = runPlanner(goal.text, fullObservationSummary);
+    accumulate(`plan-c${cycle}`, planResult.metrics);
     const planCheck = logAndCheck(planResult, log, goalIndex, "plan", cycle, "Planner");
     if (planCheck === "rate-limited") {
       markGoal(goal.lineIndex, "pending");
@@ -977,6 +1091,7 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
 
       console.log(`\n🔨 [3/4] Implementer${cycleLabel}${attemptLabel}`);
       const implResult = runImplementer(goal.text, plan, reviewFeedback);
+      accumulate(`impl-c${cycle}-a${attempt}`, implResult.metrics);
       const implCheck = logAndCheck(implResult, log, goalIndex, "impl", cycle * (MAX_REVIEW_RETRIES + 1) + attempt, `Implementer${cycleLabel}${attemptLabel}`);
       if (implCheck === "rate-limited") {
         markGoal(goal.lineIndex, "pending");
@@ -1001,6 +1116,7 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
       console.log(`  📐 자동 수치 검증: 통과 ${numericResults.filter((r) => r.ok).length}/${numericResults.length}` +
         (numericFailed.length > 0 ? `, 실패 ${numericFailed.length}건` : ""));
       const reviewResult = runReviewer(goal.text, plan, changedSoFar, numericResults);
+      accumulate(`review-c${cycle}-a${attempt}`, reviewResult.metrics);
       const checklistAfter = readChecklistHash();
       const reviewCheck = logAndCheck(reviewResult, log, goalIndex, "review", cycle * (MAX_REVIEW_RETRIES + 1) + attempt, `Reviewer${cycleLabel}${attemptLabel}`);
       if (reviewCheck === "rate-limited") {
@@ -1039,7 +1155,7 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
       log.goalEnd(true, newlyChanged);
       log.save();
       markGoal(goal.lineIndex, "done");
-      recordCompletedGoal(goal.text, passedCommitMsg);
+      recordCompletedGoal(goal.text, passedCommitMsg, goalMetrics);
       console.log(`\n✓ 완료: ${goal.text}`);
       if (checklistUpdated) {
         console.log(`  (체크리스트가 갱신됐으나 이미 통과 — 다음 목표/실행에서 반영됨)`);

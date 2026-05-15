@@ -5,6 +5,41 @@
 
 ---
 
+## [2026-05-15] Claude CLI 호출 메트릭 수집·노출
+
+### 배경
+파이프라인 단계별 비용·시간·토큰 사용량이 콘솔에 노출되지 않아 어떤 단계가
+토큰을 소모하는지, 한 goal 완료에 얼마가 들었는지 사후적으로 추적 불가능.
+[2026-05-03] Reviewer 토큰 최적화 같은 최적화 작업의 효과 측정에도 메트릭이
+필요했음.
+
+### loop.ts (메트릭 파싱)
+- `runClaude()` 호출에 `--output-format json` 인자 추가
+- `ClaudeJsonResult` 인터페이스 + `parseClaudeJson(raw)` 함수 신설 — JSON
+  응답에서 `duration_ms`, `duration_api_ms`, `total_cost_usd`, `num_turns`,
+  `usage.{input,output,cache_read,cache_creation}_tokens` 추출
+- `StageMetrics` 인터페이스 추가 — 한 stage 호출의 사용량 스냅샷
+- `StageResult.metrics` 필드 추가, 에러 경로(stderr/stdout)에서도 JSON
+  부분이 있으면 동일 파서로 시도
+
+### loop.ts (집계·노출)
+- `formatMetrics(m)` — `Ns, $X, in=N, out=N, cache_read=N, turns=N` 형태로 콘솔 한 줄
+- `logAndCheck()`이 stage 결과 직후 `📊 <label>: <metrics>` 출력
+- `GoalMetrics { durationMs, costUsd, in/out/cacheRead/cacheCreation tokens, stages[] }`
+  인터페이스 + `runGoal()` 내 `accumulate(stage, m)` 클로저로 Planner/Implementer/Reviewer
+  메트릭 누적
+- `CommitEntry.metrics` 필드 추가 — `recordCompletedGoal(text, msg, metrics)` 시 저장
+- `autoCommitAndPush()` — 누적 entry에 메트릭이 있으면 커밋 메시지에
+  `Metrics: Ns, $X, in=N, out=N` 한 줄 첨부
+- `recordCompletedGoal()` 콘솔에 `goal 누적: ...` 한 줄 추가
+
+### 효과
+- 단계별 소비량 즉시 가시화 → 어느 prompt가 비싼지 식별 가능
+- 자동 커밋된 commit log에 사용량이 박혀 사후 회고 가능
+- 추후 cache hit rate, turn count 추이 분석 기반
+
+---
+
 ## [2026-05-09] 결정론적 수치 검증 코드 추출 (Reviewer 토큰 절감)
 
 ### 배경
