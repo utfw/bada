@@ -58,10 +58,11 @@ export const FISH_ORBIT_SPEED = 0.06;
 export const FISH_ORBIT_WEIGHT = 0.8;
 
 // ── God Rays (volumetric planes) ─────────────────
-export const GOD_RAY_COUNT = 5;
+export const GOD_RAY_COUNT = 10;
 export const GOD_RAY_HEIGHT = 40;
-export const GOD_RAY_PLANE_WIDTH = 2;
-export const GOD_RAY_MAX_OPACITY = 0.06;
+export const GOD_RAY_PLANE_WIDTH = 0.5;
+export const GOD_RAY_MAX_OPACITY = 0.11;
+export const GOD_RAY_COLOR = 0x7de8ff;
 
 // ── Controls ───────────────────────────────────────
 export const GYRO_SMOOTHING = 0.08;

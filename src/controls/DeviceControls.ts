@@ -12,9 +12,6 @@ export class DeviceControls {
   private targetEuler = new THREE.Euler(0, 0, 0, 'YXZ');
   private currentEuler = new THREE.Euler(0, 0, 0, 'YXZ');
 
-  private _softFollowPitch = 0;
-  private _softFollowYaw = 0;
-
   private isDragging = false;
   private previousPos = { x: 0, y: 0 };
   private dragYaw = 0;
@@ -94,13 +91,8 @@ export class DeviceControls {
     this.currentEuler.set(euler.x, euler.y, 0, 'YXZ');
   }
 
-  setSoftFollowOffset(pitch: number, yaw: number): void {
-    this._softFollowPitch = pitch;
-    this._softFollowYaw = yaw;
-  }
-
   update(_delta: number): void {
-    this.targetEuler.set(this.dragPitch + this._softFollowPitch, this.dragYaw + this._softFollowYaw, 0, 'YXZ');
+    this.targetEuler.set(this.dragPitch, this.dragYaw, 0, 'YXZ');
     this.currentEuler.x = THREE.MathUtils.lerp(this.currentEuler.x, this.targetEuler.x, GYRO_SMOOTHING);
     this.currentEuler.y = THREE.MathUtils.lerp(this.currentEuler.y, this.targetEuler.y, GYRO_SMOOTHING);
     this.camera.quaternion.setFromEuler(this.currentEuler);

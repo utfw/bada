@@ -43,7 +43,7 @@
 
 - 고래상어의 지느러미·반점·아가미 슬릿이 몸통 표면에 **시각적으로 붙어** 있어야 한다. 근접샷(`whaleshark-front/side/top/below.png`)에서 파츠가 떠 있거나 분리돼 보이면 **실패**.
 
-- **[코드 수치 검증] 가슴지느러미(pectoral) 접합 위치**: `WhaleShark.ts`의 body는 `scale(1.1, 0.75, 1)` 변환 후 최대 반지름 구간(t=0.2~0.45)에서 X방향 실제 반지름 = `2.1 × 1.1 = 2.31`. 가슴지느러미 root의 `position.x` 절댓값이 이 값보다 작으면 몸통 안에 묻히고, 크면 공중에 뜬다. Reviewer는 `createPectoralFins()`에서 pectoral position.x와 위 계산값의 차이가 0.3 이상이면 **실패** 판정.
+- **[코드 수치 검증] 가슴지느러미(pectoral) 접합 위치**: `WhaleShark.ts`의 body는 `scale(1.1, 0.75, 1)` 변환 후 최대 반지름 구간(t=0.2~0.45)에서 X방향 실제 반지름 = `2.1 × 1.1 = 2.31`. 가슴지느러미 root의 `position.x` 절댓값이 이 값보다 작으면 root가 몸통 안에 묻히고, 크면 공중에 뜬다. Reviewer는 `createPectoralFins()`에서 pectoral group(또는 mesh)의 `position.x`와 위 계산값의 차이가 0.3 이상인 경우, **shape의 X extent**(shape 최대 X 정점)도 함께 확인한다. `group.position.x + shape_max_x > body_radius × 1.1 × 2`이면 fin tip이 충분히 바깥으로 나와 있으므로 **root 매립은 의도된 gap-hiding 기법으로 허용**하고 통과로 판정한다. shape_max_x를 고려해도 body 반지름에 미달하거나, 근접샷에서 지느러미가 몸통 바깥으로 전혀 보이지 않으면 실패.
 
 - **[코드 수치 검증] 등지느러미(dorsal) 접합 위치**: 등지느러미 root의 `position.y`가 해당 Z 위치의 body 상단 Y값(`body radius × 0.75 스케일`)보다 낮으면 몸통에 묻히고 높으면 뜬다. Reviewer는 `createDorsalFin()`에서 생성되는 **두 등지느러미 모두**(dorsal, secondDorsal)의 `position.y`와 각 Z에서의 `bodyRadius × 0.75` 계산값을 비교해 차이가 0.5 이상이면 **실패**. secondDorsal Z = `SHARK_LENGTH×0.3`(= t=0.8 구간)에서 body가 급격히 얇아지므로(반지름 ≈ 0.32, Y상단 ≈ 0.24) 특히 주의.
 
@@ -125,7 +125,7 @@
 
 ## 10. 조명·수면 시각 품질 (Lighting & Ocean Surface)
 
-- **[코드 검증] 갓레이(God Ray) 존재**: `Lighting.ts`의 constructor에 `GOD_RAY_COUNT` 개수만큼 PlaneGeometry 기반 볼류메트릭 광선 메시(`THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>`)가 생성되고 씬에 add 되어야 한다. `GOD_RAY_MAX_OPACITY`가 0이거나 geometry를 씬에 추가하지 않으면 **실패**. SpotLight target은 `scene.add(spot.target)` 필수.
+- **[코드 검증] 갓레이(God Ray) 존재**: `Lighting.ts`의 constructor에 `GOD_RAY_COUNT` 개수만큼 PlaneGeometry 기반 볼류메트릭 광선 메시(`THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>`)가 생성되고 씬에 add 되어야 한다. 재질은 ShaderMaterial(animated opacity)을 사용하며 MeshBasicMaterial이 아님. `GOD_RAY_MAX_OPACITY`가 0이거나 geometry를 씬에 추가하지 않으면 **실패**. SpotLight target은 `scene.add(spot.target)` 필수.
 
 - **[시각 검증] 갓레이 가시성**: `screenshot-1~4.png` 중 최소 1장에서 수면에서 내려오는 밝은 쐐기형 광선 줄기가 보여야 한다. 4장 모두에서 광선이 보이지 않으면 opacity·위치·각도 문제이므로 **실패 징후** — SUGGESTIONS에 갓레이 opacity/위치 개선 추가.
 
@@ -178,4 +178,7 @@ Reviewer 또는 사람이 항목을 추가·수정할 때마다 한 줄 기록. 
 - (2026-05-05) [human] §3 보강: 등지느러미 rotation.y 부호 검증(음수 필수), 꼬리지느러미 내부 메시 이중 rotation.y 버그(합산 0→수평), 가슴지느러미 rotation.x 수평 방향 검증(|rotation.x| < 0.5이면 실패) 항목 추가. 세 버그 모두 에이전트가 수치 체크만으로 탐지하지 못해 사람이 직접 발견함.
 - (2026-05-07) [reviewer] §10 정정: 갓레이 메시 생성 위치를 "Ocean.ts에"에서 "Lighting.ts의 constructor에"로 수정 — 실제 구현이 Lighting.ts에 있으며 Ocean.ts에는 god ray 관련 코드 없음. 미정정 시 미래 Reviewer가 잘못된 파일을 점검할 위험.
 - (2026-05-07) [reviewer] §10 갓레이 opacity 감소 후 시각 검증: GOD_RAY_MAX_OPACITY 0.18→0.11 + godRayFragmentShader smoothstep 0.3→0.4 조합으로 whaleshark-front 기준 과노출 기둥 형태 해소 확인. wide 앵글(screenshot-1~4)에서 갓레이가 미세해지는 것은 의도된 결과이므로 실패 미해당.
-- (2026-05-10) [reviewer] §10 갱신: ConeGeometry+ShaderMaterial → PlaneGeometry+MeshBasicMaterial 교체 반영. GOD_RAY_MAX_OPACITY=0.06, SpotLight(angle=0.18, penumbra=0.7, intensity=3.0) 파라미터 확인. whaleshark-front/side에서 기둥형 갓레이 가시성 확인. wide 앵글 미세화는 2026-05-07 선례와 동일하게 실패 미해당.
+- (2026-05-10) [reviewer] §10 갱신: ConeGeometry → PlaneGeometry+ShaderMaterial 교체 반영. GOD_RAY_MAX_OPACITY=0.11, SpotLight(angle=0.18, penumbra=0.7, intensity=3.0) 파라미터 확인. whaleshark-front/side에서 기둥형 갓레이 가시성 확인. wide 앵글 미세화는 2026-05-07 선례와 동일하게 실패 미해당.
+- (2026-05-10) [정정: MeshBasicMaterial 기재 오류] 갓레이 재질은 ShaderMaterial(animated uTime uniform)이며 MeshBasicMaterial이 아님 — §10 명시 규칙과 실제 코드 모두 ShaderMaterial 사용.
+- (2026-05-15) [reviewer] §3 가슴지느러미 접합 기준 보완: group pivot이 body 반지름보다 안쪽(gap-hiding 설계)이더라도 shape X extent가 body 반지름의 2배를 초과하면 tip이 충분히 노출된 것으로 허용. rotation.x 검증에서 geometry.rotateX(-π/2) 패턴은 mesh.rotation.x 탐색으로 탐지 불가 — 시각 확인으로 보완.
+- (2026-05-16) [reviewer] §1 HUMAN_VERIFICATION_REQUIRED 확인: fish.avgForwardDot=-1.00 관측, 탑뷰 개체 크기가 작아 역방향 육안 확정 불가 — 규정에 따라 사람 보고로 종료. §10 MeshBasicMaterial 로그 오류 정정: 갓레이 재질은 실제로 ShaderMaterial(animated uTime) — 2026-05-10 로그 오기 수정.
