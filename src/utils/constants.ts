@@ -9,7 +9,7 @@ export const CAMERA_NEAR = 0.1;
 export const CAMERA_FAR = 200;
 export const MAX_PIXEL_RATIO = 2;
 export const DEFAULT_FOG_DENSITY = 0.015;
-export const DEFAULT_FOG_COLOR = 0x0a6090;
+export const DEFAULT_FOG_COLOR = 0x0a5c8c;
 export const TONE_MAPPING_EXPOSURE = 1.4;
 
 // ── Weather API ────────────────────────────────────
@@ -58,11 +58,11 @@ export const FISH_ORBIT_SPEED = 0.06;
 export const FISH_ORBIT_WEIGHT = 0.8;
 
 // ── God Rays (volumetric planes) ─────────────────
-export const GOD_RAY_COUNT = 10;
+export const GOD_RAY_COUNT = 6;
 export const GOD_RAY_HEIGHT = 40;
-export const GOD_RAY_PLANE_WIDTH = 0.5;
-export const GOD_RAY_MAX_OPACITY = 0.11;
-export const GOD_RAY_COLOR = 0x7de8ff;
+export const GOD_RAY_PLANE_WIDTH = 2.5;
+export const GOD_RAY_MAX_OPACITY = 0.12;
+export const GOD_RAY_COLOR = 0xa8d8ff;
 
 // ── Controls ───────────────────────────────────────
 export const GYRO_SMOOTHING = 0.08;

@@ -19,7 +19,7 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x083d6e,
+    ambientColor: 0x1475b0,
     ambientIntensity: 1.25,
     sunColor: 0x6ec6e8,
     sunIntensity: 2.0,
@@ -66,7 +66,7 @@ export class Lighting {
   private godRayCones: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
 
   constructor(scene: THREE.Scene) {
-    this.ambientLight = new THREE.AmbientLight(0x083d6e, 1.25);
+    this.ambientLight = new THREE.AmbientLight(0x1475b0, 1.25);
     scene.add(this.ambientLight);
 
     this.hemisphereLight = new THREE.HemisphereLight(0x88ccff, 0x004466, 1.0);
