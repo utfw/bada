@@ -368,7 +368,11 @@ AESTHETIC_SUGGESTIONS:
 3. <세 번째 — 없으면 생략 가능>
 `.trim();
 
-  const result = runClaude(prompt, "Read", 5, "claude-sonnet-4-6");
+  const result = runClaude(prompt, "Read", 5, {
+    model: "claude-sonnet-4-6",
+    effort: "low",
+    budgetUsd: 0.30,
+  });
 
   const rubricMatch = result.output.match(/AESTHETIC_RUBRIC_START([\s\S]*?)AESTHETIC_RUBRIC_END/);
   const scoreMatch = result.output.match(/AESTHETIC_SCORE:\s*(\d+(?:\.\d+)?)/);
@@ -488,7 +492,20 @@ function parseClaudeJson(raw: string): { output: string; metrics?: StageMetrics;
   }
 }
 
-function runClaude(prompt: string, allowedTools: string, maxTurns: number, model?: string): StageResult {
+type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max";
+
+interface ClaudeOptions {
+  model?: string;
+  effort?: EffortLevel;
+  budgetUsd?: number;
+}
+
+function runClaude(
+  prompt: string,
+  allowedTools: string,
+  maxTurns: number,
+  opts: ClaudeOptions = {},
+): StageResult {
   try {
     const args = [
       "-p", prompt,
@@ -496,8 +513,14 @@ function runClaude(prompt: string, allowedTools: string, maxTurns: number, model
       "--max-turns", String(maxTurns),
       "--output-format", "json",
     ];
-    if (model) {
-      args.push("--model", model);
+    if (opts.model) {
+      args.push("--model", opts.model);
+    }
+    if (opts.effort) {
+      args.push("--effort", opts.effort);
+    }
+    if (opts.budgetUsd !== undefined) {
+      args.push("--max-budget-usd", String(opts.budgetUsd));
     }
     const raw = execFileSync(
       CLAUDE_BIN,
@@ -625,26 +648,37 @@ ${observationSummary}
 4. 관찰된 런타임 증거와 목표·체크리스트를 비교해 실제로 고쳐야 할 지점을 특정
 5. 구현 계획을 아래 형식으로 출력
 
-출력 형식 (PLAN_START와 PLAN_END 사이에만 계획을 작성하고, 그 외 잡담은 금지):
+⚠️ 출력 분량 제한 (엄수, 위반 시 다음 단계가 차단됨):
+- 전체 응답은 **PLAN_START~PLAN_END 블록 하나뿐**. 그 외 머리말·맺음말·잡담 금지.
+- 블록 내부 **총 500 단어 이내**. 분석을 늘리지 말고 결론·파일 경로·구체 변경만 적는다.
+- **코드 블록 금지** (꼭 인용해야 한다면 한 위치당 3줄 이하).
+- 마크다운 테이블, 중첩 리스트(들여쓰기 ≥ 2단계), 인용 블록 금지.
+- "이 변경이 왜 안전한가" 같은 자기 검증 서술 금지 — 그건 Reviewer 일.
+
+출력 형식:
 
 PLAN_START
 ## 런타임 진단
-<관찰 결과에서 무엇이 문제인지, 또는 문제 없음을 1~3줄>
+<1~2줄로 문제 또는 "문제 없음" 명시>
 
 ## 수정/생성할 파일
 - <파일 경로>: <이유 한 줄>
 
 ## 구현 접근
-<어떤 Three.js 클래스·알고리즘·API를 사용할지, 기존 코드와 어떻게 통합할지 5~15줄>
+<Three.js 클래스·알고리즘·구체 수치 변경만 5~8줄. 일반론·배경 설명 금지>
 
 ## 주의사항
 - TypeScript strict, any 금지
 - Three.js 객체는 dispose() 필수
-- <목표 특화 주의점>
+- <목표 특화 주의점 1~3개>
 PLAN_END
 `.trim();
 
-  return runClaude(prompt, "Read,Glob,Grep", 15, "sonnet");
+  return runClaude(prompt, "Read,Glob,Grep", 15, {
+    model: "sonnet",
+    effort: "low",
+    budgetUsd: 0.40,
+  });
 }
 
 function extractPlan(output: string): string {
@@ -682,7 +716,11 @@ ${plan}
 5. 계획에 없는 파일을 만지지 말 것 (꼭 필요하면 이유 남기고 진행)
 `.trim();
 
-  return runClaude(prompt, "Bash,Edit,Write,Read,Glob,Grep", 30, "sonnet");
+  return runClaude(prompt, "Bash,Edit,Write,Read,Glob,Grep", 30, {
+    model: "sonnet",
+    effort: "low",
+    budgetUsd: 0.40,
+  });
 }
 
 function buildSuggestionPolicy(pendingCount: number): string {
@@ -757,7 +795,9 @@ ${numericReport}
 검증 절차 (순서대로):
 1. agent/REVIEW_CHECKLIST.md Read → 모든 항목 점검 (금지 규칙·갱신 규칙 포함).
    다만 [코드 수치 검증] 표기 항목 중 위 자동 수치 검증에 포함된 항목(pectoral/dorsal 위치, rotation 부호, 가중치 비율, GOD_RAY_MAX_OPACITY, createSpots scale)은 **자동 결과를 그대로 인용**하고 재검증하지 말 것.
-2. agent/observations/topview-t1.png, topview-t2.png Read → 머리/이동 방향 비교
+2. agent/observations/topview-t1.png, topview-t2.png 를 Read 도구로 직접 열어 머리/이동 방향 비교.
+   ⚠️ 두 이미지를 Read로 열지 않으면 아래 "탑뷰 관찰" 섹션을 작성할 수 없음 — 템플릿 복붙 금지.
+   "머리·이동 일치 여부:" 필드에는 반드시 "일치" 또는 "불일치" 중 하나만 작성 (꺽쇠 placeholder 금지)
 3. agent/observations/screenshot-1~4.png, whaleshark-front/side/top/below.png, surface-up.png Read → 육안 확인 (자동 검증이 못 잡는 동적 gap·시각 품질 영역)
    - surface-up.png: 아래에서 위를 바라본 샷. 수면 투시·갓레이·조명 분위기 확인 (§10 기준)
 4. npx tsc --noEmit Bash 실행 → 타입 에러 없어야 함
@@ -788,7 +828,11 @@ ${numericReport}
 ${suggestionPolicy}
 `.trim();
 
-  return runClaude(prompt, "Read,Glob,Grep,Bash,Edit,Write", 15, "claude-sonnet-4-6");
+  return runClaude(prompt, "Read,Glob,Grep,Bash,Edit,Write", 15, {
+    model: "claude-sonnet-4-6",
+    effort: "medium",
+    budgetUsd: 0.60,
+  });
 }
 
 // ── 체크리스트 변경 감지 ──────────────────────────────────────────────────────
@@ -1383,6 +1427,16 @@ function isValidReviewPass(output: string): boolean {
   if (!output.includes("REVIEW_PASS")) return false;
   if (!output.includes("탑뷰 관찰")) {
     console.log(`\n⛔ REVIEW_PASS 무효: "탑뷰 관찰" 섹션 없음 — 자동 REVIEW_FAIL 처리`);
+    return false;
+  }
+  const matchLine = output.match(/머리·이동 일치 여부\s*:\s*(.+)/);
+  if (!matchLine) {
+    console.log(`\n⛔ REVIEW_PASS 무효: "머리·이동 일치 여부" 라인 없음 — 자동 REVIEW_FAIL 처리`);
+    return false;
+  }
+  const verdict = matchLine[1].trim();
+  if (verdict.includes("<") || (!verdict.includes("일치") && !verdict.includes("불일치"))) {
+    console.log(`\n⛔ REVIEW_PASS 무효: "머리·이동 일치 여부" 값이 placeholder이거나 "일치"/"불일치" 미포함 (값: "${verdict}") — 자동 REVIEW_FAIL 처리`);
     return false;
   }
   return true;

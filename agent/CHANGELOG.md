@@ -5,6 +5,50 @@
 
 ---
 
+## [2026-05-16] 단계별 effort 레벨·예산 캡 도입 (thinking 토큰 절감)
+
+### 배경
+[2026-05-15] 메트릭 수집 이후 측정해보니 비용 폭증의 진짜 원인은 visible
+output이 아니라 **extended thinking 토큰**. 같은 단계의 output 토큰이 goal에
+따라 25k vs 3.7k로 변동하는데, 보이는 plan/review 본문 길이는 200~700 단어로
+거의 일정. 차이는 전부 thinking. 특히 "수정 불필요" 같은 쉬운 task에서
+Sonnet이 결론을 의심하며 thinking 토큰을 폭주적으로 소비하는 패턴 관찰됨
+(Planner $0.58, 25k output → 실제 plan은 250 단어).
+
+직전 Planner 프롬프트에 단어 캡을 추가했으나 thinking에는 영향 없음 — 진짜
+레버는 `claude --effort <low|medium|high|xhigh|max>`였다.
+
+### loop.ts (runClaude 시그니처)
+- 4번째 인자를 단일 `model?: string`에서 `ClaudeOptions { model, effort,
+  budgetUsd }` 객체로 변경 — 호출부에 어떤 옵션이 적용됐는지 명시되게 함
+- `EffortLevel` 유니온 타입 추가 (`low|medium|high|xhigh|max`)
+- `--effort` 플래그를 args에 조건부 추가
+- `--max-budget-usd` 플래그를 args에 조건부 추가 — per-call hard cap.
+  thinking이 폭주해도 지정 금액 도달 시 호출 자체가 종료됨
+
+### loop.ts (단계별 설정)
+- **Aesthetic Evaluator**: `effort=low`, `budgetUsd=0.30` — 5항목 채점은
+  구조화된 평가라 깊은 thinking 불필요
+- **Planner**: `effort=low`, `budgetUsd=0.40` — 출력 형식이 고정 템플릿이라
+  thinking 적게 필요. 쉬운 task에서 폭주하는 케이스 차단
+- **Implementer**: `effort=low`, `budgetUsd=0.40` — 이미 평균 $0.05-0.13로
+  저렴하나 안전망 역할
+- **Reviewer**: `effort=medium`, `budgetUsd=0.60` — 코드/이미지 다층 검증이라
+  완전 low는 누락 위험. medium으로 시작
+
+### 기대 효과
+- 직전 세션(3 goals + 1 partial = $2.7) → 예상 60-65% 절감 ($1.0-1.1)
+- 한 세션 처리량 goal당 $1.0 → $0.4 → 약 2.5배 증가
+- 효과 측정 후 Reviewer도 low 시도 가능, Planner가 너무 얕으면 medium 승격
+
+### 한계
+- `--effort low`가 실제로 thinking을 얼마나 줄이는지 Anthropic 공식 수치
+  미공개 — 측정 필요
+- budget cap이 발동하면 stage 중도 종료 → "interrupted" 결과로 다음 goal로
+  넘어가지 않음. cap은 안전망용이지 정상 동작 시 도달하면 안 됨
+
+---
+
 ## [2026-05-15] Claude CLI 호출 메트릭 수집·노출
 
 ### 배경
