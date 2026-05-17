@@ -64,6 +64,8 @@ export class Lighting {
   private hemisphereLight: THREE.HemisphereLight;
   private godRaySpots: THREE.SpotLight[] = [];
   private godRayCones: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
+  private nearRayMeshes: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] = [];
+  private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
     this.ambientLight = new THREE.AmbientLight(0x1475b0, 1.25);
@@ -161,6 +163,29 @@ export class Lighting {
       scene.add(plane);
       this.godRayCones.push(plane);
     }
+
+    // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
+    this.nearRayGeo = new THREE.PlaneGeometry(0.8, 12);
+    for (let i = 0; i < 10; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0x88ddff,
+        transparent: true,
+        opacity: 0.08,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(this.nearRayGeo, mat);
+      mesh.position.set(
+        (i / 10 * 2 - 1) * 3,
+        0,
+        Math.random() * 6 - 3,
+      );
+      mesh.rotation.x = 0.1;
+      mesh.renderOrder = 998;
+      scene.add(mesh);
+      this.nearRayMeshes.push(mesh);
+    }
   }
 
   update(elapsed: number): void {
@@ -171,6 +196,9 @@ export class Lighting {
     });
     this.godRayCones.forEach((plane) => {
       plane.material.uniforms.uTime.value = elapsed;
+    });
+    this.nearRayMeshes.forEach((m, i) => {
+      m.material.opacity = Math.sin(elapsed * 0.3 + i * 0.7) * 0.03 + 0.07;
     });
   }
 
@@ -201,6 +229,10 @@ export class Lighting {
     this.godRayCones[0]?.geometry.dispose();
     this.godRayCones.forEach((plane) => {
       plane.material.dispose();
+    });
+    this.nearRayGeo.dispose();
+    this.nearRayMeshes.forEach((m) => {
+      m.material.dispose();
     });
   }
 }

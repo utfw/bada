@@ -138,9 +138,9 @@
 - [x] `src/scene/Lighting.ts` — `update()` 또는 씬 초기화 함수 내에서 `SpotLight` 또는 `PointLight`를 수면 위에 배치하고 `THREE.FogExp2` 안에서 additive blending `PlaneGeometry` 빔 메시(opacity 0.08~0.12, color #a8d8ff) 5~7개를 Y축 방향으로 배열해 god ray 효과 구현
 - [x] **색상 채도 개선** — `src/utils/constants.ts` 또는 `src/scene/Ocean.ts`의 fog color / `scene.background` 값을 `#061a3a`(현재 추정) → `#0a5c8c`(코발트), ambient light color를 `#0d3d6e` → `#1475b0`으로 상향하여 배경 지배색을 목표 채도 범위로 이동
 - [x] WhaleShark.ts의 카메라 가시성 검증: 4장 중 최소 1장에서 고래상어 몸통이 화면 내에 보여야 함.
-- [ ] FishSchool 클래스의 orbitPaths 배열 사용: 각 school별 독립 궤도 경로 분리 필요.
-- [ ] `src/scene/Lighting.ts` — 수직 god ray 메시 추가: 반투명 `PlaneGeometry(0.8, 12)`를 8~12개 생성, `MeshBasicMaterial({ color: 0x88ddff, transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false })`로 설정, X축 ±3 범위로 분산 배치하고 Y축 상단(y=6)에서 하단 방향으로 가볍게 기울임(rotateX ~0.1rad). SceneManager의 `update(delta)`에서 opacity를 `Math.sin(time*0.3)*0.03 + 0.07`로 미세 진동.
-- [ ] Reviewer가 topview-t1.png/t2.png를 촬영하고 이동 방향을 확인하지 않음.
+- [x] FishSchool 클래스의 orbitPaths 배열 사용: 각 school별 독립 궤도 경로 분리 필요.
+- [x] `src/scene/Lighting.ts` — 수직 god ray 메시 추가: 반투명 `PlaneGeometry(0.8, 12)`를 8~12개 생성, `MeshBasicMaterial({ color: 0x88ddff, transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false })`로 설정, X축 ±3 범위로 분산 배치하고 Y축 상단(y=6)에서 하단 방향으로 가볍게 기울임(rotateX ~0.1rad). SceneManager의 `update(delta)`에서 opacity를 `Math.sin(time*0.3)*0.03 + 0.07`로 미세 진동.
+- [x] Reviewer가 topview-t1.png/t2.png를 촬영하고 이동 방향을 확인하지 않음.
 - [ ] Fish의 avgForwardDot이 -1.00으로 역방향으로 움직임, 단순히 이 값으로 코드를 수정하지 않음.
 - [ ] **수직 깊이감** — `src/scene/SceneManager.ts`(또는 `Ocean.ts`)에서 배경을 단색 대신 수직 그라디언트 ShaderMaterial로 교체: vertex shader에서 `vY = position.y`를 넘기고 fragment shader에서 `mix(vec3(0.04,0.08,0.20), vec3(0.07,0.47,0.69), clamp(vY * 0.1 + 0.5, 0.0, 1.0))`으로 상단 밝은 청록~하단 어두운 남색 그라디언트 구현.
 - [ ] **광선 효과** — `src/scene/Lighting.ts`의 god ray 빔 플레인 opacity를 현재 추정값 `0.05~0.08`에서 `0.18~0.25`로 상향하고, 빔 개수를 3→5개로 늘려 측면 각도(screenshot-1·3·4)에서도 식별 가능하도록 스프레드 각도를 ±15°→ ±25°로 확장.
