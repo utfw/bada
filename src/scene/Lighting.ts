@@ -134,7 +134,7 @@ export class Lighting {
       const z = Math.sin(angle) * radius;
       const spotY = SURFACE_HEIGHT + 15 + Math.random() * 10;
 
-      const spot = new THREE.SpotLight(0x88ddff, 3.0, 80, 0.18, 0.7, 1.5);
+      const spot = new THREE.SpotLight(0x88ddff, 3.0, 80, 0.44, 0.7, 1.5);
       spot.position.set(x, spotY, z);
       spot.target.position.set(x, -30, z);
       scene.add(spot);
@@ -159,6 +159,7 @@ export class Lighting {
       const plane = new THREE.Mesh(planeGeo, planeMat);
       plane.position.set(x, SURFACE_HEIGHT - GOD_RAY_HEIGHT / 2, z);
       plane.rotation.y = (i * Math.PI) / GOD_RAY_COUNT;
+      plane.rotation.x = -(Math.random() * 0.2 + 0.33);
       plane.renderOrder = 999;
       scene.add(plane);
       this.godRayCones.push(plane);
@@ -170,7 +171,7 @@ export class Lighting {
       const mat = new THREE.MeshBasicMaterial({
         color: 0x88ddff,
         transparent: true,
-        opacity: 0.08,
+        opacity: 0.12,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
@@ -181,7 +182,7 @@ export class Lighting {
         0,
         Math.random() * 6 - 3,
       );
-      mesh.rotation.x = 0.1;
+      mesh.rotation.x = 0.3 + Math.random() * 0.15;
       mesh.renderOrder = 998;
       scene.add(mesh);
       this.nearRayMeshes.push(mesh);
@@ -198,7 +199,7 @@ export class Lighting {
       plane.material.uniforms.uTime.value = elapsed;
     });
     this.nearRayMeshes.forEach((m, i) => {
-      m.material.opacity = Math.sin(elapsed * 0.3 + i * 0.7) * 0.03 + 0.07;
+      m.material.opacity = Math.sin(elapsed * 0.3 + i * 0.7) * 0.04 + 0.11;
     });
   }
 

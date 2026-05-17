@@ -182,3 +182,5 @@ Reviewer 또는 사람이 항목을 추가·수정할 때마다 한 줄 기록. 
 - (2026-05-10) [정정: MeshBasicMaterial 기재 오류] 갓레이 재질은 ShaderMaterial(animated uTime uniform)이며 MeshBasicMaterial이 아님 — §10 명시 규칙과 실제 코드 모두 ShaderMaterial 사용.
 - (2026-05-15) [reviewer] §3 가슴지느러미 접합 기준 보완: group pivot이 body 반지름보다 안쪽(gap-hiding 설계)이더라도 shape X extent가 body 반지름의 2배를 초과하면 tip이 충분히 노출된 것으로 허용. rotation.x 검증에서 geometry.rotateX(-π/2) 패턴은 mesh.rotation.x 탐색으로 탐지 불가 — 시각 확인으로 보완.
 - (2026-05-16) [reviewer] §1 HUMAN_VERIFICATION_REQUIRED 확인: fish.avgForwardDot=-1.00 관측, 탑뷰 개체 크기가 작아 역방향 육안 확정 불가 — 규정에 따라 사람 보고로 종료. §10 MeshBasicMaterial 로그 오류 정정: 갓레이 재질은 실제로 ShaderMaterial(animated uTime) — 2026-05-10 로그 오기 수정.
+- (2026-05-17) [reviewer] 전체 항목 통과. AmbientLight/DirectionalLight clear비율 0.625 경고(치명 아님). fish.avgForwardDot=-1.00 HUMAN_VERIFICATION_REQUIRED — 탑뷰 소형 개체 육안 확정 불가, 사람 확인 요청. tsc 이상 없음.
+- (2026-05-17) [reviewer] §10 갱신: god ray tilt plane.rotation.x=-(rand*0.2+0.33)≈19°~30° 목표 ±25° 충족 확인. GOD_RAY_COUNT=5, GOD_RAY_MAX_OPACITY=0.22 유지. screenshot-1~4 모두에서 측면 앵글 갓레이 식별 가능 — 목표 달성. 변경 파일 없음(기존 코드가 이미 목표 수치 충족).

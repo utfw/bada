@@ -4,6 +4,8 @@ import { WeatherCondition } from '../weather/WeatherService';
 export class SkyBox {
   private mesh: THREE.Mesh;
   private material: THREE.ShaderMaterial;
+  private underwaterBg: THREE.Mesh;
+  private underwaterBgMat: THREE.ShaderMaterial;
 
   constructor(scene: THREE.Scene) {
     const geometry = new THREE.SphereGeometry(80, 32, 32);
@@ -55,6 +57,32 @@ export class SkyBox {
 
     this.mesh = new THREE.Mesh(geometry, this.material);
     scene.add(this.mesh);
+
+    const uwGeometry = new THREE.SphereGeometry(78, 32, 16);
+    this.underwaterBgMat = new THREE.ShaderMaterial({
+      vertexShader: `
+        varying float vY;
+        void main() {
+          vY = (modelMatrix * vec4(position, 1.0)).y;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying float vY;
+        void main() {
+          vec3 deep = vec3(0.04, 0.08, 0.20);
+          vec3 surface = vec3(0.07, 0.47, 0.69);
+          float t = clamp(vY * 0.1 + 0.5, 0.0, 1.0);
+          gl_FragColor = vec4(mix(deep, surface, t), 1.0);
+        }
+      `,
+      side: THREE.BackSide,
+      depthWrite: false,
+      depthTest: false,
+    });
+    this.underwaterBg = new THREE.Mesh(uwGeometry, this.underwaterBgMat);
+    this.underwaterBg.renderOrder = -1;
+    scene.add(this.underwaterBg);
   }
 
   update(_elapsed: number): void {
@@ -93,5 +121,7 @@ export class SkyBox {
   dispose(): void {
     this.mesh.geometry.dispose();
     this.material.dispose();
+    this.underwaterBg.geometry.dispose();
+    this.underwaterBgMat.dispose();
   }
 }
