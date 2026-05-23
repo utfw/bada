@@ -16,6 +16,9 @@ import {
   BOID_BOUNDARY_FORCE,
   FISH_ORBIT_SPEED,
   FISH_ORBIT_WEIGHT,
+  PREDATOR_FLEE_RANGE,
+  PREDATOR_FLEE_WEIGHT,
+  PREDATOR_FLEE_INTENSITY_NORM,
 } from '../utils/constants';
 
 interface FishInstance {
@@ -25,6 +28,9 @@ interface FishInstance {
   disposables: Array<THREE.BufferGeometry | THREE.Material | THREE.Texture>;
 }
 
+// [cx, cz, yBase, semi_a, semi_b, yWave] — 학교별 타원 궤도 정의 튜플
+export type OrbitDef = [number, number, number, number, number, number];
+
 export class FishSchool {
   private fish: FishInstance[] = [];
   private readonly scene: THREE.Scene;
@@ -33,39 +39,46 @@ export class FishSchool {
   private readonly _alignment = new THREE.Vector3();
   private readonly _cohesion = new THREE.Vector3();
   private readonly _diff = new THREE.Vector3();
+  private readonly _flee = new THREE.Vector3();
   private readonly _orbitAnchor = new THREE.Vector3();
   private readonly _orbitTarget = new THREE.Vector3();
   // Per-group orbit progress — allocated once, reused every frame
   private readonly schoolProgress: Float32Array;
+  private readonly schoolDefs: OrbitDef[];
   private readonly orbitPaths: THREE.CatmullRomCurve3[];
+  // Shark 위치 — SceneManager가 매 프레임 setSharkPosition()으로 주입. 미주입 시 멀리 두어 영향 없음.
+  private readonly _sharkPos = new THREE.Vector3(9999, 9999, 9999);
+  // 학교별 prefetch buffer: this frame에 누적된 flee force 합과 학교 인구
+  private readonly _fleeForceFrameSum: Float32Array;
+  private readonly _schoolPopulation: Int32Array;
+  // 학교별 smoothed flee intensity (0~1) — exponential decay로 떨림 방지
+  private readonly _fleeIntensity: Float32Array;
+  // 학교별 centroid (재사용 버퍼)
+  private readonly _schoolCentroids: THREE.Vector3[];
+  private readonly _schoolDistances: Float32Array;
+  // 학교별 분산도(centroid 기준 평균 거리) — encounter 시점에 확장됨을 측정
+  private readonly _schoolDispersion: Float32Array;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
     // Build one elliptical orbit path per school.
     // Centers spread across all 4 quadrants at varied depths for a rich 360° scene.
     // [cx, cz, yBase, semi_a, semi_b, yWave]
-    const schoolDefs: [number, number, number, number, number, number][] = [
+    this.schoolDefs = [
       [-16,  -4,  -4, 16, 12, 2.5],  // 0: left-front,  shallow
       [  8,  -8,  -8, 14, 13, 2.0],  // 1: right-front, mid
-      [  0, -20,  -6, 18, 10, 1.5],  // 2: far back,    mid-deep
-      [  7, -14, -11, 13, 15, 2.0],  // 3: right-front, deep
+      [  0, -14,  -6, 18, 10, 1.5],  // 2: far back,    mid-deep
+      [ -7,   8,  -6, 13, 15, 2.0],  // 3: left-back,   mid (separated from school 1)
       [-12,  -8,  -3, 15, 11, 3.0],  // 4: left-front,  near surface
     ];
-    const N = 8;
-    this.orbitPaths = schoolDefs.map(([cx, cz, yBase, semi_a, semi_b, yWave]) => {
-      const points: THREE.Vector3[] = [];
-      for (let k = 0; k < N; k++) {
-        const angle = (k / N) * Math.PI * 2;
-        points.push(
-          new THREE.Vector3(
-            cx + semi_a * Math.cos(angle),
-            yBase + yWave * Math.sin(angle * 2),
-            cz + semi_b * Math.sin(angle),
-          ),
-        );
-      }
-      return new THREE.CatmullRomCurve3(points, true);
-    });
+    this.orbitPaths = this.schoolDefs.map((def) => this.buildOrbitPath(def));
+
+    this._fleeForceFrameSum = new Float32Array(FISH_SCHOOL_COUNT);
+    this._schoolPopulation = new Int32Array(FISH_SCHOOL_COUNT);
+    this._fleeIntensity = new Float32Array(FISH_SCHOOL_COUNT);
+    this._schoolCentroids = Array.from({ length: FISH_SCHOOL_COUNT }, () => new THREE.Vector3());
+    this._schoolDistances = new Float32Array(FISH_SCHOOL_COUNT);
+    this._schoolDispersion = new Float32Array(FISH_SCHOOL_COUNT);
 
     // Initialise per-group progress with equal phase spacing
     this.schoolProgress = new Float32Array(FISH_SCHOOL_COUNT);
@@ -109,6 +122,42 @@ export class FishSchool {
       this.fish.push({ mesh, velocity, schoolIndex, disposables });
       scene.add(mesh);
     }
+  }
+
+  /** schoolDefs 튜플 하나를 CatmullRomCurve3로 변환. updateOrbitDef()와 constructor가 공유. */
+  private buildOrbitPath(def: OrbitDef): THREE.CatmullRomCurve3 {
+    const [cx, cz, yBase, semi_a, semi_b, yWave] = def;
+    const N = 8;
+    const points: THREE.Vector3[] = [];
+    for (let k = 0; k < N; k++) {
+      const angle = (k / N) * Math.PI * 2;
+      points.push(
+        new THREE.Vector3(
+          cx + semi_a * Math.cos(angle),
+          yBase + yWave * Math.sin(angle * 2),
+          cz + semi_b * Math.sin(angle),
+        ),
+      );
+    }
+    return new THREE.CatmullRomCurve3(points, true);
+  }
+
+  /**
+   * 런타임에 학교 N의 궤도 정의를 교체. 에이전트(Planner)가 단조로운 학교를 감지했을 때
+   * window.__entities.fishSchool.updateOrbitDef(i, [...]) 로 호출.
+   * 새 def는 즉시 다음 프레임부터 반영되며, 진행률(schoolProgress)은 유지된다.
+   */
+  updateOrbitDef(schoolIndex: number, def: OrbitDef): void {
+    if (schoolIndex < 0 || schoolIndex >= FISH_SCHOOL_COUNT) {
+      throw new RangeError(`schoolIndex out of range: ${schoolIndex}`);
+    }
+    this.schoolDefs[schoolIndex] = def;
+    this.orbitPaths[schoolIndex] = this.buildOrbitPath(def);
+  }
+
+  /** SceneManager가 매 프레임 호출 — flee force 계산용 shark 위치 주입 */
+  setSharkPosition(pos: THREE.Vector3): void {
+    this._sharkPos.copy(pos);
   }
 
   private createFishMesh(scale: number): { mesh: THREE.Group; disposables: Array<THREE.BufferGeometry | THREE.Material | THREE.Texture> } {
@@ -237,6 +286,13 @@ export class FishSchool {
       this.schoolProgress[g] = (this.schoolProgress[g] + FISH_ORBIT_SPEED * delta) % 1;
     }
 
+    // 학교별 누적 버퍼 초기화 (centroid 계산 + flee force 누적)
+    for (let g = 0; g < FISH_SCHOOL_COUNT; g++) {
+      this._fleeForceFrameSum[g] = 0;
+      this._schoolPopulation[g] = 0;
+      this._schoolCentroids[g].set(0, 0, 0);
+    }
+
     const halfWidth = OCEAN_WIDTH / 2;
     const yMin = -OCEAN_DEPTH;
     const yMax = SURFACE_HEIGHT - 2;
@@ -244,13 +300,20 @@ export class FishSchool {
     const alignment = this._alignment;
     const cohesion = this._cohesion;
     const diff = this._diff;
+    const flee = this._flee;
+    const sharkPos = this._sharkPos;
 
     for (let i = 0; i < this.fish.length; i++) {
       const fi = this.fish[i];
       const pos = fi.mesh.position;
+      const si = fi.schoolIndex;
+
+      // centroid 누적 (학교별 평균을 구하기 위해)
+      this._schoolCentroids[si].add(pos);
+      this._schoolPopulation[si]++;
 
       // Per-group orbit anchor for this fish — reuse pre-allocated vector (§7: no loop alloc)
-      const orbitAnchor = this.orbitPaths[fi.schoolIndex].getPointAt(this.schoolProgress[fi.schoolIndex], this._orbitAnchor);
+      const orbitAnchor = this.orbitPaths[si].getPointAt(this.schoolProgress[si], this._orbitAnchor);
 
       separation.set(0, 0, 0);
       alignment.set(0, 0, 0);
@@ -291,6 +354,18 @@ export class FishSchool {
         cohesion.divideScalar(neighborCount);
         cohesion.sub(pos);
         accel.addScaledVector(cohesion, BOID_COHESION_WEIGHT);
+      }
+
+      // Predator flee — shark가 FLEE_RANGE 안에 있으면 멀어지는 방향으로 가속.
+      // 거리가 가까울수록 강하게(선형 falloff). 학교별 평균 강도는 _fleeForceFrameSum에 누적.
+      flee.subVectors(pos, sharkPos);
+      const sharkDist = flee.length();
+      if (sharkDist < PREDATOR_FLEE_RANGE && sharkDist > 0) {
+        const falloff = 1 - sharkDist / PREDATOR_FLEE_RANGE; // 1=접촉, 0=경계
+        const fleeMag = PREDATOR_FLEE_WEIGHT * falloff;
+        flee.multiplyScalar(fleeMag / sharkDist); // 정규화 + 스케일을 한 번에
+        accel.add(flee);
+        this._fleeForceFrameSum[si] += fleeMag;
       }
 
       // Orbit path steering — spring force proportional to distance.
@@ -335,6 +410,36 @@ export class FishSchool {
         tail.rotation.y = Math.sin(elapsed * 8 + i) * 0.2 * (0.5 + speedRatio);
       }
     }
+
+    // ── 학교별 후처리: centroid, 거리, dispersion, smoothed flee intensity ──
+    // smoothing rate: 200ms 응답 시간 (1/τ ≈ 5/s)
+    const FLEE_SMOOTH_RATE = 5.0;
+    const smoothK = Math.min(FLEE_SMOOTH_RATE * delta, 1.0);
+    for (let g = 0; g < FISH_SCHOOL_COUNT; g++) {
+      const n = this._schoolPopulation[g];
+      if (n > 0) {
+        this._schoolCentroids[g].multiplyScalar(1 / n);
+        this._schoolDistances[g] = this._schoolCentroids[g].distanceTo(this._sharkPos);
+        // 이번 프레임 1마리 평균 flee 강도를 0~1로 정규화
+        const avgFleeMag = this._fleeForceFrameSum[g] / n;
+        const targetIntensity = Math.min(avgFleeMag / PREDATOR_FLEE_INTENSITY_NORM, 1.0);
+        this._fleeIntensity[g] = this._fleeIntensity[g] + (targetIntensity - this._fleeIntensity[g]) * smoothK;
+      } else {
+        this._schoolDistances[g] = Infinity;
+        this._fleeIntensity[g] = 0;
+      }
+    }
+    // dispersion 2-pass: centroid 확정 후 각 fish-centroid 평균 거리 계산
+    for (let g = 0; g < FISH_SCHOOL_COUNT; g++) this._schoolDispersion[g] = 0;
+    for (let i = 0; i < this.fish.length; i++) {
+      const fi = this.fish[i];
+      const si = fi.schoolIndex;
+      this._schoolDispersion[si] += fi.mesh.position.distanceTo(this._schoolCentroids[si]);
+    }
+    for (let g = 0; g < FISH_SCHOOL_COUNT; g++) {
+      const n = this._schoolPopulation[g];
+      if (n > 0) this._schoolDispersion[g] /= n;
+    }
   }
 
   dispose(): void {
@@ -350,6 +455,12 @@ export class FishSchool {
     velocities: Array<{ x: number; y: number; z: number }>;
     forwardDots: number[]; // velocity 방향과 메시 실제 전진 방향(-Z 월드)의 dot product
     schoolIndices: number[]; // 각 물고기가 속한 school 인덱스
+    // 학교별 상호작용 상태 — Observer/Planner가 직접 활용
+    schoolCentroids: Array<{ x: number; y: number; z: number }>;
+    schoolDistances: number[]; // 각 학교 중심에서 shark까지 거리 (shark 미주입 시 매우 큼)
+    schoolFleeIntensity: number[]; // 0~1, smoothed
+    schoolDispersion: number[]; // 학교 내 centroid 기준 평균 거리 (flee 시 증가)
+    schoolDefs: OrbitDef[]; // 현재 궤도 정의 (updateOrbitDef로 변경됨)
   } {
     const _forward = new THREE.Vector3();
     return {
@@ -370,6 +481,11 @@ export class FishSchool {
         return _forward.dot(f.velocity) / speed; // 1=정방향, -1=역방향
       }),
       schoolIndices: this.fish.map((f) => f.schoolIndex),
+      schoolCentroids: this._schoolCentroids.map((c) => ({ x: c.x, y: c.y, z: c.z })),
+      schoolDistances: Array.from(this._schoolDistances),
+      schoolFleeIntensity: Array.from(this._fleeIntensity),
+      schoolDispersion: Array.from(this._schoolDispersion),
+      schoolDefs: this.schoolDefs.map((d) => [...d] as OrbitDef),
     };
   }
 }

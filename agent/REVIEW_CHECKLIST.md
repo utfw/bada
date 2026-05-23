@@ -86,7 +86,28 @@
 
 - **물고기 군집 내 개체 간 겹침 금지**: `latest.json`의 spread 값이 fish scale(약 0.3~1.5)보다 작으면 개체 간 겹침이 발생하는 것이므로 **실패**.
 
+- **[시각 검증] surface-up.png 근접 물고기 카메라 점거**: Observer가 촬영하는 `surface-up.png`(카메라 y=−10, target y=15)에서 Boids 물고기가 카메라 극근접 렌더링되어 화면 상단 40% 이상을 덮어 고래상어 주체 인식을 방해하는 경우, Reviewer는 SUGGESTIONS에 "Fish.ts update() 루프에서 카메라까지 거리 < 2.0인 물고기 mesh.visible=false 처리(또는 camera.near=1.5 상향)"를 목표로 추가한다. 이 항목은 REVIEW_FAIL 사유가 아니라 반복 관찰 시 SUGGESTIONS 트리거 기준이다.
+
 - **[Observer 수치 검증] fish.centroid.y 궤도 이탈**: Observer 마지막 샘플의 `|fish.centroid.y - FISH_ORBIT_Y|`가 `BOID_BOUNDARY_MARGIN`(=8)을 초과하면 물고기가 의도된 궤도 Y에서 이탈한 것으로 판정 — **실패**. 원인 후보: orbit force(`FISH_ORBIT_WEIGHT / orbitDist`)가 집단 boids 속도를 이기지 못해 연속 드리프트 발생. Reviewer는 `latest.json`의 `samples[31].fish.centroid.y` 값을 확인하고 `|centroid.y - FISH_ORBIT_Y| > 8`이면 실패 판정.
+
+## 3-3. Fish ↔ WhaleShark 회피 상호작용
+
+이 섹션은 2026-05-24 도입된 predator avoidance(Boids flee force) 기능의 정합성·다양성 검증 기준이다.
+관련 코드: `Fish.ts`의 `setSharkPosition()`/flee force 누적/`schoolInteractions`, `SceneManager.ts`의 매 프레임 주입, `constants.ts`의 `PREDATOR_FLEE_RANGE`/`PREDATOR_FLEE_WEIGHT`/`PREDATOR_FLEE_INTENSITY_NORM`.
+
+- **[코드 검증] setSharkPosition 호출 누락 금지**: `SceneManager.ts`의 `animate()` 루프 안에 `this.fishSchool.setSharkPosition(this._sharkWorldPos)` 호출이 `this.fishSchool.update(...)`보다 앞에 있어야 한다. 누락 시 shark 위치가 초기값(9999,9999,9999)에 머물러 flee force가 영원히 0이 된다. 호출이 없거나 `update()` 뒤에 있으면 **실패**.
+
+- **[코드 검증] flee force 가중치 비율**: `PREDATOR_FLEE_WEIGHT`가 `BOID_SEPARATION_WEIGHT`보다 작거나 같으면 separation·cohesion에 묻혀 회피가 시각적으로 드러나지 않는다. `PREDATOR_FLEE_WEIGHT > BOID_SEPARATION_WEIGHT`(현재 14.0 > 8.0)가 유지되어야 한다. 미만이면 **실패**.
+
+- **[Observer 시계열 검증] 전 학교 미만남 금지**: `latest.json`의 `predatorMetrics`에서 모든 학교의 `encounterRate === 0`이면 shark 경로가 학교 궤도 영역 밖에 있거나 관찰 시간이 부족한 것 — **실패**. 원인 후보: WhaleShark CatmullRomCurve3 제어점이 학교 궤도 중심에서 항상 멀리 떨어짐 / 관찰 8초가 너무 짧음 / shark가 화면 멀리 멈춰 있음. Planner는 `WhaleShark.ts`의 경로 제어점이 `Fish.ts`의 `schoolDefs`와 교차하는지 확인.
+
+- **[Observer 시계열 검증] flee 후 회복 실패**: 특정 학교의 `peakFleeIntensity >= 0.3`인데 `recoveryTimeSec === -1`이면, 학교가 flee 후 경계·다른 학교에 막혀 정상 궤도로 복귀하지 못한 것 — **실패**. Planner는 해당 학교의 `schoolDefs` 중심·반경이 `BOID_BOUNDARY_MARGIN` 근처가 아닌지, `FISH_ORBIT_WEIGHT`가 flee 후 복귀 인력으로 충분한지 검토.
+
+- **[Observer 시계열 검증] 학교 경로 단조성 (SUGGESTIONS 트리거)**: `predatorMetrics`에서 **모든 학교의 `pathVariance < 3.0`**이면 8초 관찰 동안 학교 중심이 거의 움직이지 않은 것 — 회피 다양성 실패. REVIEW_FAIL이 아닌 **SUGGESTIONS 트리거**로 분류하고, "Fish.ts `schoolDefs`의 일부 학교 궤도 반경(`semi_a`/`semi_b`) 또는 `FISH_ORBIT_SPEED`를 다양화" 목표를 추가한다. 일부 학교만 단조이면 그 학교만 지명해 제안.
+
+- **[Observer 시계열 검증] 최소 거리 정합성**: `predatorMetrics[*].minDistance`가 0.5 미만이면 shark와 fish 메시가 물리적으로 겹친 것 — 시각 품질 저하 및 향후 충돌 처리 추가 시 NaN 가능. Reviewer는 해당 학교를 SUGGESTIONS에 "fish 카메라 컬링 또는 fish-shark 최소 거리 클램프" 항목으로 기록.
+
+- **[코드 검증] 학교 정의 보존**: `getDebugState()`가 반환하는 `schoolDefs` 배열은 학교당 6원소 튜플([cx, cz, yBase, semi_a, semi_b, yWave])이어야 한다. `updateOrbitDef()` 사용 후 길이/원소 수가 깨지면 Observer 직렬화가 실패하므로 **실패**.
 
 ## 4. 근접샷 검은 화면 금지
 
@@ -196,3 +217,6 @@ Reviewer 또는 사람이 항목을 추가·수정할 때마다 한 줄 기록. 
 - (2026-05-23) [reviewer] 목표[3] 7차 검증: GOD_RAY_PLANE_WIDTH=0.65, GOD_RAY_MAX_OPACITY=0.10 constants.ts 재확인. Lighting.ts ShaderMaterial 5개 plane+SpotLight scene.add, update() uTime 갱신, applyWeather() opacityScale 확인. Ocean.ts line 183 uTime 갱신 ✓. screenshot-1~4 갓레이 선명 가시(청색 수직 줄기). surface-up.png 수면 반투명·광선 확인. tsc 통과. 탑뷰 머리·이동 일치(왼쪽 전진). AmbientLight/DirectionalLight clear 비율 0.625 경고(치명 아님, 연속 동일). fish.avgForwardDot HUMAN_VERIFICATION_REQUIRED 유지. 변경 파일 없음. REVIEW_PASS.
 - (2026-05-23) [reviewer] 색상 채도 목표 검증: HemisphereLight sky color 0x003366→0x0a6aaa(Lighting.ts line 74 확인), DEFAULT_FOG_COLOR 0x001833→0x042d6e(constants.ts line 12), FOG_MAP.clear.color→0x042d6e(WeatherService.ts line 17) 모두 달성. ambient intensity 1.25로 이미 목표(0.65) 초과. tsc 통과. 탑뷰 머리·이동 일치(왼쪽 전진). AmbientLight/DirectionalLight 비율 0.625 경고(치명 아님, 연속 동일). REVIEW_PASS.
 - (2026-05-23) [reviewer] 색상 채도 목표 재검증(2차): 동일 3수치 constants.ts/Lighting.ts/WeatherService.ts 직접 Read 재확인. tsc 이상 없음. screenshot-1~4 갓레이 가시, surface-up.png 수면 반투명·광선 확인. 탑뷰 머리·이동 일치(왼쪽 전진). 변경 파일 없음. REVIEW_PASS.
+- (2026-05-23) [reviewer] §3-2 추가: surface-up.png 근접 물고기가 화면 상단 40%+ 점거하여 고래상어 주체 인식 방해하는 패턴이 다수 세션에 걸쳐 반복 관찰됨 — REVIEW_FAIL 아닌 SUGGESTIONS 트리거 기준으로 명시. Fish.ts 카메라 거리 컬링(<2.0m) 또는 camera.near 상향 수정 방향 기준 명시.
+- (2026-05-23) [reviewer] 목표[Fish.ts inner.rotation.y 검증]: 변경 파일 없음. §1 HUMAN_VERIFICATION_REQUIRED 적용 — fish.avgForwardDot=-1.00 관측되나 탑뷰 소형 개체로 역방향 육안 확정 불가, 사람 확인 요청. tsc 통과. 탑뷰 머리·이동 방향 불확실(개체 너무 작음). 자동 수치 검증 실패 2건(pectoral pos.x/rotation.x 패턴 미스매치)은 §3 2026-05-15 기존 항목으로 커버. 모든 스크린샷에서 고래상어·갓레이 확인. REVIEW_PASS.
+- (2026-05-24) [human] §3-3 신설: Predator avoidance(Boids flee force) 도입에 따른 검증 항목 추가 — setSharkPosition 호출 누락 금지, FLEE_WEIGHT > SEPARATION_WEIGHT 유지, 전 학교 미만남 실패, flee 후 회복 실패, pathVariance 단조 SUGGESTIONS 트리거, minDistance 충돌 SUGGESTIONS, schoolDefs 보존. Observer는 `predatorMetrics` 시계열 지표를 `latest.json`에 출력하며 `detectPredatorAnomalies()`가 anomalies에 자동 누적한다.

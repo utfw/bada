@@ -147,3 +147,5 @@
 - [x] **[4] 셰이딩 스타일** — `src/entities/WhaleShark.ts`의 몸체 재질을 `MeshToonMaterial`로 교체하고 3픽셀 `THREE.DataTexture` gradientMap(어둠→중간→밝음 3단계)을 생성해 할당. 기존 specular 파라미터 제거
 - [x] **[3] 광선 효과** — god ray plane의 너비를 현재 대비 50~60% 축소하고 `material.opacity`를 `0.05→0.10`으로 높여 줄기 윤곽의 선명도 개선 (Ocean.ts 또는 광선 mesh 생성 함수 내)
 - [x] `src/scene/Lighting.ts`의 `HemisphereLight` sky color를 `0x003366 → 0x0a6aaa`, ambient intensity를 0.4 → 0.65로 올리고, `FogExp2` color를 `0x001833 → 0x042d6e`로 변경해 전체 채도를 청록 계열로 끌어올릴 것
+- [x] **색상 채도** — `src/scene/SkyBox.ts` 또는 배경 fog 설정에서 수중 ambient 색을 `#0a3d6b`→`#0a6490`(HSL 기준 채도 +20%)으로 올리고, `src/scene/Lighting.ts`의 `ambientLight` intensity를 0.3→0.5로 높여 전체 채도를 끌어올릴 것
+- [ ] **광선 효과** — `src/scene/Lighting.ts` god ray 생성부에서 ray mesh의 opacity를 현재 추정값(0.3~0.5)→0.12~0.18로 낮추고, ray 폭(plane width)을 현재 대비 60%로 줄여 과노출 기둥 대신 가는 산란 줄기로 교체할 것

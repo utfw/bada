@@ -180,11 +180,13 @@ export class SceneManager {
     this.controls.update(delta);
     this.ocean.update(elapsed, delta);
     this.whaleShark.update(elapsed, delta);
+    // WhaleShark 갱신 직후 위치를 읽어 FishSchool에 주입해야 flee force가 같은 프레임에 반영됨
+    this.whaleShark.getWorldPosition(this._sharkWorldPos);
+    this.fishSchool.setSharkPosition(this._sharkWorldPos);
     this.fishSchool.update(elapsed, delta);
     this.lighting.update(elapsed);
     this.skyBox.update(elapsed);
 
-    this.whaleShark.getWorldPosition(this._sharkWorldPos);
     this._sharkNDC.copy(this._sharkWorldPos).project(this.camera);
     if (this._sharkNDC.z > 0 && this._sharkNDC.z < 1) {
       const excessX = this._sharkNDC.x - THREE.MathUtils.clamp(this._sharkNDC.x, -0.35, 0.35);
