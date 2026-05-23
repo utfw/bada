@@ -71,7 +71,7 @@ export class Lighting {
     this.ambientLight = new THREE.AmbientLight(0x1475b0, 1.25);
     scene.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x88ccff, 0x004466, 1.0);
+    this.hemisphereLight = new THREE.HemisphereLight(0x0a6aaa, 0x004466, 1.0);
     scene.add(this.hemisphereLight);
 
     this.sunLight = new THREE.DirectionalLight(0x6ec6e8, 2.0);
@@ -166,12 +166,12 @@ export class Lighting {
     }
 
     // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
-    this.nearRayGeo = new THREE.PlaneGeometry(0.8, 12);
+    this.nearRayGeo = new THREE.PlaneGeometry(0.2, 12);
     for (let i = 0; i < 10; i++) {
       const mat = new THREE.MeshBasicMaterial({
         color: 0x88ddff,
         transparent: true,
-        opacity: 0.12,
+        opacity: 0.08,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
@@ -199,7 +199,7 @@ export class Lighting {
       plane.material.uniforms.uTime.value = elapsed;
     });
     this.nearRayMeshes.forEach((m, i) => {
-      m.material.opacity = Math.sin(elapsed * 0.3 + i * 0.7) * 0.04 + 0.11;
+      m.material.opacity = 0.08;
     });
   }
 

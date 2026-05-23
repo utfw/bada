@@ -144,6 +144,6 @@
 - [x] Fish의 avgForwardDot이 -1.00으로 역방향으로 움직임, 단순히 이 값으로 코드를 수정하지 않음.
 - [x] **수직 깊이감** — `src/scene/SceneManager.ts`(또는 `Ocean.ts`)에서 배경을 단색 대신 수직 그라디언트 ShaderMaterial로 교체: vertex shader에서 `vY = position.y`를 넘기고 fragment shader에서 `mix(vec3(0.04,0.08,0.20), vec3(0.07,0.47,0.69), clamp(vY * 0.1 + 0.5, 0.0, 1.0))`으로 상단 밝은 청록~하단 어두운 남색 그라디언트 구현.
 - [x] **광선 효과** — `src/scene/Lighting.ts`의 god ray 빔 플레인 opacity를 현재 추정값 `0.05~0.08`에서 `0.18~0.25`로 상향하고, 빔 개수를 3→5개로 늘려 측면 각도(screenshot-1·3·4)에서도 식별 가능하도록 스프레드 각도를 ±15°→ ±25°로 확장.
-- [ ] **[4] 셰이딩 스타일** — `src/entities/WhaleShark.ts`의 몸체 재질을 `MeshToonMaterial`로 교체하고 3픽셀 `THREE.DataTexture` gradientMap(어둠→중간→밝음 3단계)을 생성해 할당. 기존 specular 파라미터 제거
-- [ ] **[3] 광선 효과** — god ray plane의 너비를 현재 대비 50~60% 축소하고 `material.opacity`를 `0.05→0.10`으로 높여 줄기 윤곽의 선명도 개선 (Ocean.ts 또는 광선 mesh 생성 함수 내)
-- [ ] `src/scene/Lighting.ts`의 `HemisphereLight` sky color를 `0x003366 → 0x0a6aaa`, ambient intensity를 0.4 → 0.65로 올리고, `FogExp2` color를 `0x001833 → 0x042d6e`로 변경해 전체 채도를 청록 계열로 끌어올릴 것
+- [x] **[4] 셰이딩 스타일** — `src/entities/WhaleShark.ts`의 몸체 재질을 `MeshToonMaterial`로 교체하고 3픽셀 `THREE.DataTexture` gradientMap(어둠→중간→밝음 3단계)을 생성해 할당. 기존 specular 파라미터 제거
+- [x] **[3] 광선 효과** — god ray plane의 너비를 현재 대비 50~60% 축소하고 `material.opacity`를 `0.05→0.10`으로 높여 줄기 윤곽의 선명도 개선 (Ocean.ts 또는 광선 mesh 생성 함수 내)
+- [x] `src/scene/Lighting.ts`의 `HemisphereLight` sky color를 `0x003366 → 0x0a6aaa`, ambient intensity를 0.4 → 0.65로 올리고, `FogExp2` color를 `0x001833 → 0x042d6e`로 변경해 전체 채도를 청록 계열로 끌어올릴 것
