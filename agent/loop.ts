@@ -797,7 +797,6 @@ ${numericReport}
    다만 [코드 수치 검증] 표기 항목 중 위 자동 수치 검증에 포함된 항목(pectoral/dorsal 위치, rotation 부호, 가중치 비율, GOD_RAY_MAX_OPACITY, createSpots scale)은 **자동 결과를 그대로 인용**하고 재검증하지 말 것.
 2. agent/observations/topview-t1.png, topview-t2.png 를 Read 도구로 직접 열어 머리/이동 방향 비교.
    ⚠️ 두 이미지를 Read로 열지 않으면 아래 "탑뷰 관찰" 섹션을 작성할 수 없음 — 템플릿 복붙 금지.
-   "머리·이동 일치 여부:" 필드에는 반드시 "일치" 또는 "불일치" 중 하나만 작성 (꺽쇠 placeholder 금지)
 3. agent/observations/screenshot-1~4.png, whaleshark-front/side/top/below.png, surface-up.png Read → 육안 확인 (자동 검증이 못 잡는 동적 gap·시각 품질 영역)
    - surface-up.png: 아래에서 위를 바라본 샷. 수면 투시·갓레이·조명 분위기 확인 (§10 기준)
 4. npx tsc --noEmit Bash 실행 → 타입 에러 없어야 함
@@ -830,8 +829,11 @@ ${suggestionPolicy}
 
   return runClaude(prompt, "Read,Glob,Grep,Bash,Edit,Write", 15, {
     model: "claude-sonnet-4-6",
-    effort: "medium",
-    budgetUsd: 0.60,
+    // Reviewer는 다단계 체크리스트 + 탑뷰 관찰 템플릿 컴플라이언스가 필수라
+    // medium에서는 절차적 섹션을 누락해 isValidReviewPass에 걸리는 회귀 발생(2026-05-23).
+    // high로 유지해 template 안정성 확보.
+    effort: "high",
+    budgetUsd: 0.80,
   });
 }
 
@@ -1331,14 +1333,34 @@ function runStandaloneReview(budget: RunBudget): void {
   console.log(`\n로그: ${summaryPath}`);
 }
 
+// LLM(특히 작은 모델)에 negative instruction을 적으면 그 항목을 그대로 복사해
+// 생성하는 실패 패턴 관찰됨(2026-05-23: qwen2.5-coder:7b가 exclusion 목록을 거의
+// 그대로 goal로 출력). 프롬프트는 일반 원칙만 짧게 적고, 실제 차단은 아래
+// FORBIDDEN_GOAL_PATTERNS로 코드 레벨 필터링에 맡긴다.
 const GOAL_GENERATION_EXCLUSIONS = `
-⛔ 다음 목표는 절대 생성하지 말 것 (생성 시 파이프라인 전체가 잘못된 방향으로 실행됨):
-- Fish.ts의 lookTarget 계산식(add/sub 부호) 변경에 관한 목표
-- Fish.ts의 inner.rotation.y 값 변경에 관한 목표
-- WhaleShark.ts의 lookAt 타겟 수식 변경에 관한 목표
-- avgForwardDot 수치를 근거로 한 방향 수정 목표
-- "역방향 이동"을 코드 수식으로 고치는 목표 (방향 문제는 사람이 직접 판단해야 함)
+⛔ 절대 생성 금지: 물고기/고래상어 진행 방향 관련 코드 수정 목표
+  (방향 문제는 사람만 판단·수정 가능. 어떤 표현으로 우회해도 금지.)
 `.trim();
+
+const FORBIDDEN_GOAL_PATTERNS: RegExp[] = [
+  /look\s*Target/i,
+  /inner\.?\s*rotation\.?\s*y/i,
+  /look\s*At\b.*(수식|타겟|target|formula|부호|sign)/i,
+  /avgForwardDot/i,
+  /역방향.*(이동|움직|방향)/,
+  /add\s*\/\s*sub.*부호/,
+];
+
+function filterForbiddenGoals(goals: string[]): string[] {
+  return goals.filter((g) => {
+    const hit = FORBIDDEN_GOAL_PATTERNS.find((p) => p.test(g));
+    if (hit) {
+      console.log(`  ⛔ 절대 금지 패턴 필터링 (/${hit.source}/): ${g.slice(0, 80)}`);
+      return false;
+    }
+    return true;
+  });
+}
 
 function generateGoalsFromChecklist(observationSummary: string): string[] {
   const checklistContent = fs.existsSync(CHECKLIST_FILE)
@@ -1381,7 +1403,7 @@ GOALS_END
   console.log(`  → Ollama(qwen2.5-coder:7b)로 체크리스트 기반 목표 생성 중...`);
   const output = runOllama("qwen2.5-coder:7b", prompt);
   assertGoalsFormat(output, "qwen2.5-coder:7b", "generateGoalsFromChecklist");
-  return parseGoalOutput(output);
+  return filterForbiddenGoals(parseGoalOutput(output));
 }
 
 function generateGoalsFromReview(reviewOutput: string): string[] {
@@ -1407,7 +1429,7 @@ GOALS_END
   console.log(`  → Ollama(llama3.1:8b)로 리뷰 기반 목표 생성 중...`);
   const output = runOllama("llama3.1:8b", prompt);
   assertGoalsFormat(output, "llama3.1:8b", "generateGoalsFromReview");
-  return parseGoalOutput(output);
+  return filterForbiddenGoals(parseGoalOutput(output));
 }
 
 function parseGoalOutput(output: string): string[] {
@@ -1422,21 +1444,15 @@ function parseGoalOutput(output: string): string[] {
 /**
  * REVIEW_PASS가 유효한지 코드 수준에서 검증.
  * - "탑뷰 관찰" 섹션이 없으면 Reviewer가 이미지를 읽지 않은 것으로 간주 → 무효
+ * - 라인 단위 "일치/불일치" verdict 강제는 제거됨 (2026-05-23):
+ *   LLM이 텍스트를 자유롭게 생성할 수 있어 verdict 글자 강제로는 실제 비교 수행을
+ *   보장할 수 없고, 정상 출력이 markdown 장식(`**...**:`)으로 regex에 걸려 거부되는
+ *   회귀가 반복됨. 섹션 존재 강제만 유지.
  */
 function isValidReviewPass(output: string): boolean {
   if (!output.includes("REVIEW_PASS")) return false;
   if (!output.includes("탑뷰 관찰")) {
     console.log(`\n⛔ REVIEW_PASS 무효: "탑뷰 관찰" 섹션 없음 — 자동 REVIEW_FAIL 처리`);
-    return false;
-  }
-  const matchLine = output.match(/머리·이동 일치 여부\s*:\s*(.+)/);
-  if (!matchLine) {
-    console.log(`\n⛔ REVIEW_PASS 무효: "머리·이동 일치 여부" 라인 없음 — 자동 REVIEW_FAIL 처리`);
-    return false;
-  }
-  const verdict = matchLine[1].trim();
-  if (verdict.includes("<") || (!verdict.includes("일치") && !verdict.includes("불일치"))) {
-    console.log(`\n⛔ REVIEW_PASS 무효: "머리·이동 일치 여부" 값이 placeholder이거나 "일치"/"불일치" 미포함 (값: "${verdict}") — 자동 REVIEW_FAIL 처리`);
     return false;
   }
   return true;
@@ -1513,10 +1529,13 @@ DUPS_END
 }
 
 function appendGoals(goals: string[]): void {
+  // 어떤 경로(Reviewer/Aesthetic SUGGESTIONS, Ollama 생성)로 들어와도 절대 금지
+  // 주제는 여기서 한 번 더 잘라낸다. 단일 chokepoint 방어.
+  const allowed = filterForbiddenGoals(goals);
   const existing = parsePendingGoals().map((g) => g.text);
-  const filtered = deduplicateGoalsWithOllama(goals, existing);
+  const filtered = deduplicateGoalsWithOllama(allowed, existing);
   if (filtered.length === 0) {
-    console.log(`  → 추가할 신규 목표 없음 (모두 중복)`);
+    console.log(`  → 추가할 신규 목표 없음 (모두 중복 또는 절대 금지)`);
     return;
   }
   const content = fs.readFileSync(GOALS_FILE, "utf-8");

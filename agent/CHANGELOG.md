@@ -5,6 +5,131 @@
 
 ---
 
+## [2026-05-23] 절대 금지 목표 코드 레벨 필터 — Ollama가 exclusion을 그대로 복사
+
+### 배경
+validator 수정 후 측정 실행에서 새 문제 노출: Standalone Review가
+`generateGoalsFromChecklist`로 신규 목표 생성 시 qwen2.5-coder:7b가 프롬프트
+exclusion 목록을 거의 그대로 복사해 출력.
+
+```
+프롬프트:  - Fish.ts의 lookTarget 계산식(add/sub 부호) 변경에 관한 목표
+출력:     - [Fish.ts] `lookTarget` 계산식(add/sub 부호) 변경에 관한 코드 수정 필요
+```
+
+3개 절대 금지 목표가 생성되어 각각 Planner/Implementer/Reviewer 완전 사이클을
+돌며 "no-op completed"로 통과. 한 세션에서 약 $1.15가 손댈 수 없는 목표 처리에
+소진. 작은 LLM의 negative instruction 무시 패턴(목록을 보고 mirror 출력)이
+원인이며 프롬프트 강화만으로는 해결 불가.
+
+### loop.ts
+- `GOAL_GENERATION_EXCLUSIONS` 프롬프트 단순화 — 구체 항목 나열 제거하고 일반
+  원칙만 짧게 (방향 관련 수정 절대 금지). LLM이 mirror할 구체 텍스트 제공
+  안 함
+- `FORBIDDEN_GOAL_PATTERNS` 정규식 배열 신설:
+  - `look\s*Target`
+  - `inner\.?\s*rotation\.?\s*y`
+  - `look\s*At\b.*(수식|타겟|target|formula|부호|sign)`
+  - `avgForwardDot`
+  - `역방향.*(이동|움직|방향)`
+  - `add\s*\/\s*sub.*부호`
+- `filterForbiddenGoals(goals)` — 패턴 매치 시 콘솔에 차단 사유 출력하고 제외
+- `generateGoalsFromChecklist` / `generateGoalsFromReview` 모두 파싱 직후 필터
+  적용 (조기 차단으로 dedup 비용 절감)
+- `appendGoals` 진입점에도 동일 필터 적용 — Reviewer/Aesthetic SUGGESTIONS 등
+  Ollama 외 경로도 모두 커버하는 chokepoint 방어
+
+### goals.md
+- 이전 실행에서 생성된 3개 forbidden goal 항목(2개 no-op completed, 1개 pending)
+  제거 — 가치 없는 기록이고 pending은 다음 실행에서 또 $0.55+ 낭비
+
+### 교훈
+- LLM 프롬프트의 "do not do X" 형식은 X를 강조해 오히려 출력 유도 (특히 7B
+  모델). 외부 sensor로 출력을 검사해 차단해야 안정적
+- 출력 텍스트를 자유롭게 생성하는 LLM에 negative constraint를 의존하면 안 됨
+
+---
+
+## [2026-05-23] verdict 라인 강제 검증 제거 — false positive로 retry loop 폭주
+
+### 배경
+[2026-05-23] Reviewer effort high 복원 직후 측정에서도 retry loop 재현. 분석
+결과 effort가 아닌 `isValidReviewPass()`의 verdict regex가 문제였다:
+
+```ts
+const matchLine = output.match(/머리·이동 일치 여부\s*:\s*(.+)/);
+```
+
+이 regex는 "여부" 뒤에 공백만 허용한 후 ":"을 요구하지만, LLM이 자주 라벨에
+markdown bold(`**머리·이동 일치 여부**:`)를 붙여 매치 실패. 정상 출력이
+거부되어 retry → 추가 비용 → goal 미완료 패턴 반복.
+
+더 근본적으로: LLM이 텍스트를 자유롭게 생성하는데 "일치/불일치" 글자
+강제로는 실제 비교를 했는지 보장 불가. verdict 라인 자체가 신뢰할 수 없는
+신호.
+
+### loop.ts
+- `isValidReviewPass()`에서 `머리·이동 일치 여부` regex + verdict 판정 블록
+  제거. 다음만 유지:
+  - `output.includes("REVIEW_PASS")`
+  - `output.includes("탑뷰 관찰")` — 절차적 섹션 존재만 강제
+- Reviewer 프롬프트 step 2에서 verdict 강제 문구 제거
+  (`"일치" 또는 "불일치" 중 하나만 작성` 문장 삭제)
+
+### 효과
+- 측정 실행에서 cycle 1 attempt 0의 Reviewer가 정확한 출력 + verdict 라인까지
+  내놨음에도 markdown 때문에 거부됨 → 이번 변경으로 해당 케이스 통과
+- "탑뷰 관찰" 섹션 자체를 누락하는 retry 케이스는 별개 — Reviewer 출력
+  안정성 문제이고 effort=high 유지로 대응
+- 예상 goal당 비용: 첫 successful 측정 수준($0.60) 복귀
+
+### 교훈
+- 코드로 LLM 출력의 의미를 검증하려는 시도는 표면적 형식만 잡고 실질 검증
+  은 못함. 검증을 통과시키려고 LLM이 형식을 맞춰 출력하는 것과 실제로 그
+  검증을 수행한 것은 별개
+- 검증은 가능한 한 외부 sensor(자동 수치 체크처럼 실제 코드 grep + 산술)로
+  처리하고, LLM 출력의 자유 텍스트는 절차 강제 정도로만 활용
+
+---
+
+## [2026-05-23] Reviewer effort 부분 롤백 (medium → high) — 템플릿 컴플라이언스 회복
+
+### 배경
+[2026-05-16] effort 도입 이후 두 번째 측정 실행에서 Reviewer가 `medium`
+effort일 때 `isValidReviewPass()`가 요구하는 절차적 섹션(`탑뷰 관찰`,
+`머리·이동 일치 여부:` 라인)을 빠뜨리는 회귀 관찰. 직전 직접 측정 실행:
+
+- Goal 1 한 개에 $2.67 소진(직전 평균 $0.60 대비 4.5배), 결국 미완료
+- 같은 Reviewer가 6회 연속 `REVIEW_PASS` 출력했으나 모두 template 누락으로
+  자동 무효 처리 → retry loop
+- 첫 실행에서는 통과했던 이유: 그 goal이 `isValidReviewPass` 자체를 강화하는
+  task였고 Reviewer가 자기 변경 검증하며 template 자연히 따랐을 가능성.
+  "변경 없음" 류 task에서는 절차 건너뛰는 경향이 medium에서 더 두드러짐.
+
+### loop.ts
+- `runReviewer()` effort: `medium` → `high`
+- `budgetUsd`: $0.60 → $0.80 (high effort에서 평균 $0.45-0.50, 마진 확보)
+
+### 다른 단계는 유지
+- Planner / Implementer / Aesthetic Evaluator는 `low` 그대로 — 이 단계들은
+  구조화된 입출력이라 low에서도 안정적이며 비용 절감 효과 유지
+
+### 기대 비용
+- 직전 회귀 실행: goal당 $1.0-2.7 (재시도 폭주)
+- 롤백 후 예상: goal당 $0.55-0.70 (첫 successful 측정 수준으로 회귀)
+- 원래 (effort 미설정) 대비 여전히 ~40% 절감 — Planner/Implementer/Aesthetic
+  low effort 효과는 그대로 살아있음
+
+### 교훈
+- `--effort low`는 thinking 비용을 크게 줄이지만 stage가 복잡한 template을
+  따라야 할 때 컴플라이언스가 흔들림
+- 단순/구조화 task: low 가능
+- 다단계 검증 + 절차적 출력 형식: high 이상 필요
+- 효과 측정은 반드시 여러 실행에 걸쳐 — 단일 successful 실행을 일반화하면
+  위험
+
+---
+
 ## [2026-05-16] 단계별 effort 레벨·예산 캡 도입 (thinking 토큰 절감)
 
 ### 배경
