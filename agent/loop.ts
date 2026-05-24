@@ -18,6 +18,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import { runNumericChecks, summarizeChecks, type CheckResult } from "./checks/numeric.js";
+import { runEvolutionStep, type DramaScoreResult } from "./evolve.js";
 
 const ROOT = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const GOALS_FILE = path.join(ROOT, "goals.md");
@@ -195,11 +196,21 @@ interface ObservationSample {
   whaleShark: { position: Vec3; progress: number } | null;
   fish: FishGroupStats | null;
 }
+interface PredatorMetricsEntry {
+  school: number;
+  encounterRate: number;
+  minDistance: number;
+  peakFleeIntensity: number;
+  recoveryTimeSec: number;
+  pathVariance: number;
+}
 interface Observation {
   capturedAt: string;
   durationSec: number;
   sampleCount: number;
   samples: ObservationSample[];
+  predatorMetrics?: PredatorMetricsEntry[];
+  currentSchoolDefs?: number[][];
   anomalies: string[];
   screenshots: string[];
   consoleErrors: string[];
@@ -1080,6 +1091,33 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
     const observationSummary = summarizeObservation(observation);
     console.log(observationSummary);
 
+    // ── 0.25. Evolver — predator avoidance 드라마 점수 + history + 정체 시 변이 목표 자동 추가 ──
+    let evolutionSummary = "";
+    if (observation && observation.predatorMetrics && observation.currentSchoolDefs) {
+      const defs = observation.currentSchoolDefs as Array<[number, number, number, number, number, number]>;
+      const evo = runEvolutionStep(
+        {
+          capturedAt: observation.capturedAt,
+          predatorMetrics: observation.predatorMetrics,
+          samples: [],
+        },
+        defs,
+      );
+      const drama: DramaScoreResult = evo.drama;
+      console.log(`\n🧬 [1.25/4] Evolver — dramaScore=${drama.total.toFixed(3)} (peak=${drama.components.peakSum.toFixed(2)}, var=${drama.components.varianceSum.toFixed(2)}, balance=${drama.components.balance.toFixed(2)})`);
+      console.log(`  perSchool=[${drama.perSchool.map((v) => v.toFixed(2)).join(", ")}]`);
+      if (evo.stagnant) {
+        if (evo.proposedGoal && evo.appended) {
+          console.log(`  ⚙ 정체 감지 → 변이 목표 추가: ${evo.proposedGoal}`);
+        } else if (evo.proposedGoal) {
+          console.log(`  ⚙ 정체 감지 — 변이 후보 ${evo.proposedGoal} (중복으로 추가 보류)`);
+        } else {
+          console.log(`  ⚙ 정체 감지 — 변이 후보 없음 (모든 학교가 임계치 이상)`);
+        }
+      }
+      evolutionSummary = `\n## 진화 지표 (Evolver)\n- dramaScore: ${drama.total.toFixed(3)} (peakSum=${drama.components.peakSum.toFixed(2)}, varianceSum=${drama.components.varianceSum.toFixed(2)}, balance=${drama.components.balance.toFixed(2)})\n- 학교별 drama: [${drama.perSchool.map((v) => v.toFixed(2)).join(", ")}]\n- 정체 여부: ${evo.stagnant ? "정체" : "변화 중"}${evo.proposedGoal ? `\n- 변이 제안: ${evo.proposedGoal}` : ""}`;
+    }
+
     // ── 0.5. Aesthetic Evaluator — cycle 0에서만, 비용·중복 방지 ──
     let fullObservationSummary = observationSummary;
     if (cycle === 0) {
@@ -1108,6 +1146,9 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
       }
       fullObservationSummary = observationSummary + formatAestheticSummary(aestheticEval);
     }
+
+    // Evolver 결과는 모든 cycle에서 Planner에게 전달 (cycle 0 미적 평가와 독립)
+    fullObservationSummary = fullObservationSummary + evolutionSummary;
 
     // ── 1. Planner ───────────────────────────────────────────────
     console.log(`\n🧭 [2/4] Planner${cycleLabel} — 구현 계획 수립`);

@@ -36,11 +36,19 @@ interface SchoolSpread {
   count: number;
   spread: number; // centroid 기준 평균 거리
 }
+interface SchoolInteraction {
+  school: number;
+  centroid: Vec3;
+  distanceToShark: number;
+  fleeIntensity: number; // 0~1
+  dispersion: number;     // 학교 내 centroid 기준 평균 거리
+}
 interface FishGroupStats {
   count: number;
   centroid: Vec3;
   spread: number;        // 전체 개체 간 평균 거리
   schoolSpreads: SchoolSpread[]; // school별 분산도
+  schoolInteractions: SchoolInteraction[]; // school↔shark 상호작용
   avgVelocity: Vec3;
   avgForwardDot: number;
 }
@@ -49,15 +57,29 @@ interface Sample {
   whaleShark: WhaleSharkState | null;
   fish: FishGroupStats | null;
 }
+// 시간 축으로 집계된 학교별 포식자 회피 지표 — Planner가 단조성 진단에 사용
+interface PredatorMetrics {
+  school: number;
+  encounterRate: number;     // FLEE_RANGE 안에 있던 샘플 비율 (0~1)
+  minDistance: number;       // 관찰 기간 동안 shark↔centroid 최솟값
+  peakFleeIntensity: number; // 관찰 기간 동안 fleeIntensity 최댓값
+  recoveryTimeSec: number;   // peak에서 intensity<0.05로 떨어지기까지(초). 끝까지 못 떨어지면 -1
+  pathVariance: number;      // centroid 궤적의 표준편차 합(스칼라). 낮으면 단조
+}
 interface Observation {
   capturedAt: string;
   durationSec: number;
   sampleCount: number;
   samples: Sample[];
+  predatorMetrics: PredatorMetrics[]; // 학교별 회피 시계열 지표
+  currentSchoolDefs: number[][];      // 관찰 시점의 schoolDefs (각 6원소 튜플) — Evolver가 history 기록에 사용
   anomalies: string[];
   screenshots: string[];
   consoleErrors: string[];
 }
+
+// src/utils/constants.ts의 PREDATOR_FLEE_RANGE와 같은 값. Observer는 ts import 없이 하드코딩.
+const OBSERVER_FLEE_RANGE = 28;
 
 async function waitForServer(url: string, timeoutMs: number): Promise<void> {
   const start = Date.now();
@@ -101,6 +123,111 @@ async function isCenterDark(page: Page, label: string): Promise<string | null> {
   } finally {
     try { fs.unlinkSync(tmp); } catch { /* ignore */ }
   }
+}
+
+/**
+ * 학교별 시계열 회피 지표 — Planner가 단조성·미만남·정체 진단에 사용.
+ * 입력: 시간순 정렬된 샘플 배열.
+ */
+function computePredatorMetrics(samples: Sample[]): PredatorMetrics[] {
+  const fishSamples = samples.filter((s) => s.fish);
+  if (fishSamples.length === 0) return [];
+
+  // 모든 샘플에서 등장하는 학교 인덱스 합집합
+  const schoolSet = new Set<number>();
+  for (const s of fishSamples) {
+    for (const si of s.fish!.schoolInteractions) schoolSet.add(si.school);
+  }
+  const schools = Array.from(schoolSet).sort((a, b) => a - b);
+
+  const result: PredatorMetrics[] = [];
+  for (const school of schools) {
+    let encounterCount = 0;
+    let minDistance = Infinity;
+    let peakFleeIntensity = 0;
+    let peakSampleIdx = -1;
+
+    // 1차 패스: peak·min·encounter
+    fishSamples.forEach((s, idx) => {
+      const si = s.fish!.schoolInteractions.find((x) => x.school === school);
+      if (!si) return;
+      if (si.distanceToShark < OBSERVER_FLEE_RANGE) encounterCount++;
+      if (si.distanceToShark < minDistance) minDistance = si.distanceToShark;
+      if (si.fleeIntensity > peakFleeIntensity) {
+        peakFleeIntensity = si.fleeIntensity;
+        peakSampleIdx = idx;
+      }
+    });
+
+    // recoveryTime: peak 이후 intensity < 0.05로 떨어진 첫 샘플까지의 시간
+    let recoveryTimeSec = -1;
+    if (peakSampleIdx >= 0 && peakFleeIntensity >= 0.05) {
+      for (let k = peakSampleIdx + 1; k < fishSamples.length; k++) {
+        const si = fishSamples[k].fish!.schoolInteractions.find((x) => x.school === school);
+        if (si && si.fleeIntensity < 0.05) {
+          recoveryTimeSec = fishSamples[k].t - fishSamples[peakSampleIdx].t;
+          break;
+        }
+      }
+    } else if (peakFleeIntensity < 0.05) {
+      // flee가 일어나지 않았으면 recovery는 의미 없음 → 0으로 표기
+      recoveryTimeSec = 0;
+    }
+
+    // pathVariance: centroid 좌표의 표준편차 합 (X/Y/Z 별로 σ, 합산)
+    const cxs: number[] = [];
+    const cys: number[] = [];
+    const czs: number[] = [];
+    for (const s of fishSamples) {
+      const si = s.fish!.schoolInteractions.find((x) => x.school === school);
+      if (si) {
+        cxs.push(si.centroid.x);
+        cys.push(si.centroid.y);
+        czs.push(si.centroid.z);
+      }
+    }
+    const std = (arr: number[]): number => {
+      if (arr.length < 2) return 0;
+      const m = arr.reduce((s, v) => s + v, 0) / arr.length;
+      const variance = arr.reduce((s, v) => s + (v - m) * (v - m), 0) / arr.length;
+      return Math.sqrt(variance);
+    };
+    const pathVariance = std(cxs) + std(cys) + std(czs);
+
+    result.push({
+      school,
+      encounterRate: fishSamples.length > 0 ? encounterCount / fishSamples.length : 0,
+      minDistance: Number.isFinite(minDistance) ? minDistance : 9999,
+      peakFleeIntensity,
+      recoveryTimeSec,
+      pathVariance,
+    });
+  }
+  return result;
+}
+
+/**
+ * 학교별 회피 지표에서 단조·미만남·정체 패턴 감지.
+ */
+function detectPredatorAnomalies(metrics: PredatorMetrics[]): string[] {
+  const out: string[] = [];
+  // 모든 학교가 한 번도 shark와 만나지 않으면 전체 차원 문제
+  const allNoEncounter = metrics.length > 0 && metrics.every((m) => m.encounterRate === 0);
+  if (allNoEncounter) {
+    out.push(`전 학교(${metrics.length}개) 모두 shark와 조우 없음 — shark 경로가 학교 궤도 영역을 벗어났거나 관찰 시간이 부족`);
+  }
+  for (const m of metrics) {
+    if (m.encounterRate === 0 && m.minDistance > OBSERVER_FLEE_RANGE * 2) {
+      out.push(`school ${m.school}: shark와 한 번도 만나지 않음 (minDistance=${m.minDistance.toFixed(1)}) — 궤도가 너무 멀거나 만남 빈도가 0`);
+    }
+    if (m.peakFleeIntensity >= 0.3 && m.recoveryTimeSec === -1) {
+      out.push(`school ${m.school}: flee 후 회복 안 됨 (peakIntensity=${m.peakFleeIntensity.toFixed(2)}) — 경계 또는 다른 학교에 갇혔을 가능성`);
+    }
+    if (m.pathVariance < 3.0) {
+      out.push(`school ${m.school}: 경로 단조 (pathVariance=${m.pathVariance.toFixed(2)}) — 궤도 정의가 단순하거나 boids 힘이 부족`);
+    }
+  }
+  return out;
 }
 
 /**
@@ -267,6 +394,10 @@ async function observe(): Promise<Observation> {
                 velocities: Array<{ x: number; y: number; z: number }>;
                 forwardDots: number[];
                 schoolIndices: number[];
+                schoolCentroids: Array<{ x: number; y: number; z: number }>;
+                schoolDistances: number[];
+                schoolFleeIntensity: number[];
+                schoolDispersion: number[];
               };
             };
           };
@@ -282,6 +413,13 @@ async function observe(): Promise<Observation> {
           centroid: { x: number; y: number; z: number };
           spread: number;
           schoolSpreads: Array<{ school: number; count: number; spread: number }>;
+          schoolInteractions: Array<{
+            school: number;
+            centroid: { x: number; y: number; z: number };
+            distanceToShark: number;
+            fleeIntensity: number;
+            dispersion: number;
+          }>;
           avgVelocity: { x: number; y: number; z: number };
           avgForwardDot: number;
         } | null = null;
@@ -326,11 +464,37 @@ async function observe(): Promise<Observation> {
           // average forward dot (velocity 방향 vs 메시 실제 전진 방향)
           const avgForwardDot = fishRaw.forwardDots.reduce((s, d) => s + d, 0) / n;
 
+          // 학교별 shark 상호작용 — Fish.update()가 학교 인덱스 순으로 채워둔 4개 배열을 zip
+          const schoolInteractions: Array<{
+            school: number;
+            centroid: { x: number; y: number; z: number };
+            distanceToShark: number;
+            fleeIntensity: number;
+            dispersion: number;
+          }> = [];
+          const sd = fishRaw.schoolDistances ?? [];
+          const fi = fishRaw.schoolFleeIntensity ?? [];
+          const sdisp = fishRaw.schoolDispersion ?? [];
+          const sc = fishRaw.schoolCentroids ?? [];
+          for (let k = 0; k < sc.length; k++) {
+            // shark가 아직 주입되지 않은 초기 프레임은 거리가 매우 클 수 있음 — Infinity는 JSON.stringify 시 null 되므로 큰 수로 정규화
+            const rawDist = sd[k];
+            const dist = Number.isFinite(rawDist) ? rawDist : 9999;
+            schoolInteractions.push({
+              school: k,
+              centroid: { x: sc[k].x, y: sc[k].y, z: sc[k].z },
+              distanceToShark: dist,
+              fleeIntensity: fi[k] ?? 0,
+              dispersion: sdisp[k] ?? 0,
+            });
+          }
+
           fish = {
             count: n,
             centroid: { x: cx, y: cy, z: cz },
             spread: totalDist / n,
             schoolSpreads,
+            schoolInteractions,
             avgVelocity: { x: vx, y: vy, z: vz },
             avgForwardDot,
           };
@@ -483,11 +647,31 @@ async function observe(): Promise<Observation> {
 
     anomalies.push(...detectAnomalies(samples));
 
+    // 학교별 회피 지표 (시계열 집계) — Planner가 단조성·미만남·정체 판단에 사용
+    const predatorMetrics = computePredatorMetrics(samples);
+    anomalies.push(...detectPredatorAnomalies(predatorMetrics));
+
+    // 관찰 시점의 schoolDefs 스냅샷 — Evolver가 history.json에 기록할 때 사용
+    const currentSchoolDefs = await page.evaluate(() => {
+      const w = window as unknown as {
+        __entities?: {
+          fishSchool?: {
+            getDebugState(): {
+              schoolDefs?: number[][];
+            };
+          };
+        };
+      };
+      return w.__entities?.fishSchool?.getDebugState().schoolDefs ?? [];
+    });
+
     const observation: Observation = {
       capturedAt: new Date().toISOString(),
       durationSec,
       sampleCount,
       samples,
+      predatorMetrics,
+      currentSchoolDefs,
       anomalies,
       screenshots,
       consoleErrors: consoleErrors.slice(0, 10),
