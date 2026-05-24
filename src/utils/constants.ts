@@ -46,7 +46,7 @@ export const FISH_COUNT = 120;
 export const FISH_SCHOOL_COUNT = 5;
 export const FISH_ORBIT_Y = -5;
 export const BOID_VISUAL_RANGE = 12;
-export const BOID_SEPARATION_DIST = 10.0;
+export const BOID_SEPARATION_DIST = 2.5;
 export const BOID_MAX_SPEED = 8;
 export const BOID_MIN_SPEED = 3;
 export const BOID_SEPARATION_WEIGHT = 8.0;
@@ -55,7 +55,7 @@ export const BOID_COHESION_WEIGHT = 0.08;
 export const BOID_BOUNDARY_MARGIN = 8;
 export const BOID_BOUNDARY_FORCE = 5;
 export const FISH_ORBIT_SPEED = 0.06;
-export const FISH_ORBIT_WEIGHT = 1.5;
+export const FISH_ORBIT_WEIGHT = 3.5;
 // ── Predator avoidance (Boids ↔ WhaleShark) ──────
 // flee range = shark가 학교 중심에서 이 거리 안에 들어오면 flee force가 적용되는 임계
 // flee weight = separation/cohesion 가중치와 같은 단위. 합쳐서 BOID_SEPARATION_WEIGHT를 압도해야 분산이 가시화됨.
@@ -67,8 +67,8 @@ export const PREDATOR_FLEE_INTENSITY_NORM = 4.0;
 // ── God Rays (volumetric planes) ─────────────────
 export const GOD_RAY_COUNT = 5;
 export const GOD_RAY_HEIGHT = 40;
-export const GOD_RAY_PLANE_WIDTH = 0.65;
-export const GOD_RAY_MAX_OPACITY = 0.10;
+export const GOD_RAY_PLANE_WIDTH = 0.14;
+export const GOD_RAY_MAX_OPACITY = 0.14;
 export const GOD_RAY_COLOR = 0xa8d8ff;
 
 // ── Controls ───────────────────────────────────────

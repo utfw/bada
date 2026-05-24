@@ -166,7 +166,7 @@ export class Lighting {
     }
 
     // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
-    this.nearRayGeo = new THREE.PlaneGeometry(0.2, 12);
+    this.nearRayGeo = new THREE.PlaneGeometry(0.042, 12);
     for (let i = 0; i < 10; i++) {
       const mat = new THREE.MeshBasicMaterial({
         color: 0x88ddff,

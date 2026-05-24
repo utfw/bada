@@ -109,6 +109,27 @@
 
 - **[코드 검증] 학교 정의 보존**: `getDebugState()`가 반환하는 `schoolDefs` 배열은 학교당 6원소 튜플([cx, cz, yBase, semi_a, semi_b, yWave])이어야 한다. `updateOrbitDef()` 사용 후 길이/원소 수가 깨지면 Observer 직렬화가 실패하므로 **실패**.
 
+## 3-4. 진화 루프 정합성 (Evolver)
+
+이 섹션은 2026-05-24 도입된 자율 진화 모듈(`agent/evolve.ts`)이 매 사이클 동작할 때
+점검해야 할 정합성 기준이다. Evolver는 Observer 직후 호출되어
+`agent/evolution/history.json`에 dramaScore와 schoolDefs를 누적하고, 정체 감지 시
+`goals.md`의 "## 진화 목표 (Evolver)" 섹션에 변이 목표를 자동 append 한다.
+
+- **[코드 검증] Evolver 호출 위치**: `agent/loop.ts`의 `runGoal()` 안, Observer 결과를 받은 직후·Planner 호출 전에 `runEvolutionStep()`이 한 번 호출되어야 한다. 호출 위치가 Planner 이후로 밀리면 dramaScore가 Planner 프롬프트에 전달되지 못한다. Reviewer는 loop.ts에서 `runEvolutionStep` 호출이 `runPlanner` 호출보다 앞 줄에 있는지 확인. 어긋나면 **실패**.
+
+- **[코드 검증] currentSchoolDefs 전달**: `agent/observe.ts`가 Observation에 `currentSchoolDefs: number[][]` 필드(각 6원소)를 포함해야 Evolver가 mutation 후보를 생성할 수 있다. 누락 시 Evolver는 조용히 변이 없이 종료된다. Reviewer는 `latest.json`에 `currentSchoolDefs`가 있고 길이가 `FISH_SCHOOL_COUNT`와 일치하는지 확인. 다르면 **실패**.
+
+- **[데이터 검증] history.json schema**: `agent/evolution/history.json`의 schemaVersion=1, 각 entry는 `capturedAt`/`dramaScore`/`perSchool`/`schoolDefs`/`predatorMetricsSummary` 필드를 가져야 한다. `dramaScore`가 NaN이거나 `perSchool.length !== schoolDefs.length`이면 **실패**.
+
+- **[수치 검증] dramaScore 범위**: 한 entry의 `dramaScore`가 음수이거나 학교 수 × 1보다 크면 계산식 오류 또는 정규화 누락. Reviewer는 최신 entry의 dramaScore가 `[0, FISH_SCHOOL_COUNT]` 범위 안에 있는지 확인. 벗어나면 **실패**.
+
+- **[행동 검증] 변이 적용 누락 금지**: "## 진화 목표 (Evolver)" 섹션에 누적된 `- [ ]` 미완료 변이 목표가 5개 이상 쌓이면, Implementer가 Fish.ts schoolDefs를 실제로 수정하지 못하고 있는 것 — **실패** 징후. 원인 후보: 목표 텍스트가 모호함 / Implementer가 schoolDefs 배열 위치를 찾지 못함 / 매 사이클 동일 변이가 중복 제안됨. 이 경우 SUGGESTIONS에 "Fish.ts schoolDefs 변이 목표 텍스트를 더 명시적으로(라인 번호·원본 값 포함) 생성하도록 evolve.ts 개선" 추가.
+
+- **[정체 판정 적정성] 임계치**: `evolve.ts`의 `STAGNATION_DELTA=0.05` / `STAGNATION_WINDOW=3`은 8초 관찰 × 3 사이클 ≈ 24초 동안 dramaScore 변동이 0.05 미만이면 정체로 판정. 만약 매 사이클 변이 목표가 추가되는데도 dramaScore가 거의 안 움직이면 임계치가 너무 좁거나 측정 단위가 적절하지 않음 — Reviewer는 history.json 최근 5개 entry의 dramaScore stdev를 확인하고 0.02 미만이면 SUGGESTIONS에 "evolve.ts STAGNATION_DELTA·계산식 조정" 추가.
+
+- **[Planner 활용] evolutionSummary 전달**: `fullObservationSummary`에 "## 진화 지표 (Evolver)" 섹션이 포함되어야 Planner가 dramaScore를 보고 우선순위를 정할 수 있다. 누락 시 Evolver는 변이 목표만 만들고 추론 컨텍스트는 제공하지 못한다. Reviewer는 loop.ts에서 `fullObservationSummary = fullObservationSummary + evolutionSummary` 라인이 Planner 호출 전에 실행되는지 확인. 누락 시 **실패**.
+
 ## 4. 근접샷 검은 화면 금지
 
 - Observer 스크린샷(특히 `whaleshark-*.png`)이 거의 단색이면(파일 크기 10KB 미만) Observer가 `analyzeBrightness()`로 anomaly를 기록한다.
@@ -220,3 +241,6 @@ Reviewer 또는 사람이 항목을 추가·수정할 때마다 한 줄 기록. 
 - (2026-05-23) [reviewer] §3-2 추가: surface-up.png 근접 물고기가 화면 상단 40%+ 점거하여 고래상어 주체 인식 방해하는 패턴이 다수 세션에 걸쳐 반복 관찰됨 — REVIEW_FAIL 아닌 SUGGESTIONS 트리거 기준으로 명시. Fish.ts 카메라 거리 컬링(<2.0m) 또는 camera.near 상향 수정 방향 기준 명시.
 - (2026-05-23) [reviewer] 목표[Fish.ts inner.rotation.y 검증]: 변경 파일 없음. §1 HUMAN_VERIFICATION_REQUIRED 적용 — fish.avgForwardDot=-1.00 관측되나 탑뷰 소형 개체로 역방향 육안 확정 불가, 사람 확인 요청. tsc 통과. 탑뷰 머리·이동 방향 불확실(개체 너무 작음). 자동 수치 검증 실패 2건(pectoral pos.x/rotation.x 패턴 미스매치)은 §3 2026-05-15 기존 항목으로 커버. 모든 스크린샷에서 고래상어·갓레이 확인. REVIEW_PASS.
 - (2026-05-24) [human] §3-3 신설: Predator avoidance(Boids flee force) 도입에 따른 검증 항목 추가 — setSharkPosition 호출 누락 금지, FLEE_WEIGHT > SEPARATION_WEIGHT 유지, 전 학교 미만남 실패, flee 후 회복 실패, pathVariance 단조 SUGGESTIONS 트리거, minDistance 충돌 SUGGESTIONS, schoolDefs 보존. Observer는 `predatorMetrics` 시계열 지표를 `latest.json`에 출력하며 `detectPredatorAnomalies()`가 anomalies에 자동 누적한다.
+- (2026-05-24) [human] §3-4 신설: 자율 진화 루프(`agent/evolve.ts`) 정합성 항목 추가 — Evolver 호출 위치(Observer 직후·Planner 직전), `currentSchoolDefs` Observation 전달, history.json schema·dramaScore 범위, 변이 목표 누적 한도, 정체 임계치 적정성, evolutionSummary Planner 전달. drama score = peakFleeIntensity × encounterRate × pathVariance × 균형도. 정체 시 가장 약한 학교의 단일 파라미터를 변이 제안으로 자동 추가.
+- (2026-05-24) [reviewer] 광선 효과 목표 검증: GOD_RAY_PLANE_WIDTH 0.23→0.14(60.9% 축소), GOD_RAY_MAX_OPACITY 0.12→0.14(목표 0.12~0.18 달성), nearRayGeo width 0.07→0.042(60%) 달성. tsc 통과. §3-3 school 1·2 peakFleeIntensity=1.00, recoveryTimeSec=-1 FAIL — Planner는 FISH_ORBIT_WEIGHT(=3.5) 복귀 인력 충분성 및 해당 schoolDefs 중심·반경 검토 필요.
+- (2026-05-24) [reviewer] §3-3 flee 회복 실패 수정 검증: Fish.ts school 1 semi_b 13→10(minZ=-18, 경계 -22 대비 여유 4), school 2 semi_b 10→7(minZ=-17, 여유 5). god ray 수치 코드 미변경(이미 목표 범위). tsc 통과. 탑뷰 머리·이동 일치. §3-4 Evolver: runEvolutionStep(loop:1098)<runPlanner(loop:1155), evolutionSummary append(1151)<runPlanner(1155), history.json schemaVersion=1 dramaScore=3.206∈[0,5], goals.md 변이 목표 0개 모두 정상. AmbientLight/DirectionalLight clear 비율 0.625 경고(치명 아님, 연속 동일). fish.avgForwardDot HUMAN_VERIFICATION_REQUIRED 유지. REVIEW_PASS.
