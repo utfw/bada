@@ -5,6 +5,47 @@
 
 ---
 
+## [2026-05-25] REVIEW_CHECKLIST 갱신 로그 인플레이션 제어
+
+### 배경
+`REVIEW_CHECKLIST.md`가 245줄까지 비대해진 원인 분석:
+- 갱신 로그 entries 55개 중 16개가 verification noise
+  ("n차 검증 통과", "동일 수치 재확인", "변경 파일 없음", "REVIEW_PASS")
+- 규칙 변경 entry는 ~39개, 동일 goal에 대해 Reviewer가 매 호출마다 결과를
+  로그에 누적 (2026-05-22~23 사이에만 같은 god ray 목표에 대해 1~7차 검증
+  entry 9개 생성)
+- Reviewer가 매 호출 Read로 통째로 읽으므로 prompt cache 크기 증가 →
+  cache_read 비용 점진적 상승
+
+### REVIEW_CHECKLIST.md
+- 갱신 로그 헤더에 **엄수 규칙 명시**: "n차 검증/동일 수치 재확인/변경 파일
+  없음" 같이 규칙 변경 없는 결과 보고는 절대 추가 금지
+- 기존 verification noise 16개 entry 일괄 삭제 (의미 있는 39개 entry만 보존)
+
+### loop.ts (Reviewer 프롬프트)
+- step 6 명문화: "⛔ REVIEW_PASS 결과 보고용으로 갱신 로그에 entry 추가 금지"
+- "검증 결과는 콘솔/agent/logs/ 디렉터리에 남으니 갱신 로그에는 쓰지 말 것"
+
+### loop.ts (자동 트림 safety net)
+- `CHECKLIST_LOG_MAX_ENTRIES = 30` 상수 신설
+- `trimChecklistLog(maxEntries=30)` — 갱신 로그 entries가 30개 초과 시 가장
+  오래된 것부터 자동 삭제. 헤더/설명 라인은 보존
+- `runReviewer()` 진입점에서 호출 — 매 Reviewer 사이클마다 자동 정리
+
+### 효과
+- REVIEW_CHECKLIST.md 245줄 → 234줄(우선 1회 정리), 토큰량 ~15% 감소
+- 프롬프트 강화로 신규 noise entry 누적 차단
+- 트림 safety net으로 회귀 시에도 30 entry 상한 유지
+- Reviewer cache_read 비용 장기 안정화
+
+### 교훈
+- 누적되는 파일을 LLM이 매번 읽으면 토큰 비용이 시간에 따라 monotonic
+  증가. 자유 텍스트 누적은 코드 레벨 cap이 필수
+- 프롬프트 규칙만으로는 누적을 막을 수 없음 ("새 항목 시에만" 같은 가이드는
+  Reviewer가 무시) → 코드 레벨 강제 필요
+
+---
+
 ## [2026-05-23] 절대 금지 목표 코드 레벨 필터 — Ollama가 exclusion을 그대로 복사
 
 ### 배경

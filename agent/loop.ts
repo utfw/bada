@@ -781,6 +781,8 @@ function runReviewer(
   changedFiles: string[],
   numericChecks: CheckResult[]
 ): StageResult {
+  // Reviewer가 갱신 로그에 결과 보고를 누적해도 일정 크기 이상으로는 못 자라게 한다.
+  trimChecklistLog();
   const fileList = changedFiles.length > 0
     ? changedFiles.map((f) => `- ${f}`).join("\n")
     : "(변경 파일 없음)";
@@ -814,7 +816,10 @@ ${numericReport}
 5. 변경 파일 코드 Read → 목표 구현 여부, any 타입, dispose() 누락 확인
    - src/scene/Ocean.ts: 갓레이 메시 생성, 수면 material 시간 갱신 구조 (§10)
    - src/scene/Lighting.ts: AmbientLight/DirectionalLight 비율, fog 색상 (§10)
-6. 새 버그 패턴 발견 시 REVIEW_CHECKLIST.md 갱신 (갱신 로그에 오늘 날짜·요약 추가)
+6. 새 버그 패턴 발견 시에만 REVIEW_CHECKLIST.md 갱신 (규칙·항목 추가/수정 시에만).
+   - ⛔ REVIEW_PASS 결과 보고용으로 갱신 로그에 entry 추가 금지.
+     "n차 검증 통과", "동일 수치 재확인", "변경 파일 없음" 같은 결과 기록은 노이즈다.
+     검증 결과는 콘솔/agent/logs/ 디렉터리에 남으니 갱신 로그에는 절대 쓰지 말 것.
    - 자동 수치 검증으로 이미 커버되는 항목은 추가하지 말 것.
 
 출력에 반드시 포함 (이 섹션 없는 REVIEW_PASS는 무효):
@@ -849,6 +854,37 @@ ${suggestionPolicy}
 }
 
 // ── 체크리스트 변경 감지 ──────────────────────────────────────────────────────
+
+const CHECKLIST_LOG_MAX_ENTRIES = 30;
+
+/**
+ * REVIEW_CHECKLIST.md의 "## 체크리스트 갱신 로그" 섹션에 누적된 entries를 최근 N개로
+ * 자동 트림. Reviewer가 결과 보고를 무심코 추가했을 때의 안전망.
+ * "## " 로 시작하는 헤더 라인은 보존하고, "- (YYYY-..." 패턴의 entry만 잘라낸다.
+ */
+function trimChecklistLog(maxEntries: number = CHECKLIST_LOG_MAX_ENTRIES): void {
+  if (!fs.existsSync(CHECKLIST_FILE)) return;
+  const content = fs.readFileSync(CHECKLIST_FILE, "utf-8");
+  const logHeaderIdx = content.indexOf("## 체크리스트 갱신 로그");
+  if (logHeaderIdx < 0) return;
+
+  const header = content.slice(0, logHeaderIdx);
+  const logSection = content.slice(logHeaderIdx);
+  const lines = logSection.split("\n");
+
+  // entry 라인(- (YYYY-...) ...)을 추출, 헤더/설명 라인은 그대로 유지
+  const entryRegex = /^- \(\d{4}-\d{2}-\d{2}\)/;
+  const entryIndices: number[] = [];
+  lines.forEach((l, i) => { if (entryRegex.test(l)) entryIndices.push(i); });
+  if (entryIndices.length <= maxEntries) return;
+
+  // 가장 오래된 (entryIndices.length - maxEntries)개 라인을 제거
+  const toRemove = new Set(entryIndices.slice(0, entryIndices.length - maxEntries));
+  const trimmedLines = lines.filter((_, i) => !toRemove.has(i));
+  const removed = lines.length - trimmedLines.length;
+  fs.writeFileSync(CHECKLIST_FILE, header + trimmedLines.join("\n"), "utf-8");
+  console.log(`  🧹 REVIEW_CHECKLIST 갱신 로그 자동 트림: ${removed}개 entry 제거 (최근 ${maxEntries}개 유지)`);
+}
 
 function readChecklistHash(): string {
   try {
