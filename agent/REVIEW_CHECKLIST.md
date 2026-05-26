@@ -194,15 +194,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-12) [human] Reviewer가 직접 이 문서를 갱신할 수 있도록 사용 규칙 재작성.
-- (2026-04-12) [reviewer] §4 보강: analyzeBrightness 10KB 임계값이 UI 오버레이로 인해 검은 화면을 놓치는 케이스 추가. setPresetView에 plain 객체 전달 시 lookAt NaN 원인 추가.
-- (2026-04-12) [reviewer] §4 추가: Playwright page.evaluate() 직렬화 경계에서 Three.js 프로토타입 소실 → 수신 측 방어적 변환 필수 규칙 명시.
-- (2026-04-12) [human] §1 보강: Fish 뒤로 이동 버그 판정 조건 추가(lookAt + velocity 부호 검증). §3 보강: 고래상어 지느러미·꼬리 gap 실패 조건 구체화. §3-1 신설: Fish 모델에 tail·fin 파츠 필수. §3-2 신설: Boids 밀집 방지 — separation vs cohesion 가중치 비율, 평균 거리 검증.
-- (2026-04-12) [reviewer] §1 추가: lookAt 타겟 `point ± tangent` 부호 검증 규칙 — 모델 머리 로컬 축(-Z/+Z)에 따라 add/sub이 결정됨을 명시.
-- (2026-04-12) [human] §1 보강: 이동 방향 dot product 판정 조건 구체화. §1 추가: WhaleShark 카메라 가시성 — 기본 스크린샷 중 최소 1장에 보여야 함.
-- (2026-04-17) [reviewer] §3-1 추가: 평면 BufferGeometry 지느러미에 DoubleSide 미적용 시 단면 비가시 문제 → material에 DoubleSide 필수 규칙 명시.
-- (2026-04-12) [human] §3 보강: 반점이 몸통에서 떠 있으면 실패, 표면 밀착 오프셋 기준 명시. 지느러미 root 접합 조건 추가. §3-1 보강: 꼬리·지느러미 최소 크기 비율 기준 추가(꼬리 높이 ≥ body 50%, 지느러미 길이 ≥ body 20%). §3-2 보강: 밀집 판정 임계값 구체화, 상수 비율 3배 이상, 초기 spawn 반경 최소 15.
-- (2026-04-12) [human] §1 보강: Fish 방향 검증을 코드 검증과 시각 검증(screenshot-*.png 육안 확인)으로 분리. Reviewer 프롬프트에 스크린샷 Read 필수 단계 추가. WhaleShark 가시성은 screenshot-*.png으로 확인, whaleshark-*.png는 모델 근접 확인 전용임을 명시.
 - (2026-04-18) [reviewer] §1 WhaleShark 가시성 기준 명확화: "모든 화면 내에 보여야 한다"(전부)와 "단 한 장도 없으면 실패"(최소 1장)가 충돌하던 조건을 "4장 중 최소 1장에서 확인 가능해야 한다"로 통일.
 - (2026-04-12) [human] §1 시각 검증을 탑뷰 방식으로 변경: Observer가 topview-t1.png/t2.png (높이 50, 2초 간격)을 촬영하고 Reviewer가 비교해 이동 방향 확인.
 - (2026-04-18) [human] 군집 분산도 내용 간략화. 방향 검증 수정

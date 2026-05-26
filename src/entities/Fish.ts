@@ -66,8 +66,8 @@ export class FishSchool {
     // [cx, cz, yBase, semi_a, semi_b, yWave]
     this.schoolDefs = [
       [-16,  -4,  -4, 16, 12, 2.5],  // 0: left-front,  shallow
-      [  4,  -8,  -8, 14, 10, 2.0],  // 1: right-front, mid (semi_b 13→10: orbit min z=-18, margin 4 from boundary -22)
-      [  0, -10,  -6, 18,  7, 1.5],  // 2: far back,    mid-deep (semi_b 10→7: orbit min z=-17, margin 5 from boundary -22)
+      [ 18,  12,  -8, 14, 10, 2.0],  // 1: right-rear,  mid (shifted from (12,4) to further isolate from shark z≈-8~-15)
+      [-14,  12,  -6, 18,  7, 1.5],  // 2: left-rear,   mid-deep (shifted from (-10,6) to z=+12, away from shark z≈-10~-14)
       [ -7,   8,  -6, 13, 15, 2.0],  // 3: left-back,   mid (separated from school 1)
       [-12,  -8,  -3, 15, 11, 3.0],  // 4: left-front,  near surface
     ];

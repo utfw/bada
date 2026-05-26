@@ -151,4 +151,8 @@
 - [x] **광선 효과** — `src/scene/Lighting.ts` god ray 생성부에서 ray mesh의 opacity를 현재 추정값(0.3~0.5)→0.12~0.18로 낮추고, ray 폭(plane width)을 현재 대비 60%로 줄여 과노출 기둥 대신 가는 산란 줄기로 교체할 것
 - [x] `FISH_ORBIT_WEIGHT` 비율이 `PREDATOR_FLEE_WEIGHT`보다 작도록 수정하여 school 1, school 2의 flee 후 회복 가능성을 개선.
 - [x] `BOID_SEPARATION_DIST`를 줄여 school 0, 1, 4의 per-school spread가 해당 거리 이내로 감소하게 해 separation force 강화.
-- [ ] school 1/2 궤도 중심(cx/cz)을 shark CatmullRomCurve3 경로에서 더 이격하거나, FISH_ORBIT_WEIGHT를 상향 조정하여 flee 후 복귀 인력을 강화하고 shark 경로와의 이격성을 개선한다.
+- [x] school 1/2 궤도 중심(cx/cz)을 shark CatmullRomCurve3 경로에서 더 이격하거나, FISH_ORBIT_WEIGHT를 상향 조정하여 flee 후 복귀 인력을 강화하고 shark 경로와의 이격성을 개선한다.
+- [x] FISH_ORBIT_WEIGHT를 4.0 이하로 낮추기
+- [x] PREDATOR_FLEE_RANGE를 20~22로 축소 또는 FISH_ORBIT_WEIGHT를 조정해 회복력 강화하기
+- [ ] src/entities/Fish.ts createFishMesh()에서 색상 팔레트 교체: 0xddaa44 -> 0x2ec4e0, 0xcc6633 -> 0x1a7ab5
+- [ ] GOD_RAY_PLANE_WIDTH를 0.28으로 상향
