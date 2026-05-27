@@ -121,8 +121,8 @@ export class Lighting {
       void main() {
         float vertFade = vUv.y;
         float hDist = abs(vUv.x - 0.5) * 2.0;
-        float beamShape = smoothstep(1.0, 0.3, hDist);
-        float alpha = vertFade * beamShape * (uMaxOpacity + sin(uTime * 0.3 + uPhase) * 0.03);
+        float beamShape = smoothstep(1.0, 0.45, hDist);
+        float alpha = vertFade * beamShape * (uMaxOpacity + sin(uTime * 0.3 + uPhase) * 0.04);
         gl_FragColor = vec4(uColor, alpha);
       }
     `;
@@ -159,7 +159,7 @@ export class Lighting {
       const plane = new THREE.Mesh(planeGeo, planeMat);
       plane.position.set(x, SURFACE_HEIGHT - GOD_RAY_HEIGHT / 2, z);
       plane.rotation.y = (i * Math.PI) / GOD_RAY_COUNT;
-      plane.rotation.x = -(Math.random() * 0.2 + 0.33);
+      plane.rotation.x = -(Math.random() * 0.04);
       plane.renderOrder = 999;
       scene.add(plane);
       this.godRayCones.push(plane);

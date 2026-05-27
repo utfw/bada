@@ -154,5 +154,12 @@
 - [x] school 1/2 궤도 중심(cx/cz)을 shark CatmullRomCurve3 경로에서 더 이격하거나, FISH_ORBIT_WEIGHT를 상향 조정하여 flee 후 복귀 인력을 강화하고 shark 경로와의 이격성을 개선한다.
 - [x] FISH_ORBIT_WEIGHT를 4.0 이하로 낮추기
 - [x] PREDATOR_FLEE_RANGE를 20~22로 축소 또는 FISH_ORBIT_WEIGHT를 조정해 회복력 강화하기
-- [ ] src/entities/Fish.ts createFishMesh()에서 색상 팔레트 교체: 0xddaa44 -> 0x2ec4e0, 0xcc6633 -> 0x1a7ab5
-- [ ] GOD_RAY_PLANE_WIDTH를 0.28으로 상향
+- [x] src/entities/Fish.ts createFishMesh()에서 색상 팔레트 교체: 0xddaa44 -> 0x2ec4e0, 0xcc6633 -> 0x1a7ab5
+- [x] GOD_RAY_PLANE_WIDTH를 0.28으로 상향
+- [x] `src/scene/Ocean.ts` 또는 god ray 셰이더에서 광선 방향을 수직(Y축 기준)으로 고정하고, 광선 폭을 현재의 50% 이하로 줄이며 `opacity`를 0.12→0.25로 높여 선명한 줄기 형태 확보 (현재 `angle` 값이 대각선으로 설정된 부분을 `Math.PI * 0.5` 근방으로 수정)
+
+---
+
+## 진화 목표 (Evolver)
+
+- [ ] Fish.ts schoolDefs[0]의 yBase을 -4에서 -7로 변경 — school 0 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
