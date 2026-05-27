@@ -1706,9 +1706,14 @@ GROUPS_END
 
 // ── 공통 목표 실행 루프 ──────────────────────────────────────────────────────
 
+// 한 번의 npm run agent 실행에서 처리할 수 있는 goal 수 상한.
+// budget(--n) 미지정 시 무한 루프 방지용 안전망. Aesthetic/Reviewer SUGGESTIONS가
+// 매 사이클 새 goal을 무한 추가하는 경우 차단.
+const MAX_GOALS_PER_RUN = 30;
+
 function runGoals(log: AgentLog, budget: RunBudget): void {
-  const goals = parsePendingGoals();
-  if (goals.length === 0) {
+  const initialGoals = parsePendingGoals();
+  if (initialGoals.length === 0) {
     console.log("실행할 미완료 목표가 없습니다.");
     return;
   }
@@ -1716,26 +1721,42 @@ function runGoals(log: AgentLog, budget: RunBudget): void {
   const budgetLabel = Number.isFinite(budget.total)
     ? ` (파이프라인 한도 ${budget.total}회)`
     : "";
-  console.log(`미완료 목표: ${goals.length}개${budgetLabel}\n`);
+  console.log(`미완료 목표: ${initialGoals.length}개${budgetLabel}\n`);
 
   let completed = 0;
-  let stoppedReason: "rate-limit" | "interrupted" | "budget" | null = null;
+  let stoppedReason: "rate-limit" | "interrupted" | "budget" | "iteration-cap" | null = null;
   let processed = 0;
+  // 한 실행에서 동일 lineIndex를 중복 처리하지 않도록 추적.
+  // 마킹 실패한 goal이 다시 pending으로 잡혀 무한 재처리되는 경우 차단.
+  const processedLineIndices = new Set<number>();
 
-  for (let i = 0; i < goals.length; i++) {
+  while (processed < MAX_GOALS_PER_RUN) {
     if (budget.remaining <= 0) {
-      console.log(`\n⚙ 파이프라인 한도(${budget.total}) 도달 — 나머지 ${goals.length - i}개는 다음 실행으로 미룹니다`);
+      const remaining = parsePendingGoals().filter((g) => !processedLineIndices.has(g.lineIndex));
+      console.log(`\n⚙ 파이프라인 한도(${budget.total}) 도달 — 나머지 ${remaining.length}개는 다음 실행으로 미룹니다`);
       stoppedReason = "budget";
       break;
     }
+
+    // 매 iteration마다 pending을 다시 읽어 실행 중 추가된 신규 goal까지 즉시 처리한다.
+    // (Aesthetic Evaluator·Reviewer SUGGESTIONS가 사이클 도중 appendGoals 호출)
+    const pending = parsePendingGoals();
+    const next = pending.find((g) => !processedLineIndices.has(g.lineIndex));
+    if (!next) break;
+
+    processedLineIndices.add(next.lineIndex);
+    const result = runGoal(next, processed, log, budget);
     processed++;
-    const result = runGoal(goals[i], i, log, budget);
     if (result === "completed") {
       completed++;
     }
     if (result === "rate-limited") { stoppedReason = "rate-limit"; break; }
     if (result === "interrupted") { stoppedReason = "interrupted"; break; }
     if (result === "budget-exhausted") { stoppedReason = "budget"; break; }
+  }
+
+  if (stoppedReason === null && processed >= MAX_GOALS_PER_RUN) {
+    stoppedReason = "iteration-cap";
   }
 
   log.summary(processed, completed);
@@ -1748,6 +1769,8 @@ function runGoals(log: AgentLog, budget: RunBudget): void {
     console.log(`⚙ 파이프라인 한도 도달로 중단 — ${completed}/${processed} 완료`);
   } else if (stoppedReason === "interrupted") {
     console.log(`✗ 단계 중단으로 종료 — ${completed}/${processed} 완료`);
+  } else if (stoppedReason === "iteration-cap") {
+    console.log(`🛑 한 실행 goal 상한(${MAX_GOALS_PER_RUN}) 도달 — ${completed}/${processed} 완료. 남은 목표는 다음 실행으로.`);
   } else {
     console.log(`결과: ${completed}/${processed} 완료`);
   }

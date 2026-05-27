@@ -5,6 +5,43 @@
 
 ---
 
+## [2026-05-27] runGoals 동적 재파싱 — 실행 중 추가된 goal까지 자동 처리
+
+### 배경
+이전 `runGoals()`는 시작 시 한 번만 `parsePendingGoals()`를 호출해 frozen
+스냅샷을 만들고 그 배열로 for-loop. 결과적으로 사이클 중간에 Aesthetic
+Evaluator·Reviewer SUGGESTIONS가 `appendGoals()`로 추가한 신규 goal은 같은
+실행에서 처리되지 않고 다음 `npm run agent` 호출 때까지 대기.
+
+직전 측정: pending 3개로 시작 → goal 2에서 Aesthetic Evaluator가 2개 추가 →
+goals 2, 3 완료 → 추가된 2개는 처리 안 되고 main() 종료.
+
+### loop.ts
+- `runGoals()` 구조 변경: for-loop(frozen array) → while-loop(매 iter 재파싱)
+- `processedLineIndices: Set<number>` 추가 — 동일 lineIndex 중복 처리 방지.
+  마킹 실패한 goal이 다시 pending으로 잡혀 무한 재처리되는 시나리오 차단
+- `MAX_GOALS_PER_RUN = 30` 상수 — budget 미지정 시 무한 루프 안전망.
+  Aesthetic이 매 사이클 새 SUGGESTIONS를 무한 누적하는 경우 차단
+- 새 종료 상태 `iteration-cap` — 한 실행 goal 상한 도달 시 명시적 로그
+
+### 효과
+- pending 3개 → 처리 중 +N개 추가 → 같은 실행에서 모두 처리
+- 미완료 0개 도달 시 자연스럽게 `main()`의 다음 분기(Standalone Review)로
+  넘어가려면, 사용자가 `npm run agent`를 한 번 더 실행하면 됨
+  (`runGoals()` 자체에서 standalone review를 호출하진 않음)
+
+### 안전장치
+- `processedLineIndices`: 같은 goal 무한 재처리 차단
+- `MAX_GOALS_PER_RUN`: 신규 goal 무한 추가 시 30개 처리 후 정지
+- `budget.remaining` 체크: `--n` 플래그 지정 시 기존대로 사이클 수 cap
+
+### 교훈
+- LLM이 사이클 중간에 부산물(SUGGESTIONS)을 만드는 시스템에서 frozen
+  스냅샷 기반 루프는 처리 누락을 일으킴. 동적 재조회 + 중복 방지 set 조합이
+  안전
+
+---
+
 ## [2026-05-25] REVIEW_CHECKLIST 갱신 로그 인플레이션 제어
 
 ### 배경
