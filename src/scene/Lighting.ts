@@ -19,10 +19,10 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x1475b0,
+    ambientColor: 0x0d3a5c,
     ambientIntensity: 1.25,
     sunColor: 0x6ec6e8,
-    sunIntensity: 2.0,
+    sunIntensity: 2.8,
     godRayIntensity: 3.0,
   },
   cloudy: {
@@ -68,13 +68,13 @@ export class Lighting {
   private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
-    this.ambientLight = new THREE.AmbientLight(0x1475b0, 1.25);
+    this.ambientLight = new THREE.AmbientLight(0x0d3a5c, 1.25);
     scene.add(this.ambientLight);
 
     this.hemisphereLight = new THREE.HemisphereLight(0x0a6aaa, 0x004466, 1.0);
     scene.add(this.hemisphereLight);
 
-    this.sunLight = new THREE.DirectionalLight(0x6ec6e8, 2.0);
+    this.sunLight = new THREE.DirectionalLight(0x6ec6e8, 2.8);
     this.sunLight.position.set(5, SURFACE_HEIGHT + 10, 3);
     this.sunLight.target.position.set(0, -SURFACE_HEIGHT, 0);
     scene.add(this.sunLight);
@@ -120,9 +120,8 @@ export class Lighting {
       varying vec2 vUv;
       void main() {
         float vertFade = vUv.y;
-        float hDist = abs(vUv.x - 0.5) * 2.0;
-        float beamShape = smoothstep(1.0, 0.45, hDist);
-        float alpha = vertFade * beamShape * (uMaxOpacity + sin(uTime * 0.3 + uPhase) * 0.04);
+        float radialFade = smoothstep(0.0, 0.35, vUv.x) * smoothstep(1.0, 0.65, vUv.x);
+        float alpha = vertFade * radialFade * (uMaxOpacity + sin(uTime * 0.3 + uPhase) * 0.04);
         gl_FragColor = vec4(uColor, alpha);
       }
     `;

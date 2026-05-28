@@ -165,8 +165,10 @@
 - [x] Fish.ts schoolDefs[0]의 yBase을 -4에서 -7로 변경 — school 0 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
 - [x] `Fish.ts schoolDefs[0]`의 `cz=-4`를 `cz=-16`으로, `semi_b=12`를 `8`로 변경 — history.json 최근 16 entries에서 school 0의 encounterRate가 0.15~0.19로 지속 낮음. shark swim path의 정면 통과 구간(z≈-15~-22)과 school 0 궤도(cx=-16, cz=-4, semi_b=12)가 교차하지 않아 encounter가 없음. cz를 음수(-16)로 이동하면 궤도가 z=-4~-28 구간을 커버해 shark와 교차 가능성 상승
 - [x] `agent/evolve.ts`의 `STAGNATION_DELTA`를 `0.05`→`0.15`로, drama 계산에서 school 0의 가중치를 1→0.5로 낮춰 단조 판정 민감도 조정 — history.json 최근 5 entries dramaScore stdev≈0.005로 §3-4 임계치 0.02 미달. school 0이 encounterRate≈0.17로 drama에 거의 기여 못 하면서 전체 score를 억제하고 있으므로, 단조 판정 기준을 완화해 나머지 4개 school의 활발한 flee 다양성을 반영하도록 조정
-- [ ] `src/scene/Lighting.ts` god ray PlaneGeometry의 폭(`GOD_RAY_PLANE_WIDTH` 또는 geometry 생성부)을 현재 0.28→0.14로 줄이고, fragmentShader에 `float radialFade = smoothstep(0.0, 0.35, vUv.x) * smoothstep(1.0, 0.65, vUv.x)`를 opacity 곱에 추가해 — screenshot-1~4에서 직선 삼각형 경계의 딱딱한 기둥 형태가 여전히 보임. 미적 평가에서 광선 효과 1/2로 최하위 항목이며 radialFade 추가로 Gaussian-style 부드러운 falloff로 전환
+- [x] `src/scene/Lighting.ts` god ray PlaneGeometry의 폭(`GOD_RAY_PLANE_WIDTH` 또는 geometry 생성부)을 현재 0.28→0.14로 줄이고, fragmentShader에 `float radialFade = smoothstep(0.0, 0.35, vUv.x) * smoothstep(1.0, 0.65, vUv.x)`를 opacity 곱에 추가해 — screenshot-1~4에서 직선 삼각형 경계의 딱딱한 기둥 형태가 여전히 보임. 미적 평가에서 광선 효과 1/2로 최하위 항목이며 radialFade 추가로 Gaussian-style 부드러운 falloff로 전환
 
-- [ ] Fish.ts schoolDefs[0]의 yBase을 -7에서 -4로 변경 — school 0 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
-- [ ] `src/scene/Lighting.ts` — ambient light 색상을 `#0a1628` → `#0d3a5c`로, directional light 강도를 현재 값에서 ×1.4 상향해 수면 근처 청록 채도를 끌어올릴 것; 배경 fog color도 `#061020` → `#0a2a4a`로 변경
+- [x] Fish.ts schoolDefs[0]의 yBase을 -7에서 -4로 변경 — school 0 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
+- [x] `src/scene/Lighting.ts` — ambient light 색상을 `#0a1628` → `#0d3a5c`로, directional light 강도를 현재 값에서 ×1.4 상향해 수면 근처 청록 채도를 끌어올릴 것; 배경 fog color도 `#061020` → `#0a2a4a`로 변경
 - [ ] `src/entities/Fish.ts` — boids 군집의 최대 반경(cohesion radius 또는 spawn range)을 줄여 screenshot-1처럼 물고기가 화면 한쪽에 밀집되는 빈도를 낮출 것
+- [ ] **수직 깊이감** — `src/scene/Lighting.ts`의 ambient/hemisphere light에서 skyColor를 `0x1ec0e0`(밝은 청록), groundColor를 `0x03133d`(심해 남색)으로 설정해 상하 hue 그라디언트를 강화; 현재 추정값(`0x112244` sky)보다 skyColor 밝기를 intensity 0.6→1.0으로 올릴 것
+- [ ] **광선 효과** — god ray 줄기의 `material.opacity`를 현재 추정값(~0.06)에서 0.12~0.15로 올리고, `PlaneGeometry` 폭을 1.5배 넓혀 볼류메트릭 느낌을 강화 (`src/scene/Ocean.ts` 또는 별도 GodRay 클래스 내 광선 mesh 생성부)
