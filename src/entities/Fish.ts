@@ -19,6 +19,8 @@ import {
   PREDATOR_FLEE_RANGE,
   PREDATOR_FLEE_WEIGHT,
   PREDATOR_FLEE_INTENSITY_NORM,
+  INTRA_SCHOOL_AVOID_DIST,
+  INTRA_SCHOOL_AVOID_WEIGHT,
 } from '../utils/constants';
 
 interface FishInstance {
@@ -36,6 +38,7 @@ export class FishSchool {
   private readonly scene: THREE.Scene;
   private readonly _accel = new THREE.Vector3();
   private readonly _separation = new THREE.Vector3();
+  private readonly _intraAvoid = new THREE.Vector3();
   private readonly _alignment = new THREE.Vector3();
   private readonly _cohesion = new THREE.Vector3();
   private readonly _diff = new THREE.Vector3();
@@ -297,6 +300,7 @@ export class FishSchool {
     const yMin = -OCEAN_DEPTH;
     const yMax = SURFACE_HEIGHT - 2;
     const separation = this._separation;
+    const intraAvoid = this._intraAvoid;
     const alignment = this._alignment;
     const cohesion = this._cohesion;
     const diff = this._diff;
@@ -316,9 +320,11 @@ export class FishSchool {
       const orbitAnchor = this.orbitPaths[si].getPointAt(this.schoolProgress[si], this._orbitAnchor);
 
       separation.set(0, 0, 0);
+      intraAvoid.set(0, 0, 0);
       alignment.set(0, 0, 0);
       cohesion.set(0, 0, 0);
       let separationCount = 0;
+      let intraAvoidCount = 0;
       let neighborCount = 0;
 
       for (let j = 0; j < this.fish.length; j++) {
@@ -336,6 +342,12 @@ export class FishSchool {
             separation.addScaledVector(diff, 1 / dist);
             separationCount++;
           }
+
+          // 같은 학교 + 극근접: 1/d² 반발력 (collision avoidance)
+          if (fj.schoolIndex === si && dist < INTRA_SCHOOL_AVOID_DIST && dist > 0) {
+            intraAvoid.addScaledVector(diff, 1 / (dist * dist));
+            intraAvoidCount++;
+          }
         }
       }
 
@@ -344,6 +356,11 @@ export class FishSchool {
       if (separationCount > 0) {
         separation.divideScalar(separationCount);
         accel.addScaledVector(separation, BOID_SEPARATION_WEIGHT);
+      }
+
+      if (intraAvoidCount > 0) {
+        intraAvoid.divideScalar(intraAvoidCount);
+        accel.addScaledVector(intraAvoid, INTRA_SCHOOL_AVOID_WEIGHT);
       }
 
       if (neighborCount > 0) {
