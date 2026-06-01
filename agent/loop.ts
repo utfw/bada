@@ -929,9 +929,17 @@ function savePendingCommit(entries: CommitEntry[]): void {
  * 여러 COMMIT_MSG를 Ollama에 보내 통합 conventional commit 제목을 생성한다.
  * 실패 시 기본 제목 fallback.
  */
+// 에이전트 자동 커밋 식별 접미사. 사후 git log 분석에서 사람 vs 에이전트 커밋을
+// 분리하는 단일 신호. `.claude/commands/commit.md` 작성자 구분 규칙과 동기.
+const AGENT_COMMIT_SUFFIX = " [agent]";
+
+function withAgentSuffix(title: string): string {
+  return title.endsWith(AGENT_COMMIT_SUFFIX) ? title : title + AGENT_COMMIT_SUFFIX;
+}
+
 function summarizeCommitTitle(msgLines: string[]): string {
   const fallback = `feat: agent auto-commit (${msgLines.length} goals)`;
-  if (msgLines.length < 2) return msgLines[0] ?? fallback;
+  if (msgLines.length < 2) return withAgentSuffix(msgLines[0] ?? fallback);
 
   const prompt = `
 당신은 conventional commit 메시지 합성기입니다.
@@ -941,11 +949,12 @@ function summarizeCommitTitle(msgLines: string[]): string {
 ${msgLines.map((m, i) => `${i + 1}. ${m}`).join("\n")}
 
 규칙:
-- 영문 50자 이내
+- 영문 50자 이내 (이후 시스템이 " [agent]" 접미사를 자동으로 붙이므로 본문은 50자 한도 엄수)
 - 형식: type(scope): summary
 - type은 feat / fix / perf 중 가장 빈도 높은 것 선택 (refactor 금지)
 - scope는 변경된 모듈 1~3개를 콤마로 묶거나(scope1, scope2), 공통 주제로 통합
 - summary는 동사 원형으로 시작, 무엇을 했는지 한 줄로
+- " [agent]" 같은 작성자 마커는 절대 직접 붙이지 말 것 — 시스템이 자동 부착
 
 출력 형식 — TITLE_START와 TITLE_END 사이에 한 줄만:
 
@@ -959,24 +968,26 @@ TITLE_END
     output = runOllama("qwen2.5-coder:7b", prompt);
   } catch (e) {
     console.log(`  ⚠ 커밋 제목 합성 실패 (Ollama) — 기본값 사용: ${String(e).slice(0, 200)}`);
-    return fallback;
+    return withAgentSuffix(fallback);
   }
   const match = output.match(/TITLE_START\s*\n?(.+?)\n?\s*TITLE_END/);
   if (!match) {
     console.log(`  ⚠ 제목 응답 포맷 실패 — 기본값 사용. 응답 발췌:\n    ${output.slice(0, 400).replace(/\n/g, "\n    ")}`);
-    return fallback;
+    return withAgentSuffix(fallback);
   }
   const title = match[1].trim();
   if (title.length === 0) {
     console.log(`  ⚠ 제목 비어있음 — 기본값 사용`);
-    return fallback;
+    return withAgentSuffix(fallback);
   }
-  if (title.length > 100) {
+  // 접미사(" [agent]" = 8자)를 더해도 100자 한도 안에 있어야 함
+  if (title.length > 100 - AGENT_COMMIT_SUFFIX.length) {
     console.log(`  ⚠ 제목 너무 김 (${title.length}자) — 기본값 사용. 받은 제목: "${title.slice(0, 80)}..."`);
-    return fallback;
+    return withAgentSuffix(fallback);
   }
-  console.log(`  ✓ 합성 제목: "${title}"`);
-  return title;
+  const finalTitle = withAgentSuffix(title);
+  console.log(`  ✓ 합성 제목: "${finalTitle}"`);
+  return finalTitle;
 }
 
 function autoCommitAndPush(entries: CommitEntry[]): void {

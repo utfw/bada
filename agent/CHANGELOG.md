@@ -5,6 +5,39 @@
 
 ---
 
+## [2026-05-27] 에이전트 자동 커밋에 `[agent]` 마커 부착 — 작성자 구분
+
+### 배경
+프로젝트가 사람과 에이전트 양쪽이 커밋하는 hybrid 워크플로우라, 사후에 어떤
+변경이 누가 한 것인지 구분이 모호. 향후 "사용자 의도 기반 목표 생성"(Approach A)
+구현을 위해 git log에서 사람 커밋만 정확히 추출할 수 있는 단일 신호가 필요.
+
+### loop.ts
+- `AGENT_COMMIT_SUFFIX = " [agent]"` 상수 신설
+- `withAgentSuffix(title)` 헬퍼 — idempotent 접미사 부착
+- `summarizeCommitTitle()` 모든 반환 경로에 적용: fallback / single-line /
+  Ollama 합성 결과 모두 `[agent]` 접미사 보장
+- Ollama 프롬프트에 "본문 50자 한도, [agent] 마커는 시스템 자동 부착이라
+  직접 붙이지 말 것" 명시 — 합성 결과에 마커 중복 방지
+- 길이 cap 100자에서 접미사 길이(8) 차감
+
+### .claude/commands/commit.md (skill)
+- "작성자 구분 규칙" 섹션 신설
+- 사람 커밋: 마커 없음 (default)
+- 에이전트 커밋: ` [agent]` 접미사 (시스템 자동)
+- `/commit` 스킬로 만드는 커밋은 절대 `[agent]` 마커 붙이지 말 것 명시
+- git log 추출 예제 추가:
+  - 사람 커밋: `git log --grep "\[agent\]" --invert-grep --oneline`
+  - 에이전트 커밋: `git log --grep "\[agent\]" --oneline`
+
+### 활용 예정
+- 다음 단계: 사용자 의도 기반 목표 생성 (`generateGoalsFromChecklist`에
+  사람 커밋 이력을 컨텍스트로 주입)
+- 비용 분석: 에이전트 vs 사람이 만진 영역 식별
+- 회귀 추적: 에이전트가 사람 작업을 덮어쓰는 패턴 감지
+
+---
+
 ## [2026-05-27] runGoals 동적 재파싱 — 실행 중 추가된 goal까지 자동 처리
 
 ### 배경
