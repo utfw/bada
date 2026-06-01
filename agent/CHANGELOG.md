@@ -5,6 +5,50 @@
 
 ---
 
+## [2026-06-02] 사용자 의도 기반 목표 생성 — git log에서 사람 커밋 추출 후 generator에 주입
+
+### 배경
+goal generator(Ollama)가 매번 REVIEW_CHECKLIST 위반과 관찰 데이터만 보고
+random suggestions를 만들어, 사용자가 실제로 관심 있는 영역과 어긋난 목표가
+누적되는 문제. 직전 작업에서 `[agent]` 마커 도입으로 사람 vs 에이전트 커밋이
+구분 가능해졌으므로, 이제 사람 커밋 이력에서 사용자 관심 영역을 추론하여
+generator의 우선순위 가이드로 활용.
+
+### loop.ts
+- `getRecentHumanCommits(maxCount=30)` 신설:
+  - `git log --extended-regexp --grep "( \[agent\]$|agent auto-commit)" --invert-grep`
+    로 자동 커밋 제외
+  - `[agent]` 매치는 **subject 끝 정확 매치**(`$` 앵커)만 — subject 본문에
+    인용으로 들어간 `[agent]` 텍스트는 사람 커밋으로 보존
+  - cutoff: 첫 ` [agent]$` 마커 commit 이후만 신뢰. 마커 도입 전 자동 커밋은
+    구분 불가능한 노이즈이므로 시간이 지나며 자동으로 좁아짐
+  - 실패 시 안전 fallback `"(이력 추출 실패)"` 반환 — generator 중단 안 함
+- `generateGoalsFromChecklist` / `generateGoalsFromReview` 프롬프트에 신설 섹션:
+  - `## 사용자가 직접 지시한 최근 커밋 (관심 영역 신호):` + commit oneline 목록
+  - **우선순위 가이드**: 사용자 관심 영역과 관련된 위반/지적 우선, 그 외 후순위
+  - ⛔ 제외 목록 우선 규칙 재명시 — 관심 영역이라도 금지 항목 위반 금지
+
+### 동작 흐름
+1. `[agent]` 마커 도입 전: cutoff 매치 0건 → 전체 history 사용. 마커 이전
+   자동 commit이 사람 commit으로 잘못 분류되어 약간의 노이즈 포함.
+2. 첫 진짜 자동 commit 발생 후: cutoff 자동 동작 → 그 이후 범위만 보고
+   필터 정확도 향상.
+3. 시간이 지나면 사람 commit 이력이 누적되어 LLM 추론 신호 강화.
+
+### 효과 (예상)
+- generator가 사용자가 작업한 영역과 일치하는 목표를 우선 제안
+- 사용자가 명시적으로 다룬 적 없는 random suggestions 비중 감소
+- 작업 일관성 향상 — 사용자가 한 분야를 깊게 파는 동안 에이전트도 같은
+  방향으로 작업
+
+### 한계
+- 7B Ollama 모델이 commit 메시지에서 패턴을 추론하는 능력에 의존. 명확한
+  영역(예: `feat(agent): ...`)은 잘 추론하나 미묘한 의도는 놓칠 수 있음.
+- 노이즈가 많으면 generator 출력 품질 저하 가능. 향후 Approach B(Claude로
+  의도 요약 단계 분리) 승격 여지 남김.
+
+---
+
 ## [2026-05-27] 에이전트 자동 커밋에 `[agent]` 마커 부착 — 작성자 구분
 
 ### 배경

@@ -128,6 +128,52 @@ function getChangedFiles(): string[] {
   }
 }
 
+/**
+ * 사람(또는 사람 지시로 Claude가) 만든 최근 커밋 oneline 목록.
+ * `[agent]` 접미사가 붙은 자동 커밋과 옛 "agent auto-commit (N goals)" 패턴을 제외.
+ * 목표 생성기에 주입해 사용자 관심 영역을 추론시키는 컨텍스트로 사용.
+ *
+ * 정확도 향상을 위해 첫 `[agent]` 마커 도입 이후 범위로만 자동 cutoff —
+ * 그 이전 자동 커밋은 마커가 없어 사람 커밋과 구분이 불가능하므로 노이즈.
+ * 마커 도입 전 상태(아직 첫 [agent] 커밋 없음)면 전체 history를 사용.
+ */
+function getRecentHumanCommits(maxCount: number = 30): string {
+  // cutoff: 첫 ` [agent]` 마커 도입 commit 이후만 신뢰. 정확 매치(subject 끝)만 사용해
+  // subject 본문에 [agent]가 인용된 케이스를 cutoff로 잡지 않는다.
+  const CUTOFF_GREP = " \\[agent\\]$";
+  // 필터: 마커 + legacy "agent auto-commit (N goals)" 패턴 모두 제외.
+  const FILTER_GREP = "( \\[agent\\]$|agent auto-commit)";
+  try {
+    const firstAgentShaOut = execFileSync(
+      "git",
+      ["log", "--extended-regexp", "--grep", CUTOFF_GREP, "--format=%H", "--reverse"],
+      { cwd: ROOT, encoding: "utf-8", timeout: 5_000 },
+    );
+    const firstAgentSha = firstAgentShaOut.split("\n").filter(Boolean)[0];
+    const range = firstAgentSha ? `${firstAgentSha}^..HEAD` : "HEAD";
+
+    const out = execFileSync(
+      "git",
+      [
+        "log",
+        "--extended-regexp",
+        "--grep", FILTER_GREP,
+        "--invert-grep",
+        "--oneline",
+        `-${maxCount}`,
+        range,
+      ],
+      { cwd: ROOT, encoding: "utf-8", timeout: 10_000 },
+    );
+    const lines = out.split("\n").filter(Boolean);
+    if (lines.length === 0) return "(사람 커밋 이력 없음)";
+    return lines.map((l) => `- ${l}`).join("\n");
+  } catch (e) {
+    console.warn(`[goal-gen] 사람 커밋 추출 실패: ${String(e).slice(0, 200)}`);
+    return "(이력 추출 실패)";
+  }
+}
+
 // ── 목표 파일 파싱 ─────────────────────────────────────────────────────────────
 
 interface Goal {
@@ -1457,6 +1503,7 @@ function generateGoalsFromChecklist(observationSummary: string): string[] {
   const claudeMd = fs.existsSync(path.join(ROOT, "CLAUDE.md"))
     ? fs.readFileSync(path.join(ROOT, "CLAUDE.md"), "utf-8")
     : "";
+  const humanCommits = getRecentHumanCommits(30);
 
   const prompt = `
 당신은 Project BADA의 목표 생성기입니다.
@@ -1474,8 +1521,18 @@ ${checklistContent}
 ## CLAUDE.md (프로젝트 맥락):
 ${claudeMd}
 
+## 사용자가 직접 지시한 최근 커밋 (관심 영역 신호):
+${humanCommits}
+
 위 체크리스트에서 현재 코드가 위반하고 있을 항목을 식별하고 (제외 목록 제외),
 각 위반에 대해 구체적인 수정 목표를 한 줄씩 작성하세요.
+
+**우선순위 가이드:**
+- 사용자 커밋 이력에서 반복적으로 등장하는 영역(예: agent 비용 최적화, 시각 품질,
+  Fish 행동, WhaleShark 모델링 등)과 관련된 위반을 **우선** 제안하라.
+- 사용자가 명시적으로 다룬 적 없는 영역의 위반은 후순위로 두거나, 위반이 명백하지
+  않으면 생략하라.
+- 단, 위 ⛔ 제외 목록과 충돌하면 우선순위와 무관하게 절대 생성 금지.
 
 출력 형식 — GOALS_START와 GOALS_END 사이에만 작성하고 다른 텍스트는 출력하지 마세요:
 GOALS_START
@@ -1495,6 +1552,7 @@ GOALS_END
 }
 
 function generateGoalsFromReview(reviewOutput: string): string[] {
+  const humanCommits = getRecentHumanCommits(30);
   const prompt = `
 당신은 Project BADA의 목표 생성기입니다.
 Reviewer가 REVIEW_FAIL을 선언했습니다. 리뷰 결과를 바탕으로 수정 목표를 생성하세요.
@@ -1504,8 +1562,16 @@ ${GOAL_GENERATION_EXCLUSIONS}
 ## 리뷰 결과:
 ${reviewOutput.slice(-3000)}
 
+## 사용자가 직접 지시한 최근 커밋 (관심 영역 신호):
+${humanCommits}
+
 리뷰 지적 사항을 분석하고 (위 제외 목록에 해당하는 항목은 무시),
 각 지적에 대해 구체적인 수정 목표를 한 줄씩 작성하세요.
+
+**우선순위 가이드:**
+- 위 사용자 커밋 이력에서 반복적으로 등장하는 영역과 관련된 지적을 우선 처리.
+- 사용자가 명시적으로 다룬 적 없는 영역의 지적은 후순위.
+- ⛔ 제외 목록 위반은 우선순위와 무관하게 절대 생성 금지.
 
 출력 형식 — GOALS_START와 GOALS_END 사이에만 작성하고 다른 텍스트는 출력하지 마세요:
 GOALS_START
