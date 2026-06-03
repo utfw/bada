@@ -178,6 +178,8 @@
 
 - **[시각 검증] surface-up.png 수면 투시**: Observer가 아래에서 위를 바라보는 `surface-up.png`를 촬영한다(카메라 y=-10, target y=15). 이 이미지에서 수면이 단일 불투명 면이거나 빛의 변화가 전혀 없으면 투명도·굴절 미구현을 의미한다 — SUGGESTIONS에 수면 투명도 또는 굴절 효과 개선 추가.
 
+- **[코드 검증] nearRay update() opacity 일관성**: `Lighting.ts`의 `update()` 내 `nearRayMeshes.forEach`에서 `m.material.opacity` 재설정 값이 constructor의 `MeshBasicMaterial` opacity 초기값과 **반드시 일치**해야 한다. update()가 constructor 설정값을 매 프레임 덮어쓰면 런타임 opacity는 항상 update() 값으로 고정되어 constructor 변경이 무효화된다. 두 값이 다르면 **실패**.
+
 - **[코드 검증] AmbientLight vs DirectionalLight 비율**: `Lighting.ts`의 맑은 날씨(clear) 기준 AmbientLight intensity가 DirectionalLight intensity의 60% 초과이면 수중 depth감이 없어진다. Reviewer는 두 값을 코드에서 확인. `ambient.intensity > directional.intensity × 0.6`이면 **경고** (치명 실패 아님).
 
 - **[코드 검증] 수중 안개 색상**: `Lighting.ts` 또는 `SceneManager.ts`에서 fog color가 청록색 계열(예: `0x1188bb`)이고 density가 0보다 크게 설정되어야 한다. fog가 없거나 회색/무채색이면 수중 분위기가 없다 — SUGGESTIONS에 fog 색상 개선 추가.
@@ -197,7 +199,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-18) [reviewer] §1 WhaleShark 가시성 기준 명확화: "모든 화면 내에 보여야 한다"(전부)와 "단 한 장도 없으면 실패"(최소 1장)가 충돌하던 조건을 "4장 중 최소 1장에서 확인 가능해야 한다"로 통일.
 - (2026-04-12) [human] §1 시각 검증을 탑뷰 방식으로 변경: Observer가 topview-t1.png/t2.png (높이 50, 2초 간격)을 촬영하고 Reviewer가 비교해 이동 방향 확인.
 - (2026-04-18) [human] 군집 분산도 내용 간략화. 방향 검증 수정
 - (2026-04-18) [reviewer] §7 추가: CatmullRomCurve3.getPointAt() optional target 미사용 시 루프 내 암시적 Vector3 할당 경고 기준 명시.

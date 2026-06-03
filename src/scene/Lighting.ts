@@ -19,7 +19,7 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x0d3a5c,
+    ambientColor: 0x1a5a8c,
     ambientIntensity: 1.25,
     sunColor: 0x6ec6e8,
     sunIntensity: 2.8,
@@ -68,10 +68,10 @@ export class Lighting {
   private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
-    this.ambientLight = new THREE.AmbientLight(0x0d3a5c, 1.25);
+    this.ambientLight = new THREE.AmbientLight(0x1a5a8c, 1.25);
     scene.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x0a6aaa, 0x004466, 1.0);
+    this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x03133d, 1.0);
     scene.add(this.hemisphereLight);
 
     this.sunLight = new THREE.DirectionalLight(0x6ec6e8, 2.8);
@@ -120,7 +120,7 @@ export class Lighting {
       varying vec2 vUv;
       void main() {
         float vertFade = vUv.y;
-        float radialFade = smoothstep(0.0, 0.35, vUv.x) * smoothstep(1.0, 0.65, vUv.x);
+        float radialFade = smoothstep(0.0, 0.45, vUv.x) * smoothstep(1.0, 0.55, vUv.x);
         float alpha = vertFade * radialFade * (uMaxOpacity + sin(uTime * 0.3 + uPhase) * 0.04);
         gl_FragColor = vec4(uColor, alpha);
       }
@@ -165,12 +165,12 @@ export class Lighting {
     }
 
     // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
-    this.nearRayGeo = new THREE.PlaneGeometry(0.042, 12);
+    this.nearRayGeo = new THREE.PlaneGeometry(0.095, 12);
     for (let i = 0; i < 10; i++) {
       const mat = new THREE.MeshBasicMaterial({
         color: 0x88ddff,
         transparent: true,
-        opacity: 0.08,
+        opacity: 0.14,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
@@ -197,8 +197,8 @@ export class Lighting {
     this.godRayCones.forEach((plane) => {
       plane.material.uniforms.uTime.value = elapsed;
     });
-    this.nearRayMeshes.forEach((m, i) => {
-      m.material.opacity = 0.08;
+    this.nearRayMeshes.forEach((m) => {
+      m.material.opacity = 0.14;
     });
   }
 

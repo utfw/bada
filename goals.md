@@ -169,6 +169,22 @@
 
 - [x] Fish.ts schoolDefs[0]의 yBase을 -7에서 -4로 변경 — school 0 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
 - [x] `src/scene/Lighting.ts` — ambient light 색상을 `#0a1628` → `#0d3a5c`로, directional light 강도를 현재 값에서 ×1.4 상향해 수면 근처 청록 채도를 끌어올릴 것; 배경 fog color도 `#061020` → `#0a2a4a`로 변경
-- [ ] `src/entities/Fish.ts` — boids 군집의 최대 반경(cohesion radius 또는 spawn range)을 줄여 screenshot-1처럼 물고기가 화면 한쪽에 밀집되는 빈도를 낮출 것
-- [ ] **수직 깊이감** — `src/scene/Lighting.ts`의 ambient/hemisphere light에서 skyColor를 `0x1ec0e0`(밝은 청록), groundColor를 `0x03133d`(심해 남색)으로 설정해 상하 hue 그라디언트를 강화; 현재 추정값(`0x112244` sky)보다 skyColor 밝기를 intensity 0.6→1.0으로 올릴 것
-- [ ] **광선 효과** — god ray 줄기의 `material.opacity`를 현재 추정값(~0.06)에서 0.12~0.15로 올리고, `PlaneGeometry` 폭을 1.5배 넓혀 볼류메트릭 느낌을 강화 (`src/scene/Ocean.ts` 또는 별도 GodRay 클래스 내 광선 mesh 생성부)
+- [x] `src/entities/Fish.ts` — boids 군집의 최대 반경(cohesion radius 또는 spawn range)을 줄여 screenshot-1처럼 물고기가 화면 한쪽에 밀집되는 빈도를 낮출 것
+- [x] **수직 깊이감** — `src/scene/Lighting.ts`의 ambient/hemisphere light에서 skyColor를 `0x1ec0e0`(밝은 청록), groundColor를 `0x03133d`(심해 남색)으로 설정해 상하 hue 그라디언트를 강화; 현재 추정값(`0x112244` sky)보다 skyColor 밝기를 intensity 0.6→1.0으로 올릴 것
+- [x] **광선 효과** — god ray 줄기의 `material.opacity`를 현재 추정값(~0.06)에서 0.12~0.15로 올리고, `PlaneGeometry` 폭을 1.5배 넓혀 볼류메트릭 느낌을 강화 (`src/scene/Ocean.ts` 또는 별도 GodRay 클래스 내 광선 mesh 생성부)
+- [ ] createPectoralFins() 함수 내에서 leftPectoral.position.x를 명시적으로 설정하거나, 다른 표현식을 사용하여 position.x를 제어하는 것을 확인한다.
+- [ ] createPectoralFins() 함수 내에서 leftPectoral.rotation.x의 값이 자동 검증되지 않도록 명시적으로 설정하거나, 다른 표현식을 사용하여 rotation.x의 값을 제어하는 것을 확인한다.
+- [ ] flee 후 정상 궤도 미복귀를 방지하기 위해 FISH_ORBIT_WEIGHT 상향 또는 flee 중 orbit weight 임시 강화 로직을 추가한다.
+- [ ] `agent/evolve.ts`의 변이 목표 생성 함수: Fish.ts schoolDefs 항목 참조 시 실제 라인 번호와 현재 원본 값을 명시적으로 포함하도록 개선.
+
+- [ ] Fish.ts schoolDefs[2]의 yBase을 -6에서 -3로 변경 — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
+- [ ] Fish 모델의 pectoral fin 수평 전개 방향을 자동 검증에서 확인할 수 있도록 WhaleShark.ts 코드 수정.
+- [ ] school0의 peakFleeIntensity가 1.00이고 recoveryTimeSec이 -1임을 감안하여 Planner는 school0의 semi_a/semi_b 또는 FISH_ORBIT_WEIGHT를 점검해야 함.
+- [ ] WhaleShark.ts를 직접 점검하여 geometry가 XZ 수평 평면에 있고, tip이 body 반지름 바깥으로 충분히 나와 있는지 확인할 것.
+
+- [ ] Fish.ts schoolDefs[2]의 yBase을 -3에서 -6로 변경 — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
+- [ ] Fish school별 독립 orbit path 분리 — 각 school을 씬의 다른 위치/깊이에 배치
+- [ ] WhaleShark 카메라 가시성: Observer의 시간순 스크린샷(`screenshot-1~4.png`) 4장 중 **최소 1장**에서 고래상어의 몸통이 화면 내에 보여야 한다. 4장 모두에서 고래상어를 확인할 수 없으면 **실패**.
+- [ ] FishSchool 단일 orbitPath 공유 시 씬 단조로움 실패 기준 및 궤도 중심 분산 기준 추가
+- [ ] Evolver 호출 위치: `agent/loop.ts`의 `runGoal()` 안, Observer 결과를 받은 직후·Planner 호출 전에 `runEvolutionStep()`이 한 번 호출되어야 한다. 호출 위치가 Planner 이후로 밀리면 dramaScore가 Planner 프롬프트에 전달되지 못한다.
+- [ ] FishSchool 단일 orbitPath 공유 시 씬 단조로움 실패 기준 및 궤도 중심 분산 기준 추가
