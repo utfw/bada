@@ -101,7 +101,10 @@
 
 - **[Observer 시계열 검증] 전 학교 미만남 금지**: `latest.json`의 `predatorMetrics`에서 모든 학교의 `encounterRate === 0`이면 shark 경로가 학교 궤도 영역 밖에 있거나 관찰 시간이 부족한 것 — **실패**. 원인 후보: WhaleShark CatmullRomCurve3 제어점이 학교 궤도 중심에서 항상 멀리 떨어짐 / 관찰 8초가 너무 짧음 / shark가 화면 멀리 멈춰 있음. Planner는 `WhaleShark.ts`의 경로 제어점이 `Fish.ts`의 `schoolDefs`와 교차하는지 확인.
 
-- **[Observer 시계열 검증] flee 후 회복 실패**: 특정 학교의 `peakFleeIntensity >= 0.3`인데 `recoveryTimeSec === -1`이면, 학교가 flee 후 경계·다른 학교에 막혀 정상 궤도로 복귀하지 못한 것 — **실패**. Planner는 해당 학교의 `schoolDefs` 중심·반경이 `BOID_BOUNDARY_MARGIN` 근처가 아닌지, `FISH_ORBIT_WEIGHT`가 flee 후 복귀 인력으로 충분한지 검토.
+- **[Observer 시계열 검증] flee 후 회복 실패 — 범위(scope) 게이트 적용**: 특정 학교의 `peakFleeIntensity >= 0.3`인데 `recoveryTimeSec === -1`이면, 학교가 flee 후 경계·다른 학교에 막혀 정상 궤도로 복귀하지 못한 것이다. **단, REVIEW_FAIL 판정은 이번 목표가 실제로 건드린 범위 안에서만 한다.** 판정 규칙:
+  1. **이번 목표가 해당 학교의 flee/궤도 거동에 영향을 주는 코드를 수정한 경우** — `Fish.ts`의 `schoolDefs`(해당 학교 행)·flee force 누적·`setSharkPosition`, `WhaleShark.ts` 경로 제어점, `constants.ts`의 `PREDATOR_FLEE_*`/`FISH_ORBIT_WEIGHT`/`BOID_BOUNDARY_MARGIN`/`BOID_*_WEIGHT` 중 하나라도 이번 diff에 포함되면 → 회복 실패는 **REVIEW_FAIL**. 즉 이번 변경이 회귀를 유발했거나 고치려다 실패한 것이므로 차단한다.
+  2. **이번 목표가 위 코드를 전혀 수정하지 않은 경우(예: 조명·스카이박스·HUD 전용 목표)** — 회복 실패는 **pre-existing 이슈**이므로 REVIEW_FAIL 사유가 **아니다.** Reviewer는 이를 SUGGESTIONS(또는 백로그)로 기록하고 — "school N flee 후 미회복(`recoveryTimeSec=-1`): 해당 학교의 `schoolDefs` 중심·반경이 `BOID_BOUNDARY_MARGIN` 근처인지, `FISH_ORBIT_WEIGHT`가 복귀 인력으로 충분한지 별도 목표로 진단" — 목표 본연의 구현 검증만으로 PASS/FAIL을 결정한다.
+  3. **근거**: 목표와 무관한 pre-existing §3-3 실패로 조명 등 다른 목표를 반복 차단하면, retry 예산이 엉뚱한 Fish/constants 수정으로 소진되고(2026-06-03 로그: 조명 목표 4회 연속 미완료) 그 과정에서 작업이 유실된다. §1 `forwardDot` HUMAN_VERIFICATION_REQUIRED 강등과 동일한 취지의 과잉 차단 방지 규칙이다.
 
 - **[Observer 시계열 검증] 학교 경로 단조성 (SUGGESTIONS 트리거)**: `predatorMetrics`에서 **모든 학교의 `pathVariance < 3.0`**이면 8초 관찰 동안 학교 중심이 거의 움직이지 않은 것 — 회피 다양성 실패. REVIEW_FAIL이 아닌 **SUGGESTIONS 트리거**로 분류하고, "Fish.ts `schoolDefs`의 일부 학교 궤도 반경(`semi_a`/`semi_b`) 또는 `FISH_ORBIT_SPEED`를 다양화" 목표를 추가한다. 일부 학교만 단조이면 그 학교만 지명해 제안.
 
@@ -224,3 +227,4 @@
 - (2026-05-24) [human] §3-3 신설: Predator avoidance(Boids flee force) 도입에 따른 검증 항목 추가 — setSharkPosition 호출 누락 금지, FLEE_WEIGHT > SEPARATION_WEIGHT 유지, 전 학교 미만남 실패, flee 후 회복 실패, pathVariance 단조 SUGGESTIONS 트리거, minDistance 충돌 SUGGESTIONS, schoolDefs 보존. Observer는 `predatorMetrics` 시계열 지표를 `latest.json`에 출력하며 `detectPredatorAnomalies()`가 anomalies에 자동 누적한다.
 - (2026-05-24) [human] §3-4 신설: 자율 진화 루프(`agent/evolve.ts`) 정합성 항목 추가 — Evolver 호출 위치(Observer 직후·Planner 직전), `currentSchoolDefs` Observation 전달, history.json schema·dramaScore 범위, 변이 목표 누적 한도, 정체 임계치 적정성, evolutionSummary Planner 전달. drama score = peakFleeIntensity × encounterRate × pathVariance × 균형도. 정체 시 가장 약한 학교의 단일 파라미터를 변이 제안으로 자동 추가.
 - (2026-05-25) [human] 갱신 로그 일괄 정리: "n차 검증/동일 수치 재확인/변경 파일 없음" 류의 verification noise 16개 entry 삭제. 갱신 로그는 규칙 변경 기록 전용이며, 검증 결과는 로그에 남기지 않는다는 규칙을 헤더에 명시.
+- (2026-06-04) [human] §3-3 "flee 후 회복 실패"에 범위(scope) 게이트 도입: 이번 목표가 flee/궤도 관련 코드(Fish schoolDefs·flee force·setSharkPosition / WhaleShark 경로 / constants PREDATOR_*·FISH_ORBIT_WEIGHT·BOID_BOUNDARY_MARGIN·BOID_*_WEIGHT)를 수정한 경우에만 REVIEW_FAIL, 미수정 시 pre-existing 이슈로 SUGGESTIONS 강등. 2026-06-03 조명 목표 4회 연속 미완료(목표 무관 §3-3 실패가 매번 차단·retry 예산 유실)에 대한 대응.
