@@ -24,7 +24,13 @@ Three.js · TypeScript · Vite
        각 목표마다:
          ┌─ 1. Observer (Playwright)
          │    Vite dev 서버 + 헤드리스 브라우저로 씬 관찰
-         │    위치 샘플, anomaly 감지, 스크린샷 4장 + 탑뷰 2장 + 고래상어 근접 4장
+         │    위치 샘플, anomaly 감지, predatorMetrics(학교별 회피 시계열) 수집
+         │    스크린샷 4장 + 탑뷰 2장 + 고래상어 근접 4장
+         │
+         ├─ 1.25. Evolver (코드)
+         │    predatorMetrics → dramaScore 환산, history.json 누적
+         │    점수 정체 시 학교 궤도(schoolDefs) 변이 목표 자동 생성
+         │    결과 지표를 Planner 관찰 요약에 주입
          │
          ├─ 2. Planner [Claude sonnet]
          │    REVIEW_CHECKLIST.md + 관찰 결과 + 코드 분석 → 수정 계획
@@ -48,6 +54,7 @@ Three.js · TypeScript · Vite
 ### 핵심 메커니즘
 
 - **REVIEW_CHECKLIST.md** — 과거 발견된 버그 패턴이 누적되는 단일 진실원천. Reviewer가 새 패턴 발견 시 직접 갱신
+- **자율 진화 (Evolver)** — Observer의 `predatorMetrics`(고래상어 회피 시계열)를 드라마 점수로 환산. 최근 점수가 정체되면 학교 궤도 정의(`schoolDefs`)를 바꾸는 변이 목표를 스스로 생성해 다음 사이클이 처리. 누적 이력은 `agent/evolution/history.json`
 - **SUGGESTIONS 자동 목표화** — Reviewer가 매 실행마다 시각 개선 제안 3개 이상 생성 → 다음 사이클에서 처리
 - **중복 제거** — 신규 목표 추가 시 Ollama로 의미 기반 중복 검사. 미완료 목표가 10개 이상일 때만 전체 목록 중복 정리 실행
 - **자동 커밋 범위 제한** — `src/`, `goals.md`, `agent/REVIEW_CHECKLIST.md`만 (에이전트 자체 코드는 제외)
@@ -106,6 +113,7 @@ npm run build
 | `npm run agent` | 자율 에이전트 실행 |
 | `npm run agent:review` | 리뷰만 단독 실행 |
 | `npm run agent:observe` | 런타임 관찰만 단독 실행 |
+| `npm run agent:goals` | 레퍼런스 이미지 비교로 goals.md 갱신 |
 
 ## 프로젝트 구조
 
@@ -129,8 +137,11 @@ src/
     HUD.ts
 agent/
   loop.ts               # Observer → Planner → Implementer → Reviewer 파이프라인
-  observe.ts            # Playwright 런타임 관찰자
+  observe.ts            # Playwright 런타임 관찰자 (predatorMetrics 수집)
+  evolve.ts             # Evolver — dramaScore 환산 + 정체 시 궤도 변이 목표 생성
   setGoals.ts           # 레퍼런스 이미지 비교 → goals.md 자동 갱신
+  evolution/
+    history.json        # dramaScore + schoolDefs 진화 이력
   REVIEW_CHECKLIST.md   # 버그 패턴 누적 체크리스트
   CHANGELOG.md          # 에이전트 파이프라인 변경 이력
 ```
