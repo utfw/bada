@@ -16,6 +16,7 @@ import {
   BOID_BOUNDARY_FORCE,
   FISH_ORBIT_SPEED,
   FISH_ORBIT_WEIGHT,
+  FISH_ORBIT_RECOVERY_BOOST,
   PREDATOR_FLEE_RANGE,
   PREDATOR_FLEE_WEIGHT,
   PREDATOR_FLEE_INTENSITY_NORM,
@@ -391,7 +392,8 @@ export class FishSchool {
       // Spring formula: force = FISH_ORBIT_WEIGHT × orbitDist, so a fish 14 units away
       // receives 11.2 units of pull-back while fish near orbit (≤3u) receive ≤2.4.
       this._orbitTarget.subVectors(orbitAnchor, pos);
-      accel.addScaledVector(this._orbitTarget, FISH_ORBIT_WEIGHT);
+      const effectiveOrbitWeight = FISH_ORBIT_WEIGHT * (1 + FISH_ORBIT_RECOVERY_BOOST * this._fleeIntensity[si]);
+      accel.addScaledVector(this._orbitTarget, effectiveOrbitWeight);
 
       // Soft boundary steering
       const margin = BOID_BOUNDARY_MARGIN;

@@ -172,9 +172,9 @@
 - [x] `src/entities/Fish.ts` — boids 군집의 최대 반경(cohesion radius 또는 spawn range)을 줄여 screenshot-1처럼 물고기가 화면 한쪽에 밀집되는 빈도를 낮출 것
 - [x] **수직 깊이감** — `src/scene/Lighting.ts`의 ambient/hemisphere light에서 skyColor를 `0x1ec0e0`(밝은 청록), groundColor를 `0x03133d`(심해 남색)으로 설정해 상하 hue 그라디언트를 강화; 현재 추정값(`0x112244` sky)보다 skyColor 밝기를 intensity 0.6→1.0으로 올릴 것
 - [x] **광선 효과** — god ray 줄기의 `material.opacity`를 현재 추정값(~0.06)에서 0.12~0.15로 올리고, `PlaneGeometry` 폭을 1.5배 넓혀 볼류메트릭 느낌을 강화 (`src/scene/Ocean.ts` 또는 별도 GodRay 클래스 내 광선 mesh 생성부)
-- [ ] createPectoralFins() 함수 내에서 leftPectoral.position.x를 명시적으로 설정하거나, 다른 표현식을 사용하여 position.x를 제어하는 것을 확인한다.
-- [ ] createPectoralFins() 함수 내에서 leftPectoral.rotation.x의 값이 자동 검증되지 않도록 명시적으로 설정하거나, 다른 표현식을 사용하여 rotation.x의 값을 제어하는 것을 확인한다.
-- [ ] flee 후 정상 궤도 미복귀를 방지하기 위해 FISH_ORBIT_WEIGHT 상향 또는 flee 중 orbit weight 임시 강화 로직을 추가한다.
+- [x] createPectoralFins() 함수 내에서 leftPectoral.position.x를 명시적으로 설정하거나, 다른 표현식을 사용하여 position.x를 제어하는 것을 확인한다.
+- [x] createPectoralFins() 함수 내에서 leftPectoral.rotation.x의 값이 자동 검증되지 않도록 명시적으로 설정하거나, 다른 표현식을 사용하여 rotation.x의 값을 제어하는 것을 확인한다.
+- [x] flee 후 정상 궤도 미복귀를 방지하기 위해 FISH_ORBIT_WEIGHT 상향 또는 flee 중 orbit weight 임시 강화 로직을 추가한다.
 - [ ] `agent/evolve.ts`의 변이 목표 생성 함수: Fish.ts schoolDefs 항목 참조 시 실제 라인 번호와 현재 원본 값을 명시적으로 포함하도록 개선.
 
 - [ ] Fish.ts schoolDefs[2]의 yBase을 -6에서 -3로 변경 — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경

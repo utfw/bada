@@ -63,6 +63,7 @@ export const BOID_BOUNDARY_MARGIN = 8;
 export const BOID_BOUNDARY_FORCE = 5;
 export const FISH_ORBIT_SPEED = 0.06;
 export const FISH_ORBIT_WEIGHT = 4.0;
+export const FISH_ORBIT_RECOVERY_BOOST = 3.0;
 // ── Predator avoidance (Boids ↔ WhaleShark) ──────
 // flee range = shark가 학교 중심에서 이 거리 안에 들어오면 flee force가 적용되는 임계
 // flee weight = separation/cohesion 가중치와 같은 단위. 합쳐서 BOID_SEPARATION_WEIGHT를 압도해야 분산이 가시화됨.

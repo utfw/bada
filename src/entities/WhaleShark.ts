@@ -285,9 +285,7 @@ export class WhaleShark {
       bevelThickness: 0.03,
       bevelSize: 0.03,
     };
-    // 기준 geometry: shape XY평면 → XZ평면으로 눕히고 leading edge가 머리(-Z)를 향하도록.
     const leftGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-    leftGeo.rotateX(-Math.PI / 2);
     // 우측 fin은 X축 미러링한 사본. DoubleSide라 winding 반전은 문제없음.
     const rightGeo = leftGeo.clone();
     rightGeo.scale(-1, 1, 1);
@@ -307,11 +305,13 @@ export class WhaleShark {
 
     this.leftPectoralGroup = new THREE.Group();
     this.leftPectoralGroup.position.set(this.pectoralBaseX, -0.4, -SHARK_LENGTH * 0.25);
+    this.leftPectoralGroup.rotation.x = -Math.PI / 2; // shape XY → XZ평면으로 눕힘 (geometry 베이크 대신 group rotation으로 명시)
     this.leftPectoralGroup.rotation.z = -0.25; // 끝이 아래로 처짐(dihedral)
     this.leftPectoralGroup.add(new THREE.Mesh(leftGeo, mat));
 
     this.rightPectoralGroup = new THREE.Group();
     this.rightPectoralGroup.position.set(-this.pectoralBaseX, -0.4, -SHARK_LENGTH * 0.25);
+    this.rightPectoralGroup.rotation.x = -Math.PI / 2;
     this.rightPectoralGroup.rotation.z = 0.25; // 미러 공간이라 부호 반전
     this.rightPectoralGroup.add(new THREE.Mesh(rightGeo, mat));
 
