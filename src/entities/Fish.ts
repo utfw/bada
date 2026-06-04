@@ -16,7 +16,6 @@ import {
   BOID_BOUNDARY_FORCE,
   FISH_ORBIT_SPEED,
   FISH_ORBIT_WEIGHT,
-  FISH_ORBIT_RECOVERY_BOOST,
   PREDATOR_FLEE_RANGE,
   PREDATOR_FLEE_WEIGHT,
   PREDATOR_FLEE_INTENSITY_NORM,
@@ -69,9 +68,9 @@ export class FishSchool {
     // Centers spread across all 4 quadrants at varied depths for a rich 360° scene.
     // [cx, cz, yBase, semi_a, semi_b, yWave]
     this.schoolDefs = [
-      [-16, -16,  -4, 16,  8, 2.5],  // 0: left-front,  shallow
+      [-16, -16,  -4, 10,  6, 2.5],  // 0: left-front,  shallow (orbit shrunk to avoid shark path overlap)
       [ 18,  12,  -8, 14, 10, 2.0],  // 1: right-rear,  mid (shifted from (12,4) to further isolate from shark z≈-8~-15)
-      [-14,  12,  -3, 18,  7, 1.5],  // 2: left-rear,   mid (shifted from (-10,6) to z=+12, away from shark z≈-10~-14)
+      [-14,  12,  -6, 18,  7, 1.5],  // 2: left-rear,   deep (yBase -3→-6, Y range -7.5~-4.5)
       [ -7,   8,  -6, 13, 15, 2.0],  // 3: left-back,   mid (separated from school 1)
       [-12,  -8,  -3, 15, 11, 3.0],  // 4: left-front,  near surface
     ];
@@ -392,7 +391,9 @@ export class FishSchool {
       // Spring formula: force = FISH_ORBIT_WEIGHT × orbitDist, so a fish 14 units away
       // receives 11.2 units of pull-back while fish near orbit (≤3u) receive ≤2.4.
       this._orbitTarget.subVectors(orbitAnchor, pos);
-      const effectiveOrbitWeight = FISH_ORBIT_WEIGHT * (1 + FISH_ORBIT_RECOVERY_BOOST * this._fleeIntensity[si]);
+      // Scale orbit pull down during active flee so shark presence doesn't trap fish on-orbit.
+      // As fleeIntensity decays to 0, orbit weight returns to full, pulling fish back naturally.
+      const effectiveOrbitWeight = FISH_ORBIT_WEIGHT * (1 - this._fleeIntensity[si] * 0.7);
       accel.addScaledVector(this._orbitTarget, effectiveOrbitWeight);
 
       // Soft boundary steering

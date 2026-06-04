@@ -179,10 +179,10 @@
 
 - [x] Fish.ts schoolDefs[2]의 yBase을 -6에서 -3로 변경 — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
 - [x] Fish 모델의 pectoral fin 수평 전개 방향을 자동 검증에서 확인할 수 있도록 WhaleShark.ts 코드 수정.
-- [ ] school0의 peakFleeIntensity가 1.00이고 recoveryTimeSec이 -1임을 감안하여 Planner는 school0의 semi_a/semi_b 또는 FISH_ORBIT_WEIGHT를 점검해야 함.
-- [ ] WhaleShark.ts를 직접 점검하여 geometry가 XZ 수평 평면에 있고, tip이 body 반지름 바깥으로 충분히 나와 있는지 확인할 것.
+- [x] school0의 peakFleeIntensity가 1.00이고 recoveryTimeSec이 -1임을 감안하여 Planner는 school0의 semi_a/semi_b 또는 FISH_ORBIT_WEIGHT를 점검해야 함.
+- [x] WhaleShark.ts를 직접 점검하여 geometry가 XZ 수평 평면에 있고, tip이 body 반지름 바깥으로 충분히 나와 있는지 확인할 것.
 
-- [ ] Fish.ts schoolDefs[2]의 yBase을 -3에서 -6로 변경 — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
+- [x] Fish.ts schoolDefs[2]의 yBase을 -3에서 -6로 변경 — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
 - [ ] Fish school별 독립 orbit path 분리 — 각 school을 씬의 다른 위치/깊이에 배치
 - [ ] WhaleShark 카메라 가시성: Observer의 시간순 스크린샷(`screenshot-1~4.png`) 4장 중 **최소 1장**에서 고래상어의 몸통이 화면 내에 보여야 한다. 4장 모두에서 고래상어를 확인할 수 없으면 **실패**.
 - [ ] FishSchool 단일 orbitPath 공유 시 씬 단조로움 실패 기준 및 궤도 중심 분산 기준 추가
