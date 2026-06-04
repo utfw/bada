@@ -609,6 +609,8 @@ export class WhaleShark {
   getDebugState(): {
     position: { x: number; y: number; z: number };
     progress: number;
+    pectoralRotationX: { left: number; right: number };
+    pectoralHorizontal: { left: boolean; right: boolean };
   } {
     return {
       position: {
@@ -617,6 +619,14 @@ export class WhaleShark {
         z: this.group.position.z,
       },
       progress: this.pathProgress,
+      pectoralRotationX: {
+        left: this.leftPectoralGroup.rotation.x,
+        right: this.rightPectoralGroup.rotation.x,
+      },
+      pectoralHorizontal: {
+        left: Math.abs(this.leftPectoralGroup.rotation.x + Math.PI / 2) < 0.5,
+        right: Math.abs(this.rightPectoralGroup.rotation.x + Math.PI / 2) < 0.5,
+      },
     };
   }
 

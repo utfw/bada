@@ -71,7 +71,7 @@ export class FishSchool {
     this.schoolDefs = [
       [-16, -16,  -4, 16,  8, 2.5],  // 0: left-front,  shallow
       [ 18,  12,  -8, 14, 10, 2.0],  // 1: right-rear,  mid (shifted from (12,4) to further isolate from shark z≈-8~-15)
-      [-14,  12,  -6, 18,  7, 1.5],  // 2: left-rear,   mid-deep (shifted from (-10,6) to z=+12, away from shark z≈-10~-14)
+      [-14,  12,  -3, 18,  7, 1.5],  // 2: left-rear,   mid (shifted from (-10,6) to z=+12, away from shark z≈-10~-14)
       [ -7,   8,  -6, 13, 15, 2.0],  // 3: left-back,   mid (separated from school 1)
       [-12,  -8,  -3, 15, 11, 3.0],  // 4: left-front,  near surface
     ];
