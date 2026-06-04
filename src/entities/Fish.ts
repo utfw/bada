@@ -61,6 +61,8 @@ export class FishSchool {
   private readonly _schoolDistances: Float32Array;
   // 학교별 분산도(centroid 기준 평균 거리) — encounter 시점에 확장됨을 측정
   private readonly _schoolDispersion: Float32Array;
+  // 학교별 flee 정규화 기준값 (낮을수록 작은 힘에도 최대 강도에 도달)
+  private readonly _schoolPeakFlee: readonly number[];
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -70,12 +72,19 @@ export class FishSchool {
     this.schoolDefs = [
       [-16, -16,  -4, 10,  6, 2.5],  // 0: left-front,  shallow (orbit shrunk to avoid shark path overlap)
       [ 18,  12,  -8, 14, 10, 2.0],  // 1: right-rear,  mid (shifted from (12,4) to further isolate from shark z≈-8~-15)
-      [-14,  12,  -6, 18,  7, 1.5],  // 2: left-rear,   deep (yBase -3→-6, Y range -7.5~-4.5)
+      [-14,  12,  -3, 18,  7, 1.5],  // 2: left-rear,   mid (yBase -6→-3, Y range -4.5~-1.5)
       [ -7,   8,  -6, 13, 15, 2.0],  // 3: left-back,   mid (separated from school 1)
       [-12,  -8,  -3, 15, 11, 3.0],  // 4: left-front,  near surface
     ];
     this.orbitPaths = this.schoolDefs.map((def) => this.buildOrbitPath(def));
 
+    this._schoolPeakFlee = [
+      PREDATOR_FLEE_INTENSITY_NORM, // 0
+      PREDATOR_FLEE_INTENSITY_NORM, // 1
+      0.02,                         // 2: lower threshold → reaches max intensity sooner
+      PREDATOR_FLEE_INTENSITY_NORM, // 3
+      PREDATOR_FLEE_INTENSITY_NORM, // 4
+    ];
     this._fleeForceFrameSum = new Float32Array(FISH_SCHOOL_COUNT);
     this._schoolPopulation = new Int32Array(FISH_SCHOOL_COUNT);
     this._fleeIntensity = new Float32Array(FISH_SCHOOL_COUNT);
@@ -442,7 +451,7 @@ export class FishSchool {
         this._schoolDistances[g] = this._schoolCentroids[g].distanceTo(this._sharkPos);
         // 이번 프레임 1마리 평균 flee 강도를 0~1로 정규화
         const avgFleeMag = this._fleeForceFrameSum[g] / n;
-        const targetIntensity = Math.min(avgFleeMag / PREDATOR_FLEE_INTENSITY_NORM, 1.0);
+        const targetIntensity = Math.min(avgFleeMag / this._schoolPeakFlee[g], 1.0);
         this._fleeIntensity[g] = this._fleeIntensity[g] + (targetIntensity - this._fleeIntensity[g]) * smoothK;
       } else {
         this._schoolDistances[g] = Infinity;

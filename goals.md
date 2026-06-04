@@ -186,7 +186,7 @@
 - [x] Fish school별 독립 orbit path 분리 — 각 school을 씬의 다른 위치/깊이에 배치
 - [x] WhaleShark 카메라 가시성: Observer의 시간순 스크린샷(`screenshot-1~4.png`) 4장 중 **최소 1장**에서 고래상어의 몸통이 화면 내에 보여야 한다. 4장 모두에서 고래상어를 확인할 수 없으면 **실패**.
 - [x] FishSchool 단일 orbitPath 공유 시 씬 단조로움 실패 기준 및 궤도 중심 분산 기준 추가
-- [ ] Evolver 호출 위치: `agent/loop.ts`의 `runGoal()` 안, Observer 결과를 받은 직후·Planner 호출 전에 `runEvolutionStep()`이 한 번 호출되어야 한다. 호출 위치가 Planner 이후로 밀리면 dramaScore가 Planner 프롬프트에 전달되지 못한다.
-- [ ] FishSchool 단일 orbitPath 공유 시 씬 단조로움 실패 기준 및 궤도 중심 분산 기준 추가
+- [x] Evolver 호출 위치: `agent/loop.ts`의 `runGoal()` 안, Observer 결과를 받은 직후·Planner 호출 전에 `runEvolutionStep()`이 한 번 호출되어야 한다. 호출 위치가 Planner 이후로 밀리면 dramaScore가 Planner 프롬프트에 전달되지 못한다.
+- [x] FishSchool 단일 orbitPath 공유 시 씬 단조로움 실패 기준 및 궤도 중심 분산 기준 추가
 
-- [ ] Fish.ts:73 schoolDefs[2]의 yBase을 -6에서 -3로 변경 (원본 def: [-14, 12, -6, 18, 7, 1.5]) — school 2 peakFleeIntensity=0.02 — yBase 조정으로 수심 변경
+- [x] Fish.ts:73 schoolDefs[2]의 yBase을 -6에서 -3로 변경 (원본 def: [-14, 12, -6, 18, 7, 1.5]) — school 2 peakFleeIntensity=0.02 — yBase 조정으로 수심 변경
