@@ -193,5 +193,7 @@
 - [x] `src/entities/WhaleShark.ts`의 `createSpots()`에서 spot Z 분포 범위를 현재보다 확장 — whaleshark-front/side에서 흰 반점이 코·머리 부위에만 밀집되어 있고 몸통 중후반부는 반점이 없어 고래상어 특유의 전신 격자 패턴이 표현되지 않음. Z 범위를 `-SHARK_LENGTH * 0.45` ~ `SHARK_LENGTH * 0.3` 로 확장하고 spot 수를 현재보다 +30% 증가시킬 것.
 - [x] `src/scene/Lighting.ts`의 ambient light 색상을 `#0a1a3a` → `#0d4f8c`(채도 높은 코발트 계열)로 변경하고 intensity를 +0.2 올릴 것 — screenshot-1~4에서 배경이 저채도 균일 남색으로 수중 특유의 청록감이 부족하며, 미적 채도 점수 1/2의 핵심 원인.
 - [x] `src/scene/Ocean.ts`의 수면 ShaderMaterial에 `transparent: true, opacity: 0.82`를 설정하고 time 기반 굴절 왜곡 uniform(`uRefraction`)을 추가할 것 — surface-up.png에서 아래에서 위를 바라볼 때 수면이 거의 불투명 단면으로 보이고 굴절/파동 왜곡이 없어 수중 몰입감이 떨어짐.
-- [ ] `src/scene/Ocean.ts` (또는 Lighting.ts) fog 색상을 `new THREE.Color(0x0a4a7a)`→`0x0d78b8`로 올리고, ambient light intensity를 0.3→0.55로 상향해 배경 채도를 높일 것
-- [ ] God Ray 메시의 ShaderMaterial에서 opacity를 0.35→0.18로 낮추고, `blending: THREE.AdditiveBlending` + 가우시안 소프트엣지 UV fade(`smoothstep(0.0, 0.15, uv.x) * smoothstep(1.0, 0.85, uv.x)`)를 적용해 줄기 경계를 부드럽게 할 것
+- [x] `src/scene/Ocean.ts` (또는 Lighting.ts) fog 색상을 `new THREE.Color(0x0a4a7a)`→`0x0d78b8`로 올리고, ambient light intensity를 0.3→0.55로 상향해 배경 채도를 높일 것
+- [x] God Ray 메시의 ShaderMaterial에서 opacity를 0.35→0.18로 낮추고, `blending: THREE.AdditiveBlending` + 가우시안 소프트엣지 UV fade(`smoothstep(0.0, 0.15, uv.x) * smoothstep(1.0, 0.85, uv.x)`)를 적용해 줄기 경계를 부드럽게 할 것
+- [x] **God Ray 개선** — `src/scene/Ocean.ts`(또는 god ray 전담 파일)에서 광선 메시의 `opacity`를 현재값의 1.5배, `width`(ScaleX)를 3~5배 넓히고 `MeshBasicMaterial.transparent=true` + 가우시안 감쇠 UV를 적용해 과노출 흰 선 대신 부드러운 볼륨 빔으로 교체
+- [ ] **구성 균형** — `src/entities/Fish.ts`의 Boids 군집 초기 스폰 반경을 줄이고 카메라 FOV 내 어군 밀집도를 높여 고래상어 주변 배경을 채움; surface-up 앵글에서 고래상어 `scale` 또는 카메라 거리를 1.4~1.6× 축소해 화면 점유율을 60% 미만으로 조정

@@ -20,7 +20,7 @@ interface LightingPreset {
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
     ambientColor: 0x0d4f8c,
-    ambientIntensity: 1.45,
+    ambientIntensity: 0.55,
     sunColor: 0x6ec6e8,
     sunIntensity: 2.8,
     godRayIntensity: 3.0,
@@ -68,7 +68,7 @@ export class Lighting {
   private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
-    this.ambientLight = new THREE.AmbientLight(0x0d4f8c, 1.45);
+    this.ambientLight = new THREE.AmbientLight(0x0d4f8c, 0.55);
     scene.add(this.ambientLight);
 
     this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x03133d, 1.0);
@@ -120,7 +120,7 @@ export class Lighting {
       varying vec2 vUv;
       void main() {
         float vertFade = vUv.y;
-        float radialFade = smoothstep(0.0, 0.45, vUv.x) * smoothstep(1.0, 0.55, vUv.x);
+        float cx = vUv.x - 0.5; float radialFade = exp(-cx * cx * 18.0);
         float alpha = vertFade * radialFade * (uMaxOpacity + sin(uTime * 0.3 + uPhase) * 0.04);
         gl_FragColor = vec4(uColor, alpha);
       }
@@ -165,12 +165,12 @@ export class Lighting {
     }
 
     // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
-    this.nearRayGeo = new THREE.PlaneGeometry(0.095, 12);
+    this.nearRayGeo = new THREE.PlaneGeometry(0.45, 12);
     for (let i = 0; i < 10; i++) {
       const mat = new THREE.MeshBasicMaterial({
         color: 0x88ddff,
         transparent: true,
-        opacity: 0.14,
+        opacity: 0.21,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
@@ -198,7 +198,7 @@ export class Lighting {
       plane.material.uniforms.uTime.value = elapsed;
     });
     this.nearRayMeshes.forEach((m) => {
-      m.material.opacity = 0.14;
+      m.material.opacity = 0.21;
     });
   }
 
