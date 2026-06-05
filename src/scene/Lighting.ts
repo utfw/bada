@@ -120,7 +120,7 @@ export class Lighting {
       varying vec2 vUv;
       void main() {
         float vertFade = vUv.y;
-        float cx = vUv.x - 0.5; float radialFade = exp(-cx * cx * 18.0);
+        float cx = vUv.x - 0.5; float radialFade = exp(-cx * cx * 36.0);
         float alpha = vertFade * radialFade * (uMaxOpacity + sin(uTime * 0.3 + uPhase) * 0.04);
         gl_FragColor = vec4(uColor, alpha);
       }
@@ -133,7 +133,7 @@ export class Lighting {
       const z = Math.sin(angle) * radius;
       const spotY = SURFACE_HEIGHT + 15 + Math.random() * 10;
 
-      const spot = new THREE.SpotLight(0x88ddff, 3.0, 80, 0.44, 0.7, 1.5);
+      const spot = new THREE.SpotLight(0x88ddff, 3.0, 80, 0.22, 0.7, 1.5);
       spot.position.set(x, spotY, z);
       spot.target.position.set(x, -30, z);
       scene.add(spot);
@@ -157,8 +157,8 @@ export class Lighting {
 
       const plane = new THREE.Mesh(planeGeo, planeMat);
       plane.position.set(x, SURFACE_HEIGHT - GOD_RAY_HEIGHT / 2, z);
-      plane.rotation.y = (i * Math.PI) / GOD_RAY_COUNT;
-      plane.rotation.x = -(Math.random() * 0.04);
+      plane.rotation.y = (i / GOD_RAY_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+      plane.rotation.x = -(Math.random() * 0.08 + 0.02);
       plane.renderOrder = 999;
       scene.add(plane);
       this.godRayCones.push(plane);
@@ -170,7 +170,7 @@ export class Lighting {
       const mat = new THREE.MeshBasicMaterial({
         color: 0x88ddff,
         transparent: true,
-        opacity: 0.21,
+        opacity: 0.08,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
@@ -198,7 +198,7 @@ export class Lighting {
       plane.material.uniforms.uTime.value = elapsed;
     });
     this.nearRayMeshes.forEach((m) => {
-      m.material.opacity = 0.21;
+      m.material.opacity = 0.08;
     });
   }
 

@@ -51,6 +51,7 @@ export class WhaleShark {
   constructor(scene: THREE.Scene) {
     this.group = new THREE.Group();
     scene.add(this.group);
+    this.group.scale.setScalar(0.68);
 
     this.createBody();
     this.createCaudalFin();
