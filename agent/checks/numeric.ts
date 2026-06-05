@@ -38,43 +38,91 @@ function extractNumber(src: string, re: RegExp): number | null {
 
 // ── WhaleShark 지느러미 접합 위치 ────────────────────────────────────────────
 
-/** 가슴지느러미 X 위치 vs 몸체 X 반지름(2.1×1.1=2.31). gap ≤ 0.3 이어야 함. */
+/**
+ * 가슴지느러미 X 위치 검증.
+ * 실제 구현: leftPectoralGroup.position.set(this.pectoralBaseX, ...) 로 변수 참조.
+ * pectoralBaseX는 의도적으로 body 반지름(2.31)보다 안쪽이며(gap-hiding, WhaleShark.ts 주석),
+ * shape의 최대 X extent로 fin tip이 body 바깥까지 충분히 뻗는지를 §3 규칙대로 판정한다.
+ *   group.position.x + shape_max_x > body_radius(2.31) 이면 tip 노출 → 통과.
+ */
 function checkPectoralPositionX(): CheckResult {
   const src = readSrc("src/entities/WhaleShark.ts");
-  const x = extractNumber(src, /this\.leftPectoral\.position\.set\(\s*([-\d.]+)/);
-  const target = 2.1 * 1.1;
-  if (x === null) {
-    return { name: "pectoral.position.x", ok: false, severity: "fail",
-      reason: "leftPectoral.position.set 의 x값을 찾을 수 없음" };
+  const bodyRadius = 2.1 * 1.1; // 2.31
+
+  // group.position.set(...) 의 x — 리터럴 또는 this.pectoralBaseX 변수 참조 모두 해석
+  let baseX = extractNumber(
+    src, /this\.leftPectoralGroup\.position\.set\(\s*([-\d.]+)/);
+  if (baseX === null) {
+    const refMatch = src.match(
+      /this\.leftPectoralGroup\.position\.set\(\s*this\.(\w+)/);
+    if (refMatch) {
+      baseX = extractNumber(
+        src, new RegExp(`${refMatch[1]}\\s*=\\s*([-\\d.]+)`));
+    }
   }
-  const gap = Math.abs(x - target);
-  return gap <= 0.3
+  if (baseX === null) {
+    return { name: "pectoral.position.x", ok: false, severity: "fail",
+      reason: "leftPectoralGroup.position.set 의 x(리터럴/변수) 값을 찾을 수 없음" };
+  }
+
+  // shape 정의에서 최대 X extent 추출 (moveTo/quadraticCurveTo/lineTo 의 X 좌표들)
+  const shapeStart = src.indexOf("const shape = new THREE.Shape()");
+  const shapeEnd = src.indexOf("ExtrudeGeometryOptions", shapeStart);
+  const shapeRegion = shapeStart === -1 ? "" : src.slice(shapeStart, shapeEnd);
+  const xs: number[] = [];
+  for (const m of shapeRegion.matchAll(/(?:moveTo|lineTo)\(\s*([-\d.]+)/g)) xs.push(parseFloat(m[1]));
+  // quadraticCurveTo(cx, cy, x, y) — 제어점·끝점 X 모두 후보
+  for (const m of shapeRegion.matchAll(/quadraticCurveTo\(\s*([-\d.]+)\s*,\s*[-\d.]+\s*,\s*([-\d.]+)/g)) {
+    xs.push(parseFloat(m[1]), parseFloat(m[2]));
+  }
+  const shapeMaxX = xs.length ? Math.max(...xs) : null;
+  if (shapeMaxX === null) {
+    return { name: "pectoral.position.x", ok: false, severity: "warn",
+      reason: `baseX=${baseX} 확인됐으나 shape X extent 파싱 불가 — 시각 검증 필요` };
+  }
+
+  const tipReach = Math.abs(baseX) + shapeMaxX;
+  return tipReach > bodyRadius
     ? { name: "pectoral.position.x", ok: true, severity: "fail" }
     : { name: "pectoral.position.x", ok: false, severity: "fail",
-        reason: `x=${x}, body radius×scale=${target.toFixed(2)}, gap=${gap.toFixed(2)} > 0.3` };
+        reason: `tipReach=|${baseX}|+${shapeMaxX}=${tipReach.toFixed(2)} ≤ body radius=${bodyRadius.toFixed(2)} → fin tip이 몸통 밖으로 안 나옴` };
 }
 
-/** 가슴지느러미 rotation.x 가 ±π/2 근처여야 (수평 평면). |rot.x| ≥ 0.5 필수. */
+/**
+ * 가슴지느러미 수평 전개 검증.
+ * 실제 구현은 mesh.rotation.x 가 아니라 **geometry 레벨** `leftGeo.rotateX(±π/2)` 로
+ * shape(XY평면)을 XZ 수평 평면(날개 방향)에 눕힌다. createPectoralFins() 영역에서
+ * `<geo>.rotateX(±Math.PI/2)` 호출을 찾는다. 없으면 fin이 수직 막대로 보일 위험.
+ */
 function checkPectoralRotationX(): CheckResult {
   const src = readSrc("src/entities/WhaleShark.ts");
-  // leftPectoral.rotation.set(rotX, rotY, rotZ)
-  const m = src.match(/this\.leftPectoral\.rotation\.set\(\s*([^,]+),/);
-  if (!m) {
+  const start = src.indexOf("createPectoralFins");
+  if (start === -1) {
     return { name: "pectoral.rotation.x", ok: false, severity: "fail",
-      reason: "leftPectoral.rotation.set 의 rotation.x 표현을 찾을 수 없음" };
+      reason: "createPectoralFins 함수를 찾을 수 없음" };
   }
-  const expr = m[1].trim();
-  // -Math.PI / 2, Math.PI / 2, ±π/2 등 패턴 통과. 0 또는 작은 리터럴이면 실패.
-  const numLit = parseFloat(expr);
-  if (Number.isFinite(numLit) && Math.abs(numLit) < 0.5) {
-    return { name: "pectoral.rotation.x", ok: false, severity: "fail",
-      reason: `rotation.x=${numLit}, |x| < 0.5 → 가슴지느러미가 수직 평면(막대기처럼 보임)` };
+  const next = src.indexOf("\n  private ", start + 1);
+  const region = src.slice(start, next === -1 ? src.length : next);
+
+  // geometry 레벨 수평 눕힘: Geo.rotateX(±Math.PI/2)
+  if (/\w+\.rotateX\(\s*-?\s*Math\.PI\s*\/\s*2\s*\)/.test(region)) {
+    return { name: "pectoral.rotation.x", ok: true, severity: "fail" };
   }
-  if (!/Math\.PI\s*\/\s*2/.test(expr)) {
-    return { name: "pectoral.rotation.x", ok: false, severity: "warn",
-      reason: `rotation.x="${expr}" — Math.PI/2 표현이 아님, 시각 검증 필요` };
+  // 대체 구현: mesh/group 의 rotation.x = ±π/2 (구버전 호환)
+  const rotMatch = region.match(/\.rotation\.x\s*=\s*([^;]+);/);
+  if (rotMatch) {
+    const expr = rotMatch[1].trim();
+    const numLit = parseFloat(expr);
+    if (Number.isFinite(numLit) && Math.abs(numLit) < 0.5) {
+      return { name: "pectoral.rotation.x", ok: false, severity: "fail",
+        reason: `rotation.x=${numLit}, |x| < 0.5 → 가슴지느러미가 수직 평면(막대기)` };
+    }
+    if (/Math\.PI\s*\/\s*2/.test(expr)) {
+      return { name: "pectoral.rotation.x", ok: true, severity: "fail" };
+    }
   }
-  return { name: "pectoral.rotation.x", ok: true, severity: "fail" };
+  return { name: "pectoral.rotation.x", ok: false, severity: "warn",
+    reason: "createPectoralFins 에서 geometry.rotateX(±π/2) 또는 rotation.x=±π/2 패턴 미검출 — 시각 검증 필요" };
 }
 
 /** 등지느러미 rotation.y 가 음수(-π/2 계열)여야 함. 양수면 앞으로 젖혀짐. */
@@ -187,6 +235,49 @@ function checkSpotScale(): CheckResult {
     reason: `createSpots 에 X×1.1·Y×0.75 multiplier 미검출 — 반점이 표면에서 떠 있을 수 있음 (시각 검증 필요)` };
 }
 
+// ── FishSchool 궤도 다양성 ───────────────────────────────────────────────────
+
+/** Fish.ts 에 orbitPaths(복수형, CatmullRomCurve3[]) 필드가 선언되어 있어야 함. 단일 경로 공유면 fail. */
+function checkOrbitPathsArrayExists(): CheckResult {
+  const src = readSrc("src/entities/Fish.ts");
+  if (/private\s+readonly\s+orbitPaths/.test(src) ||
+      /orbitPaths\s*:\s*THREE\.CatmullRomCurve3\[\]/.test(src) ||
+      /orbitPaths\s*=\s*this\.schoolDefs\.map/.test(src)) {
+    return { name: "Fish.orbitPaths array", ok: true, severity: "fail" };
+  }
+  return { name: "Fish.orbitPaths array", ok: false, severity: "fail",
+    reason: "orbitPaths(CatmullRomCurve3[]) 필드/초기화 미검출 — 단일 경로 공유로 씬 단조로움 위험" };
+}
+
+/** schoolDefs 의 (cx,cz) 좌표 중 하나라도 원점에서 5 초과 거리여야 함. 전부 5 이하면 원점 집중. */
+function checkOrbitCentersSpread(): CheckResult {
+  const src = readSrc("src/entities/Fish.ts");
+  // schoolDefs 리터럴 영역만 추출 (buildOrbitPath 이전까지)
+  const defsStart = src.indexOf("this.schoolDefs = [");
+  const defsEnd = src.indexOf("this.orbitPaths =", defsStart);
+  if (defsStart === -1 || defsEnd === -1) {
+    return { name: "Fish.orbitCenters spread", ok: false, severity: "warn",
+      reason: "schoolDefs 리터럴 또는 this.orbitPaths 초기화를 찾을 수 없음 — 시각 검증 필요" };
+  }
+  const region = src.slice(defsStart, defsEnd);
+  // [cx, cz, ...] 형태에서 첫 두 숫자 추출
+  const distances: number[] = [];
+  for (const m of region.matchAll(/\[\s*(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/g)) {
+    const cx = parseFloat(m[1]);
+    const cz = parseFloat(m[2]);
+    distances.push(Math.sqrt(cx * cx + cz * cz));
+  }
+  if (distances.length === 0) {
+    return { name: "Fish.orbitCenters spread", ok: false, severity: "warn",
+      reason: "schoolDefs 에서 (cx,cz) 좌표를 파싱할 수 없음 — 시각 검증 필요" };
+  }
+  const anyFar = distances.some((d) => d > 5);
+  return anyFar
+    ? { name: "Fish.orbitCenters spread", ok: true, severity: "fail" }
+    : { name: "Fish.orbitCenters spread", ok: false, severity: "fail",
+        reason: `모든 궤도 중심이 원점 5 이내 (${distances.map((d) => d.toFixed(1)).join(", ")}) — 씬 단조로움` };
+}
+
 // ── 통합 실행 ────────────────────────────────────────────────────────────────
 
 const ALL_CHECKS: (() => CheckResult)[] = [
@@ -198,6 +289,8 @@ const ALL_CHECKS: (() => CheckResult)[] = [
   checkSeparationVsCohesion,
   checkGodRayOpacity,
   checkSpotScale,
+  checkOrbitPathsArrayExists,
+  checkOrbitCentersSpread,
 ];
 
 export function runNumericChecks(): CheckResult[] {
