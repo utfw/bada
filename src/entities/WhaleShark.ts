@@ -431,13 +431,13 @@ export class WhaleShark {
     });
     this.disposables.push(spotGeo, spotGeoSmall, spotMat);
 
-    const rows = 10;
+    const rows = 13;
     const cols = 8;
     for (let r = 0; r < rows; r++) {
-      const t = 0.12 + (r / rows) * 0.76; // 머리와 꼬리 끝 제외, 꼬리 쪽 확장
+      const t = 0.05 + (r / (rows - 1)) * 0.75; // Z 범위 [-0.45, +0.30]×SHARK_LENGTH 전신 커버
       const bodyZ = -SHARK_LENGTH / 2 + t * SHARK_LENGTH;
       // 몸체 폭에 맞춰 적당한 원주 반지름 추정
-      const bodyRadius = 2.0 * Math.pow(1 - Math.abs(t - 0.45) / 0.5, 0.8);
+      const bodyRadius = Math.max(0.3, 2.0 * Math.pow(1 - Math.abs(t - 0.45) / 0.5, 0.8));
 
       for (let c = 0; c < cols; c++) {
         const angle = (c / cols) * Math.PI * 2 + r * 0.4 + (Math.random() - 0.5) * 0.5;

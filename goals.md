@@ -190,3 +190,8 @@
 - [x] FishSchool 단일 orbitPath 공유 시 씬 단조로움 실패 기준 및 궤도 중심 분산 기준 추가
 
 - [x] Fish.ts:73 schoolDefs[2]의 yBase을 -6에서 -3로 변경 (원본 def: [-14, 12, -6, 18, 7, 1.5]) — school 2 peakFleeIntensity=0.02 — yBase 조정으로 수심 변경
+- [x] `src/entities/WhaleShark.ts`의 `createSpots()`에서 spot Z 분포 범위를 현재보다 확장 — whaleshark-front/side에서 흰 반점이 코·머리 부위에만 밀집되어 있고 몸통 중후반부는 반점이 없어 고래상어 특유의 전신 격자 패턴이 표현되지 않음. Z 범위를 `-SHARK_LENGTH * 0.45` ~ `SHARK_LENGTH * 0.3` 로 확장하고 spot 수를 현재보다 +30% 증가시킬 것.
+- [x] `src/scene/Lighting.ts`의 ambient light 색상을 `#0a1a3a` → `#0d4f8c`(채도 높은 코발트 계열)로 변경하고 intensity를 +0.2 올릴 것 — screenshot-1~4에서 배경이 저채도 균일 남색으로 수중 특유의 청록감이 부족하며, 미적 채도 점수 1/2의 핵심 원인.
+- [x] `src/scene/Ocean.ts`의 수면 ShaderMaterial에 `transparent: true, opacity: 0.82`를 설정하고 time 기반 굴절 왜곡 uniform(`uRefraction`)을 추가할 것 — surface-up.png에서 아래에서 위를 바라볼 때 수면이 거의 불투명 단면으로 보이고 굴절/파동 왜곡이 없어 수중 몰입감이 떨어짐.
+- [ ] `src/scene/Ocean.ts` (또는 Lighting.ts) fog 색상을 `new THREE.Color(0x0a4a7a)`→`0x0d78b8`로 올리고, ambient light intensity를 0.3→0.55로 상향해 배경 채도를 높일 것
+- [ ] God Ray 메시의 ShaderMaterial에서 opacity를 0.35→0.18로 낮추고, `blending: THREE.AdditiveBlending` + 가우시안 소프트엣지 UV fade(`smoothstep(0.0, 0.15, uv.x) * smoothstep(1.0, 0.85, uv.x)`)를 적용해 줄기 경계를 부드럽게 할 것

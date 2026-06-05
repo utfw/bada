@@ -32,7 +32,8 @@ export class Ocean {
         uTime: { value: 0 },
         uSurfaceColor: { value: new THREE.Color(0x0077be) },
         uDeepColor: { value: new THREE.Color(0x0D73B8) },
-        uOpacity: { value: 0.4 },
+        uOpacity: { value: 0.82 },
+        uRefraction: { value: 0.04 },
       },
       vertexShader: `
         uniform float uTime;
@@ -53,13 +54,19 @@ export class Ocean {
         uniform vec3 uSurfaceColor;
         uniform vec3 uDeepColor;
         uniform float uOpacity;
+        uniform float uRefraction;
+        uniform float uTime;
         varying vec2 vUv;
         varying float vWave;
         void main() {
+          vec2 distort = vec2(
+            sin(vUv.y * 25.0 + uTime) * uRefraction,
+            cos(vUv.x * 20.0 + uTime * 0.8) * uRefraction
+          );
+          vec2 distortedUv = vUv + distort;
           float mixFactor = (vWave + 1.8) / 3.6;
           vec3 color = mix(uDeepColor, uSurfaceColor, mixFactor);
-          // Caustic-like bright spots
-          float caustic = sin(vUv.x * 40.0) * sin(vUv.y * 40.0);
+          float caustic = sin(distortedUv.x * 40.0) * sin(distortedUv.y * 40.0);
           color += vec3(caustic * 0.05);
           gl_FragColor = vec4(color, uOpacity);
         }
@@ -228,27 +235,27 @@ export class Ocean {
       case 'clear':
         surfaceUniforms.uSurfaceColor.value.set(0x0099dd);
         surfaceUniforms.uDeepColor.value.set(0x0D73B8);
-        surfaceUniforms.uOpacity.value = 0.35;
+        surfaceUniforms.uOpacity.value = 0.82;
         break;
       case 'cloudy':
         surfaceUniforms.uSurfaceColor.value.set(0x336688);
         surfaceUniforms.uDeepColor.value.set(0x223344);
-        surfaceUniforms.uOpacity.value = 0.45;
+        surfaceUniforms.uOpacity.value = 0.82;
         break;
       case 'rain':
         surfaceUniforms.uSurfaceColor.value.set(0x225566);
         surfaceUniforms.uDeepColor.value.set(0x112233);
-        surfaceUniforms.uOpacity.value = 0.55;
+        surfaceUniforms.uOpacity.value = 0.82;
         break;
       case 'snow':
         surfaceUniforms.uSurfaceColor.value.set(0x88aacc);
         surfaceUniforms.uDeepColor.value.set(0x446688);
-        surfaceUniforms.uOpacity.value = 0.5;
+        surfaceUniforms.uOpacity.value = 0.82;
         break;
       case 'fog':
         surfaceUniforms.uSurfaceColor.value.set(0x445566);
         surfaceUniforms.uDeepColor.value.set(0x223344);
-        surfaceUniforms.uOpacity.value = 0.6;
+        surfaceUniforms.uOpacity.value = 0.82;
         break;
     }
   }
@@ -260,7 +267,7 @@ export class Ocean {
 
     // AQI가 나쁠수록 수면 탁해짐
     const surfaceUniforms = this.surface.material.uniforms;
-    surfaceUniforms.uOpacity.value += (aqi - 1) * 0.05;
+    surfaceUniforms.uOpacity.value = Math.min(surfaceUniforms.uOpacity.value + (aqi - 1) * 0.05, 1.0);
   }
 
   dispose(): void {
