@@ -70,11 +70,11 @@ export class FishSchool {
     // Centers spread across all 4 quadrants at varied depths for a rich 360° scene.
     // [cx, cz, yBase, semi_a, semi_b, yWave]
     this.schoolDefs = [
-      [-16, -16,  -4, 10,  6, 2.5],  // 0: left-front,  shallow (orbit shrunk to avoid shark path overlap)
-      [ 18,  12,  -8, 14, 10, 2.0],  // 1: right-rear,  mid (shifted from (12,4) to further isolate from shark z≈-8~-15)
-      [-14,  12,  -3, 18,  7, 1.5],  // 2: left-rear,   mid (yBase -6→-3, Y range -4.5~-1.5)
-      [ -7,   8,  -6, 13, 15, 2.0],  // 3: left-back,   mid (separated from school 1)
-      [-12,  -8,  -3, 15, 11, 3.0],  // 4: left-front,  near surface
+      [-12, -12,  -4,  8,  6, 2.5],  // 0: left-front,  shallow (max_dist≈16.9+8=24.9, within r30)
+      [ 12,   8,  -8, 10,  8, 2.0],  // 1: right-rear,  mid (max_dist≈14.4+10=24.4, within r30)
+      [-10,  10,  -3, 12,  7, 1.5],  // 2: left-rear,   mid (max_dist≈14.1+12=26.1, within r30)
+      [ -7,   8,  -6, 13, 15, 2.0],  // 3: left-back,   mid (max_dist≈10.6+15=25.6, within r30)
+      [-10,  -7,  -3, 12, 10, 3.0],  // 4: left-front,  near surface (max_dist≈12.2+12=24.2, within r30)
     ];
     this.orbitPaths = this.schoolDefs.map((def) => this.buildOrbitPath(def));
 
@@ -106,22 +106,29 @@ export class FishSchool {
       // Spawn near this group's initial orbit anchor ±7 units (tighter spread for FOV density)
       const groupPhase = schoolIndex / FISH_SCHOOL_COUNT;
       const anchor = this.orbitPaths[schoolIndex].getPointAt(groupPhase);
+      let spawnX = THREE.MathUtils.clamp(
+        anchor.x + (Math.random() - 0.5) * 7,
+        -OCEAN_WIDTH / 2 + 2,
+        OCEAN_WIDTH / 2 - 2,
+      );
+      let spawnZ = THREE.MathUtils.clamp(
+        anchor.z + (Math.random() - 0.5) * 7,
+        -OCEAN_WIDTH / 2 + 2,
+        OCEAN_WIDTH / 2 - 2,
+      );
+      const xzLen = Math.sqrt(spawnX * spawnX + spawnZ * spawnZ);
+      if (xzLen > 30) {
+        spawnX *= 30 / xzLen;
+        spawnZ *= 30 / xzLen;
+      }
       mesh.position.set(
-        THREE.MathUtils.clamp(
-          anchor.x + (Math.random() - 0.5) * 7,
-          -OCEAN_WIDTH / 2 + 2,
-          OCEAN_WIDTH / 2 - 2,
-        ),
+        spawnX,
         THREE.MathUtils.clamp(
           anchor.y + (Math.random() - 0.5) * 5,
           -OCEAN_DEPTH + 2,
           SURFACE_HEIGHT - 3,
         ),
-        THREE.MathUtils.clamp(
-          anchor.z + (Math.random() - 0.5) * 7,
-          -OCEAN_WIDTH / 2 + 2,
-          OCEAN_WIDTH / 2 - 2,
-        ),
+        spawnZ,
       );
 
       const dir = new THREE.Vector3(

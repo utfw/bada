@@ -9,7 +9,7 @@ export const CAMERA_NEAR = 0.1;
 export const CAMERA_FAR = 200;
 export const MAX_PIXEL_RATIO = 2;
 export const DEFAULT_FOG_DENSITY = 0.015;
-export const DEFAULT_FOG_COLOR = 0x0d78b8;
+export const DEFAULT_FOG_COLOR = 0x0a3a6e;
 export const TONE_MAPPING_EXPOSURE = 1.4;
 
 // ── Weather API ────────────────────────────────────

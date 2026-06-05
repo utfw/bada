@@ -424,16 +424,16 @@ export class WhaleShark {
    * 작은 흰 디스크를 몸체 표면 위에 격자 형태로 살짝 띄워 배치.
    */
   private createSpots(): void {
-    const spotGeo = new THREE.CircleGeometry(0.20, 8);
-    const spotGeoSmall = new THREE.CircleGeometry(0.16, 8);
+    const spotGeo = new THREE.CircleGeometry(0.28, 8);
+    const spotGeoSmall = new THREE.CircleGeometry(0.22, 8);
     const spotMat = new THREE.MeshBasicMaterial({
       color: 0xf0f4f8,
       side: THREE.DoubleSide,
     });
     this.disposables.push(spotGeo, spotGeoSmall, spotMat);
 
-    const rows = 13;
-    const cols = 8;
+    const rows = 16;
+    const cols = 10;
     for (let r = 0; r < rows; r++) {
       const t = 0.05 + (r / (rows - 1)) * 0.75; // Z 범위 [-0.45, +0.30]×SHARK_LENGTH 전신 커버
       const bodyZ = -SHARK_LENGTH / 2 + t * SHARK_LENGTH;
@@ -449,17 +449,17 @@ export class WhaleShark {
         const y = Math.sin(angle) * (bodyRadius * 0.75); // 편평한 단면 반영
         const geo = r / rows > 0.7 ? spotGeoSmall : spotGeo;
         const spot = new THREE.Mesh(geo, spotMat);
-        spot.position.set(x, y, bodyZ);
+        spot.position.set(x * 1.05, y * 1.05, bodyZ);
         // 반점이 몸체 바깥을 향하도록 회전
         spot.lookAt(
           new THREE.Vector3(x * 2, y * 2, bodyZ),
         );
         // 크기 살짝 랜덤 변주
-        const s = 0.6 + ((r * 13 + c * 7) % 10) / 25;
+        const s = 0.75 + ((r * 13 + c * 7) % 10) / 20;
         spot.scale.set(s, s, s);
         this.group.add(spot);
         // wave 보정용으로 base X 와 Z 보관 → 몸통 undulation과 동기화
-        this.spots.push({ mesh: spot, baseX: x, z: bodyZ });
+        this.spots.push({ mesh: spot, baseX: x * 1.05, z: bodyZ });
       }
     }
   }

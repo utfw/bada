@@ -199,6 +199,11 @@
 - [x] **구성 균형** — `src/entities/Fish.ts`의 Boids 군집 초기 스폰 반경을 줄이고 카메라 FOV 내 어군 밀집도를 높여 고래상어 주변 배경을 채움; surface-up 앵글에서 고래상어 `scale` 또는 카메라 거리를 1.4~1.6× 축소해 화면 점유율을 60% 미만으로 조정
 - [x] `src/scene/Lighting.ts` god ray 메시 방사형 분산: 현재 PlaneGeometry ray들이 같은 수직 평면 내 배치되어 screenshot-4·whaleshark-top·whaleshark-below에서 venetian blind 형태의 사각 슬랫 패턴이 육안으로 명확히 보임. god ray 생성 루프에서 각 메시에 `mesh.rotation.y = (i / GOD_RAY_COUNT) * Math.PI + (Math.random()-0.5)*0.4` 형태로 Y축 회전을 분산시켜 어느 각도에서 봐도 입체적인 볼류메트릭 빛 표현이 되도록 수정할 것.
 - [x] `src/scene/Lighting.ts` 또는 God Ray 셰이더에서 광선 불투명도를 현재 값의 0.4→0.15 수준으로 낮추고, 광선 폭(spreadAngle/rayWidth)을 절반으로 줄여 부드러운 다발 효과로 전환
-- [ ] `src/scene/Ocean.ts` 또는 SceneManager의 배경색/fog 설정에서 `scene.fog` 색상을 현재 `#071428` 수준에서 `#0a3a6e`로 올려 중간 채도의 코발트 블루가 배경에 깔리도록 조정
-- [ ] `src/entities/WhaleShark.ts`의 흰 반점(spot) 메시 수를 늘리거나 반점 크기를 키워 고래상어 식별성을 높이고 시각 균형 개선
-- [ ] `src/scene/SceneManager.ts` 또는 `src/entities/Fish.ts`에서 물고기 군집 spawn 범위를 카메라 반경 30 이내로 유지하는 조건을 추가해 모든 앵글에서 물고기가 프레임 안에 분포하도록 구성 균형 개선
+- [x] `src/scene/Ocean.ts` 또는 SceneManager의 배경색/fog 설정에서 `scene.fog` 색상을 현재 `#071428` 수준에서 `#0a3a6e`로 올려 중간 채도의 코발트 블루가 배경에 깔리도록 조정
+- [x] `src/entities/WhaleShark.ts`의 흰 반점(spot) 메시 수를 늘리거나 반점 크기를 키워 고래상어 식별성을 높이고 시각 균형 개선
+- [x] `src/scene/SceneManager.ts` 또는 `src/entities/Fish.ts`에서 물고기 군집 spawn 범위를 카메라 반경 30 이내로 유지하는 조건을 추가해 모든 앵글에서 물고기가 프레임 안에 분포하도록 구성 균형 개선
+- [ ] `src/scene/Lighting.ts` god ray mesh 생성부에서 각 ray plane의 `material.opacity`를 현재 추정값(~0.15)에서 0.06~0.08로 낮추고, plane geometry의 width를 50% 축소하며 `depthWrite: false` + `blending: AdditiveBlending` 적용해 경계를 부드럽게 처리
+- [ ] `src/scene/SceneManager.ts` 또는 `Lighting.ts`의 ambient light color를 `0x0a1a3a`(현재 추정) → `0x0d4a7a`로 변경하고, directional/hemisphere light의 sky color를 `0x1ec0e0` 수준으로 올려 화면 전체 채도를 청록 계열로 끌어올림
+- [ ] `src/entities/WhaleShark.ts`의 재질 설정에서 `MeshToonMaterial` + `gradientMap`(3-step ramp 텍스처)으로 교체하거나, 현재 `MeshStandardMaterial`의 `onBeforeCompile`에 toon step GLSL(예: `diffuse = floor(diffuse * 3.0) / 3.0`)을 삽입해 명확한 셀셰이딩 경계 생성
+- [ ] `src/scene/Ocean.ts` 또는 `src/scene/SceneManager.ts`의 배경 fog/ambient 색상을 현재 `#0a1a3a` 계열에서 `#0a4a7a`(채도 높은 코발트)로 올리고, `AmbientLight` intensity를 0.3→0.5로 높여 씬 전체 채도를 끌어올림
+- [ ] `src/entities/WhaleShark.ts`의 버블 파티클 생성 위치를 현재 입 주변 단일 지점에서 몸통 측면으로 분산(offset +x 0.5~1.0)시키고, 최대 파티클 수(`maxBubbles`)를 현재 값의 60% 수준으로 감소시켜 주체 실루엣이 가려지지 않도록 조정
