@@ -31,6 +31,8 @@ const CHECKLIST_FILE = path.join(ROOT, "agent", "REVIEW_CHECKLIST.md");
 const PENDING_COMMIT_FILE = path.join(ROOT, "agent", "pending-commit.json");
 const AUTO_COMMIT_THRESHOLD = 3;
 const SUGGESTION_SUPPRESS_THRESHOLD = 10;
+// 미적 점수가 이 값 미만이면 개선 제안을 goals.md에 추가한다 (10점 만점).
+const AESTHETIC_SUGGEST_THRESHOLD = 8;
 
 // ── 로그 ──────────────────────────────────────────────────────────────────────
 
@@ -1227,11 +1229,11 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
         const aestheticSuppressed = pendingNow >= SUGGESTION_SUPPRESS_THRESHOLD;
         if (
           aestheticEval.suggestions.length > 0 &&
-          aestheticEval.score < 7 &&
+          aestheticEval.score < AESTHETIC_SUGGEST_THRESHOLD &&
           !aestheticSuppressed
         ) {
           appendGoals(aestheticEval.suggestions);
-          console.log(`  💡 점수 ${aestheticEval.score}/10 < 7 → 개선 제안 ${aestheticEval.suggestions.length}개 goals.md에 추가`);
+          console.log(`  💡 점수 ${aestheticEval.score}/10 < ${AESTHETIC_SUGGEST_THRESHOLD} → 개선 제안 ${aestheticEval.suggestions.length}개 goals.md에 추가`);
           for (const s of aestheticEval.suggestions) console.log(`    - ${s}`);
         } else if (aestheticSuppressed) {
           console.log(`  ⏸  미완료 목표 ${pendingNow}개 ≥ 임계치(${SUGGESTION_SUPPRESS_THRESHOLD}) — Aesthetic 제안 추가 보류`);
