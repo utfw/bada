@@ -19,9 +19,9 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x0d3060,
-    ambientIntensity: 0.5,
-    sunColor: 0x1ec0e0,
+    ambientColor: 0x083a6a,
+    ambientIntensity: 0.75,
+    sunColor: 0x60c8ff,
     sunIntensity: 3.2,
     godRayIntensity: 3.0,
   },
@@ -63,18 +63,19 @@ export class Lighting {
   private dorsalFillLight: THREE.DirectionalLight;
   private hemisphereLight: THREE.HemisphereLight;
   private godRaySpots: THREE.SpotLight[] = [];
+  private godRayBaseXZ: { x: number; z: number }[] = [];
   private godRayCones: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
   private nearRayMeshes: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
   private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
-    this.ambientLight = new THREE.AmbientLight(0x0d3060, 0.5);
+    this.ambientLight = new THREE.AmbientLight(0x083a6a, 0.75);
     scene.add(this.ambientLight);
 
     this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x0a2a4a, 1.0);
     scene.add(this.hemisphereLight);
 
-    this.sunLight = new THREE.DirectionalLight(0x1ec0e0, 2.8);
+    this.sunLight = new THREE.DirectionalLight(0x60c8ff, 2.8);
     this.sunLight.position.set(5, SURFACE_HEIGHT + 10, 3);
     this.sunLight.target.position.set(0, -SURFACE_HEIGHT, 0);
     scene.add(this.sunLight);
@@ -120,7 +121,7 @@ export class Lighting {
       varying vec2 vUv;
       void main() {
         float vertFade = vUv.y;
-        float cx = vUv.x - 0.5; float radialFade = exp(-cx * cx * 36.0);
+        float cx = vUv.x - 0.5; float radialFade = exp(-cx * cx * 5.0);
         float alpha = vertFade * radialFade * (uMaxOpacity + sin(uTime * 0.3 + uPhase) * 0.04);
         gl_FragColor = vec4(uColor, alpha);
       }
@@ -133,12 +134,13 @@ export class Lighting {
       const z = Math.sin(angle) * radius;
       const spotY = SURFACE_HEIGHT + 15 + Math.random() * 10;
 
-      const spot = new THREE.SpotLight(0x88ddff, 3.0, 80, 0.22, 0.7, 1.5);
+      const spot = new THREE.SpotLight(0x88ddff, 5.5, 80, 0.22, 0.7, 1.4);
       spot.position.set(x, spotY, z);
       spot.target.position.set(x, -30, z);
       scene.add(spot);
       scene.add(spot.target);
       this.godRaySpots.push(spot);
+      this.godRayBaseXZ.push({ x, z });
 
       const planeMat = new THREE.ShaderMaterial({
         vertexShader,
@@ -170,19 +172,19 @@ export class Lighting {
       uniform float uMaxOpacity;
       varying vec2 vUv;
       void main() {
-        float fade = smoothstep(0.0, 1.0, 1.0 - abs(vUv.x - 0.5) * 2.0) * 0.18;
+        float fade = smoothstep(0.0, 1.0, 1.0 - abs(vUv.x - 0.5) * 2.0) * 0.36;
         gl_FragColor = vec4(uColor, fade * uMaxOpacity);
       }
     `;
 
-    this.nearRayGeo = new THREE.PlaneGeometry(0.25, 12);
+    this.nearRayGeo = new THREE.PlaneGeometry(0.50, 12);
     for (let i = 0; i < 14; i++) {
       const mat = new THREE.ShaderMaterial({
         vertexShader,
         fragmentShader: nearRayFragmentShader,
         uniforms: {
           uColor: { value: new THREE.Color(0x88ddff) },
-          uMaxOpacity: { value: 0.18 },
+          uMaxOpacity: { value: 0.36 },
         },
         transparent: true,
         blending: THREE.AdditiveBlending,
@@ -202,16 +204,36 @@ export class Lighting {
     }
   }
 
-  update(elapsed: number): void {
+  update(elapsed: number, camera: THREE.Camera): void {
+    const aboveSurface = camera.position.y > SURFACE_HEIGHT;
+    if (aboveSurface) {
+      this.sunLight.position.y = SURFACE_HEIGHT + 10;
+      this.sunLight.target.position.y = 0;
+    } else {
+      this.sunLight.position.y = SURFACE_HEIGHT + 10;
+      this.sunLight.target.position.y = -SURFACE_HEIGHT;
+    }
+    this.sunLight.target.updateMatrixWorld();
     this.godRaySpots.forEach((spot, i) => {
-      spot.target.position.x += Math.sin(elapsed * 0.3 + i * 2) * 0.05;
-      spot.target.position.z += Math.cos(elapsed * 0.4 + i * 2) * 0.05;
+      if (aboveSurface) {
+        spot.position.y = SURFACE_HEIGHT + 10;
+        spot.target.position.y = -5;
+      } else {
+        spot.target.position.y = -30;
+      }
+      const base = this.godRayBaseXZ[i];
+      spot.target.position.x = base.x + Math.sin(elapsed * 0.3 + i * 2) * 2;
+      spot.target.position.z = base.z + Math.cos(elapsed * 0.4 + i * 2) * 2;
       spot.target.updateMatrixWorld();
     });
     this.godRayCones.forEach((plane) => {
       plane.material.uniforms.uTime.value = elapsed;
     });
-    // nearRayMeshes opacity is controlled by ShaderMaterial fragmentShader (smoothstep falloff)
+    // nearRayMeshes visibility: hide when camera is above surface (rays come from above)
+    const nearRayVisible = !aboveSurface;
+    this.nearRayMeshes.forEach((m) => {
+      m.visible = nearRayVisible;
+    });
   }
 
   applyWeather(data: WeatherData): void {

@@ -184,7 +184,7 @@ export class SceneManager {
     this.whaleShark.getWorldPosition(this._sharkWorldPos);
     this.fishSchool.setSharkPosition(this._sharkWorldPos);
     this.fishSchool.update(elapsed, delta);
-    this.lighting.update(elapsed);
+    this.lighting.update(elapsed, this.camera);
     this.skyBox.update(elapsed);
 
     this._sharkNDC.copy(this._sharkWorldPos).project(this.camera);

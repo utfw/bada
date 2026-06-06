@@ -214,8 +214,15 @@
 - [x] `src/entities/WhaleShark.ts` 또는 버블 파티클 생성부에서 버블 spawn offset을 고래상어 머리 정면이 아닌 옆면(side/dorsal)으로 변경하거나 `maxParticles` 수를 현재의 60~70% 수준으로 줄여 주체 가림을 해소할 것
 - [x] **중간 수심 채도 보강** — `src/scene/Lighting.ts`의 ambient/hemisphere light에서 groundColor를 현재 짙은 남색(#020b18 추정)에서 `#0a2a4a`로 올리고, `src/scene/Ocean.ts`의 배경 fog 색상을 `#0d3a6a`로 변경해 중간 수심대 채도를 높일 것.
 - [x] `src/scene/Lighting.ts` 또는 `src/scene/Ocean.ts`에서 배경 안개(`scene.fog`) color를 `#082a4d` → `#0a4a7a`로 올려 하단 영역 채도를 높이고, `AmbientLight` color를 `#0a1a2e` → `#0d3060`으로 교체해 심해 영역에 청색 채도 부여
-- [ ] `src/scene/Lighting.ts`의 god ray 셰이더(또는 volumetric light mesh) — `opacity` / `intensity` 값을 현재 대비 1.8~2.5배 상향하고, ray 폭을 0.03→0.06으로 넓혀 밝기 대비를 강화할 것
+- [x] `src/scene/Lighting.ts`의 god ray 셰이더(또는 volumetric light mesh) — `opacity` / `intensity` 값을 현재 대비 1.8~2.5배 상향하고, ray 폭을 0.03→0.06으로 넓혀 밝기 대비를 강화할 것
 - [ ] `src/scene/Ocean.ts`의 수면 파동 메시 색상 — surface-up 카메라 위치에서도 god ray SpotLight/DirectionalLight가 수면 위에서 투사되도록 조건 분기 추가할 것
-- [ ] `src/scene/Lighting.ts`의 god-ray 셰이더(또는 SpotLight volumetric 파라미터)에서 광선 폭 감쇠를 추가하고 `penumbra` 값을 0.3→0.7로 올려 가장자리를 부드럽게, `decay` 2.0→1.4로 낮춰 광선이 더 멀리 퍼지도록 수정
-- [ ] `src/scene/Ocean.ts`의 배경색 또는 fog 설정에서 `THREE.FogExp2` density를 현재 값 대비 15~20% 낮추고, ambient light color를 `#062040`→`#083a6a`로 올려 전체 씬 채도를 높임
+- [x] `src/scene/Lighting.ts`의 god-ray 셰이더(또는 SpotLight volumetric 파라미터)에서 광선 폭 감쇠를 추가하고 `penumbra` 값을 0.3→0.7로 올려 가장자리를 부드럽게, `decay` 2.0→1.4로 낮춰 광선이 더 멀리 퍼지도록 수정
+- [x] `src/scene/Ocean.ts`의 배경색 또는 fog 설정에서 `THREE.FogExp2` density를 현재 값 대비 15~20% 낮추고, ambient light color를 `#062040`→`#083a6a`로 올려 전체 씬 채도를 높임
 - [ ] `src/scene/Ocean.ts` — 버블 파티클 생성 함수에서 고래상어 위치 기준 오프셋을 현재 `±0` 근방에서 `x: ±3~5, y: -1~+2` 범위로 분산시키고, 파티클 count를 현재 대비 40% 감소시켜 주체 실루엣 노출 확보
+- [ ] `src/scene/Ocean.ts` 또는 `Lighting.ts`의 수중 ambient 색상을 `#0a1a3a`→`#0a4a7a`로 올려 배경 청록 채도를 높이고, `scene.fog` 색상도 동일 계열 채도로 맞춤
+- [ ] `src/scene/Lighting.ts` 내 god ray 빔 생성부에서 `opacity` / `intensity` 값을 현재 대비 약 0.4배로 줄이고, 빔 `width` 파라미터(또는 PlaneGeometry 가로 크기)를 0.5~0.8 단위로 축소하여 부드러운 가는 줄기 형태로 수정
+- [ ] `src/entities/WhaleShark.ts` 버블 파티클 스폰 위치를 현재 머리 정면(position offset `z+1` 등)에서 몸통 후방 또는 측면(`z-2`, `x±0.5`)으로 이동시키고, 최대 동시 버블 수를 현재의 절반 이하로 제한
+- [ ] `src/scene/SceneManager.ts`의 `animate()` 루프에서 `renderer.render(scene, camera)` 호출이 실제로 실행되는지 확인하고, `renderer` DOM 연결(`document.body.appendChild(renderer.domElement)` 또는 지정 컨테이너)이 올바른지 점검할 것 — canvas가 0×0이거나 z-index/visibility로 가려진 경우도 확인
+- [ ] `src/scene/Lighting.ts`의 ambient light intensity가 0으로 설정된 경우 `ambientLight.intensity = 0.4` 이상으로 복구하고, `src/utils/constants.ts`의 fog 설정(`scene.fog`)이 near/far=0이면 fog를 제거하거나 `near=10, far=200`으로 조정할 것
+- [ ] `src/scene/Lighting.ts` — `ambientLight` intensity를 현재값에서 `0.55→0.75`로 올리고, `directionalLight` color를 `#ffffff→#60c8ff`로 변경해 복부 specular 하이라이트를 청록으로 동화시켜 툰 일관성 유지
+- [ ] `src/entities/WhaleShark.ts` — 버블 파티클 최대 동시 개수를 현재 대비 절반(`maxBubbles` 또는 해당 상수 50% 감소)으로 제한해 두부 가림 현상 완화
