@@ -211,6 +211,11 @@
 - [x] `src/scene/Lighting.ts` 또는 `Ocean.ts`에서 배경 ambient color를 `#0a1a3a`에서 `#0d3a6e` 수준으로 올려 전체 채도를 높이고 심해 느낌을 유지하면서 청록 도미넌트 비율 확대
 - [x] `src/scene/Lighting.ts`의 god ray 메시를 `PlaneGeometry` 단일 면 대신 `ShaderMaterial`(radial falloff: `opacity = smoothstep(0.0, 1.0, 1.0 - abs(uv.x - 0.5) * 2.0) * 0.18`)로 교체해 가장자리를 부드럽게 처리
 - [x] `src/scene/Lighting.ts`의 ambient/directional light 색상을 `#0a78aa`→`#1ec0e0` 계열 고채도 청록으로 올리고, `WhaleShark.ts` 머티리얼에 `MeshToonMaterial` + `gradientMap` 3단계 텍스처를 적용해 계단형 셀 음영을 명확히 구현
-- [ ] `src/entities/WhaleShark.ts` 또는 버블 파티클 생성부에서 버블 spawn offset을 고래상어 머리 정면이 아닌 옆면(side/dorsal)으로 변경하거나 `maxParticles` 수를 현재의 60~70% 수준으로 줄여 주체 가림을 해소할 것
-- [ ] **중간 수심 채도 보강** — `src/scene/Lighting.ts`의 ambient/hemisphere light에서 groundColor를 현재 짙은 남색(#020b18 추정)에서 `#0a2a4a`로 올리고, `src/scene/Ocean.ts`의 배경 fog 색상을 `#0d3a6a`로 변경해 중간 수심대 채도를 높일 것.
-- [ ] `src/scene/Lighting.ts` 또는 `src/scene/Ocean.ts`에서 배경 안개(`scene.fog`) color를 `#082a4d` → `#0a4a7a`로 올려 하단 영역 채도를 높이고, `AmbientLight` color를 `#0a1a2e` → `#0d3060`으로 교체해 심해 영역에 청색 채도 부여
+- [x] `src/entities/WhaleShark.ts` 또는 버블 파티클 생성부에서 버블 spawn offset을 고래상어 머리 정면이 아닌 옆면(side/dorsal)으로 변경하거나 `maxParticles` 수를 현재의 60~70% 수준으로 줄여 주체 가림을 해소할 것
+- [x] **중간 수심 채도 보강** — `src/scene/Lighting.ts`의 ambient/hemisphere light에서 groundColor를 현재 짙은 남색(#020b18 추정)에서 `#0a2a4a`로 올리고, `src/scene/Ocean.ts`의 배경 fog 색상을 `#0d3a6a`로 변경해 중간 수심대 채도를 높일 것.
+- [x] `src/scene/Lighting.ts` 또는 `src/scene/Ocean.ts`에서 배경 안개(`scene.fog`) color를 `#082a4d` → `#0a4a7a`로 올려 하단 영역 채도를 높이고, `AmbientLight` color를 `#0a1a2e` → `#0d3060`으로 교체해 심해 영역에 청색 채도 부여
+- [ ] `src/scene/Lighting.ts`의 god ray 셰이더(또는 volumetric light mesh) — `opacity` / `intensity` 값을 현재 대비 1.8~2.5배 상향하고, ray 폭을 0.03→0.06으로 넓혀 밝기 대비를 강화할 것
+- [ ] `src/scene/Ocean.ts`의 수면 파동 메시 색상 — surface-up 카메라 위치에서도 god ray SpotLight/DirectionalLight가 수면 위에서 투사되도록 조건 분기 추가할 것
+- [ ] `src/scene/Lighting.ts`의 god-ray 셰이더(또는 SpotLight volumetric 파라미터)에서 광선 폭 감쇠를 추가하고 `penumbra` 값을 0.3→0.7로 올려 가장자리를 부드럽게, `decay` 2.0→1.4로 낮춰 광선이 더 멀리 퍼지도록 수정
+- [ ] `src/scene/Ocean.ts`의 배경색 또는 fog 설정에서 `THREE.FogExp2` density를 현재 값 대비 15~20% 낮추고, ambient light color를 `#062040`→`#083a6a`로 올려 전체 씬 채도를 높임
+- [ ] `src/scene/Ocean.ts` — 버블 파티클 생성 함수에서 고래상어 위치 기준 오프셋을 현재 `±0` 근방에서 `x: ±3~5, y: -1~+2` 범위로 분산시키고, 파티클 count를 현재 대비 40% 감소시켜 주체 실루엣 노출 확보

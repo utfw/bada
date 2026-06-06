@@ -146,7 +146,7 @@ export class Ocean {
 
     for (let i = 0; i < BUBBLE_COUNT; i++) {
       const sign = Math.random() < 0.5 ? -1 : 1;
-      positions[i * 3] = sign * (Math.random() * 0.5 + 0.5) * OCEAN_WIDTH * 0.25;
+      positions[i * 3] = sign * Math.max(Math.random() * 0.3 + 0.3, 0.15) * OCEAN_WIDTH * 0.4;
       positions[i * 3 + 1] =
         Math.random() * SURFACE_HEIGHT - OCEAN_DEPTH;
       positions[i * 3 + 2] = (Math.random() - 0.5) * OCEAN_WIDTH * 0.5;
@@ -222,7 +222,7 @@ export class Ocean {
       if (y > SURFACE_HEIGHT) {
         y = -OCEAN_DEPTH + Math.random() * 10;
         const s = Math.random() < 0.5 ? -1 : 1;
-        x = s * (Math.random() * 0.5 + 0.5) * OCEAN_WIDTH * 0.25;
+        x = s * Math.max(Math.random() * 0.3 + 0.3, 0.15) * OCEAN_WIDTH * 0.4;
         z = (Math.random() - 0.5) * OCEAN_WIDTH * 0.5;
       }
 
