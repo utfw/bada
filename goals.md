@@ -202,8 +202,10 @@
 - [x] `src/scene/Ocean.ts` 또는 SceneManager의 배경색/fog 설정에서 `scene.fog` 색상을 현재 `#071428` 수준에서 `#0a3a6e`로 올려 중간 채도의 코발트 블루가 배경에 깔리도록 조정
 - [x] `src/entities/WhaleShark.ts`의 흰 반점(spot) 메시 수를 늘리거나 반점 크기를 키워 고래상어 식별성을 높이고 시각 균형 개선
 - [x] `src/scene/SceneManager.ts` 또는 `src/entities/Fish.ts`에서 물고기 군집 spawn 범위를 카메라 반경 30 이내로 유지하는 조건을 추가해 모든 앵글에서 물고기가 프레임 안에 분포하도록 구성 균형 개선
-- [ ] `src/scene/Lighting.ts` god ray mesh 생성부에서 각 ray plane의 `material.opacity`를 현재 추정값(~0.15)에서 0.06~0.08로 낮추고, plane geometry의 width를 50% 축소하며 `depthWrite: false` + `blending: AdditiveBlending` 적용해 경계를 부드럽게 처리
-- [ ] `src/scene/SceneManager.ts` 또는 `Lighting.ts`의 ambient light color를 `0x0a1a3a`(현재 추정) → `0x0d4a7a`로 변경하고, directional/hemisphere light의 sky color를 `0x1ec0e0` 수준으로 올려 화면 전체 채도를 청록 계열로 끌어올림
-- [ ] `src/entities/WhaleShark.ts`의 재질 설정에서 `MeshToonMaterial` + `gradientMap`(3-step ramp 텍스처)으로 교체하거나, 현재 `MeshStandardMaterial`의 `onBeforeCompile`에 toon step GLSL(예: `diffuse = floor(diffuse * 3.0) / 3.0`)을 삽입해 명확한 셀셰이딩 경계 생성
+- [x] `src/scene/Lighting.ts` god ray mesh 생성부에서 각 ray plane의 `material.opacity`를 현재 추정값(~0.15)에서 0.06~0.08로 낮추고, plane geometry의 width를 50% 축소하며 `depthWrite: false` + `blending: AdditiveBlending` 적용해 경계를 부드럽게 처리
+- [x] `src/scene/SceneManager.ts` 또는 `Lighting.ts`의 ambient light color를 `0x0a1a3a`(현재 추정) → `0x0d4a7a`로 변경하고, directional/hemisphere light의 sky color를 `0x1ec0e0` 수준으로 올려 화면 전체 채도를 청록 계열로 끌어올림
+- [x] `src/entities/WhaleShark.ts`의 재질 설정에서 `MeshToonMaterial` + `gradientMap`(3-step ramp 텍스처)으로 교체하거나, 현재 `MeshStandardMaterial`의 `onBeforeCompile`에 toon step GLSL(예: `diffuse = floor(diffuse * 3.0) / 3.0`)을 삽입해 명확한 셀셰이딩 경계 생성
 - [ ] `src/scene/Ocean.ts` 또는 `src/scene/SceneManager.ts`의 배경 fog/ambient 색상을 현재 `#0a1a3a` 계열에서 `#0a4a7a`(채도 높은 코발트)로 올리고, `AmbientLight` intensity를 0.3→0.5로 높여 씬 전체 채도를 끌어올림
 - [ ] `src/entities/WhaleShark.ts`의 버블 파티클 생성 위치를 현재 입 주변 단일 지점에서 몸통 측면으로 분산(offset +x 0.5~1.0)시키고, 최대 파티클 수(`maxBubbles`)를 현재 값의 60% 수준으로 감소시켜 주체 실루엣이 가려지지 않도록 조정
+- [ ] **광선 효과** — `src/scene/Lighting.ts`(또는 갓레이 전용 ShaderMaterial)에서 광선 줄기 개수를 현재 4~5개 → 8~10개로 늘리고, 각 줄기의 폭(PlaneGeometry width 또는 uWidth uniform)을 현재 대비 40~50% 축소하며 opacity를 0.08~0.12로 낮춰 가늘고 자연스러운 빛산란으로 개선할 것.
+- [ ] `src/scene/Lighting.ts` 또는 `Ocean.ts`에서 배경 ambient color를 `#0a1a3a`에서 `#0d3a6e` 수준으로 올려 전체 채도를 높이고 심해 느낌을 유지하면서 청록 도미넌트 비율 확대

@@ -151,6 +151,7 @@ export class WhaleShark {
         [
           '#include <color_fragment>',
           'float bodyT = clamp((vBodyY + 1.58) / 3.16, 0.0, 1.0);',
+          'bodyT = floor(bodyT * 3.0) / 3.0;',
           'diffuseColor.rgb = mix(uBellyColor, uDorsalColor, bodyT);',
         ].join('\n'),
       );
