@@ -19,37 +19,37 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x0a4a7a,
+    ambientColor: 0x0d60a0,
     ambientIntensity: 0.5,
     sunColor: 0x1ec0e0,
-    sunIntensity: 2.8,
+    sunIntensity: 3.2,
     godRayIntensity: 3.0,
   },
   cloudy: {
-    ambientColor: 0x6699bb,
+    ambientColor: 0x2a6b9a,
     ambientIntensity: 0.7,
-    sunColor: 0xdddddd,
+    sunColor: 0xc0d8e8,
     sunIntensity: 1.2,
     godRayIntensity: 1.0,
   },
   rain: {
-    ambientColor: 0x5588aa,
+    ambientColor: 0x1a5580,
     ambientIntensity: 0.6,
-    sunColor: 0xbbccdd,
+    sunColor: 0x9abccc,
     sunIntensity: 0.8,
     godRayIntensity: 0.5,
   },
   snow: {
-    ambientColor: 0x7799bb,
+    ambientColor: 0x5d7fa8,
     ambientIntensity: 0.8,
-    sunColor: 0xeef4ff,
+    sunColor: 0xd8ecff,
     sunIntensity: 1.4,
     godRayIntensity: 1.5,
   },
   fog: {
-    ambientColor: 0x556677,
+    ambientColor: 0x3d5268,
     ambientIntensity: 0.5,
-    sunColor: 0xaaaaaa,
+    sunColor: 0x88a0b0,
     sunIntensity: 0.5,
     godRayIntensity: 0.2,
   },
@@ -64,14 +64,14 @@ export class Lighting {
   private hemisphereLight: THREE.HemisphereLight;
   private godRaySpots: THREE.SpotLight[] = [];
   private godRayCones: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
-  private nearRayMeshes: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] = [];
+  private nearRayMeshes: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
   private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
-    this.ambientLight = new THREE.AmbientLight(0x0a4a7a, 0.5);
+    this.ambientLight = new THREE.AmbientLight(0x0d60a0, 0.5);
     scene.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x03133d, 1.0);
+    this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x041e5a, 1.0);
     scene.add(this.hemisphereLight);
 
     this.sunLight = new THREE.DirectionalLight(0x1ec0e0, 2.8);
@@ -165,12 +165,26 @@ export class Lighting {
     }
 
     // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
+    const nearRayFragmentShader = `
+      uniform vec3 uColor;
+      uniform float uMaxOpacity;
+      varying vec2 vUv;
+      void main() {
+        float fade = smoothstep(0.0, 1.0, 1.0 - abs(vUv.x - 0.5) * 2.0) * 0.18;
+        gl_FragColor = vec4(uColor, fade * uMaxOpacity);
+      }
+    `;
+
     this.nearRayGeo = new THREE.PlaneGeometry(0.25, 12);
     for (let i = 0; i < 14; i++) {
-      const mat = new THREE.MeshBasicMaterial({
-        color: 0x88ddff,
+      const mat = new THREE.ShaderMaterial({
+        vertexShader,
+        fragmentShader: nearRayFragmentShader,
+        uniforms: {
+          uColor: { value: new THREE.Color(0x88ddff) },
+          uMaxOpacity: { value: 0.18 },
+        },
         transparent: true,
-        opacity: 0.10,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
@@ -197,9 +211,7 @@ export class Lighting {
     this.godRayCones.forEach((plane) => {
       plane.material.uniforms.uTime.value = elapsed;
     });
-    this.nearRayMeshes.forEach((m) => {
-      m.material.opacity = 0.10;
-    });
+    // nearRayMeshes opacity is controlled by ShaderMaterial fragmentShader (smoothstep falloff)
   }
 
   applyWeather(data: WeatherData): void {

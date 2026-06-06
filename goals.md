@@ -208,6 +208,9 @@
 - [x] `src/scene/Ocean.ts` 또는 `src/scene/SceneManager.ts`의 배경 fog/ambient 색상을 현재 `#0a1a3a` 계열에서 `#0a4a7a`(채도 높은 코발트)로 올리고, `AmbientLight` intensity를 0.3→0.5로 높여 씬 전체 채도를 끌어올림
 - [x] `src/entities/WhaleShark.ts`의 버블 파티클 생성 위치를 현재 입 주변 단일 지점에서 몸통 측면으로 분산(offset +x 0.5~1.0)시키고, 최대 파티클 수(`maxBubbles`)를 현재 값의 60% 수준으로 감소시켜 주체 실루엣이 가려지지 않도록 조정
 - [x] **광선 효과** — `src/scene/Lighting.ts`(또는 갓레이 전용 ShaderMaterial)에서 광선 줄기 개수를 현재 4~5개 → 8~10개로 늘리고, 각 줄기의 폭(PlaneGeometry width 또는 uWidth uniform)을 현재 대비 40~50% 축소하며 opacity를 0.08~0.12로 낮춰 가늘고 자연스러운 빛산란으로 개선할 것.
-- [ ] `src/scene/Lighting.ts` 또는 `Ocean.ts`에서 배경 ambient color를 `#0a1a3a`에서 `#0d3a6e` 수준으로 올려 전체 채도를 높이고 심해 느낌을 유지하면서 청록 도미넌트 비율 확대
-- [ ] `src/scene/Lighting.ts`의 god ray 메시를 `PlaneGeometry` 단일 면 대신 `ShaderMaterial`(radial falloff: `opacity = smoothstep(0.0, 1.0, 1.0 - abs(uv.x - 0.5) * 2.0) * 0.18`)로 교체해 가장자리를 부드럽게 처리
-- [ ] `src/scene/Lighting.ts`의 ambient/directional light 색상을 `#0a78aa`→`#1ec0e0` 계열 고채도 청록으로 올리고, `WhaleShark.ts` 머티리얼에 `MeshToonMaterial` + `gradientMap` 3단계 텍스처를 적용해 계단형 셀 음영을 명확히 구현
+- [x] `src/scene/Lighting.ts` 또는 `Ocean.ts`에서 배경 ambient color를 `#0a1a3a`에서 `#0d3a6e` 수준으로 올려 전체 채도를 높이고 심해 느낌을 유지하면서 청록 도미넌트 비율 확대
+- [x] `src/scene/Lighting.ts`의 god ray 메시를 `PlaneGeometry` 단일 면 대신 `ShaderMaterial`(radial falloff: `opacity = smoothstep(0.0, 1.0, 1.0 - abs(uv.x - 0.5) * 2.0) * 0.18`)로 교체해 가장자리를 부드럽게 처리
+- [x] `src/scene/Lighting.ts`의 ambient/directional light 색상을 `#0a78aa`→`#1ec0e0` 계열 고채도 청록으로 올리고, `WhaleShark.ts` 머티리얼에 `MeshToonMaterial` + `gradientMap` 3단계 텍스처를 적용해 계단형 셀 음영을 명확히 구현
+- [ ] `src/entities/WhaleShark.ts` 또는 버블 파티클 생성부에서 버블 spawn offset을 고래상어 머리 정면이 아닌 옆면(side/dorsal)으로 변경하거나 `maxParticles` 수를 현재의 60~70% 수준으로 줄여 주체 가림을 해소할 것
+- [ ] **중간 수심 채도 보강** — `src/scene/Lighting.ts`의 ambient/hemisphere light에서 groundColor를 현재 짙은 남색(#020b18 추정)에서 `#0a2a4a`로 올리고, `src/scene/Ocean.ts`의 배경 fog 색상을 `#0d3a6a`로 변경해 중간 수심대 채도를 높일 것.
+- [ ] `src/scene/Lighting.ts` 또는 `src/scene/Ocean.ts`에서 배경 안개(`scene.fog`) color를 `#082a4d` → `#0a4a7a`로 올려 하단 영역 채도를 높이고, `AmbientLight` color를 `#0a1a2e` → `#0d3060`으로 교체해 심해 영역에 청색 채도 부여
