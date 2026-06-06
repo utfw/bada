@@ -145,7 +145,8 @@ export class Ocean {
     const sizes = new Float32Array(BUBBLE_COUNT);
 
     for (let i = 0; i < BUBBLE_COUNT; i++) {
-      positions[i * 3] = (Math.random() - 0.5) * OCEAN_WIDTH * 0.5;
+      const sign = Math.random() < 0.5 ? -1 : 1;
+      positions[i * 3] = sign * (Math.random() * 0.5 + 0.5) * OCEAN_WIDTH * 0.25;
       positions[i * 3 + 1] =
         Math.random() * SURFACE_HEIGHT - OCEAN_DEPTH;
       positions[i * 3 + 2] = (Math.random() - 0.5) * OCEAN_WIDTH * 0.5;
@@ -220,7 +221,8 @@ export class Ocean {
 
       if (y > SURFACE_HEIGHT) {
         y = -OCEAN_DEPTH + Math.random() * 10;
-        x = (Math.random() - 0.5) * OCEAN_WIDTH * 0.5;
+        const s = Math.random() < 0.5 ? -1 : 1;
+        x = s * (Math.random() * 0.5 + 0.5) * OCEAN_WIDTH * 0.25;
         z = (Math.random() - 0.5) * OCEAN_WIDTH * 0.5;
       }
 

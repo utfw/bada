@@ -19,8 +19,8 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x0d4a7a,
-    ambientIntensity: 0.55,
+    ambientColor: 0x0a4a7a,
+    ambientIntensity: 0.5,
     sunColor: 0x1ec0e0,
     sunIntensity: 2.8,
     godRayIntensity: 3.0,
@@ -68,7 +68,7 @@ export class Lighting {
   private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
-    this.ambientLight = new THREE.AmbientLight(0x0d4a7a, 0.55);
+    this.ambientLight = new THREE.AmbientLight(0x0a4a7a, 0.5);
     scene.add(this.ambientLight);
 
     this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x03133d, 1.0);
@@ -165,19 +165,19 @@ export class Lighting {
     }
 
     // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
-    this.nearRayGeo = new THREE.PlaneGeometry(0.45, 12);
-    for (let i = 0; i < 10; i++) {
+    this.nearRayGeo = new THREE.PlaneGeometry(0.25, 12);
+    for (let i = 0; i < 14; i++) {
       const mat = new THREE.MeshBasicMaterial({
         color: 0x88ddff,
         transparent: true,
-        opacity: 0.08,
+        opacity: 0.10,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         side: THREE.DoubleSide,
       });
       const mesh = new THREE.Mesh(this.nearRayGeo, mat);
       mesh.position.set(
-        (i / 10 * 2 - 1) * 3,
+        (i / 14 * 2 - 1) * 3,
         0,
         Math.random() * 6 - 3,
       );
@@ -198,7 +198,7 @@ export class Lighting {
       plane.material.uniforms.uTime.value = elapsed;
     });
     this.nearRayMeshes.forEach((m) => {
-      m.material.opacity = 0.08;
+      m.material.opacity = 0.10;
     });
   }
 

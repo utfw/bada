@@ -9,7 +9,7 @@ export const CAMERA_NEAR = 0.1;
 export const CAMERA_FAR = 200;
 export const MAX_PIXEL_RATIO = 2;
 export const DEFAULT_FOG_DENSITY = 0.015;
-export const DEFAULT_FOG_COLOR = 0x0a3a6e;
+export const DEFAULT_FOG_COLOR = 0x0a4a7a;
 export const TONE_MAPPING_EXPOSURE = 1.4;
 
 // ── Weather API ────────────────────────────────────
@@ -39,7 +39,7 @@ export const SHARK_SWIM_SPEED = 0.65;
 
 // ── Particles ──────────────────────────────────────
 export const PARTICLE_COUNT = 500;
-export const BUBBLE_COUNT = 200;
+export const BUBBLE_COUNT = 120;
 
 // ── Boids (Fish School) ───────────────────────────
 export const FISH_COUNT = 120;
@@ -73,10 +73,10 @@ export const PREDATOR_FLEE_WEIGHT = 14.0;
 export const PREDATOR_FLEE_INTENSITY_NORM = 4.0;
 
 // ── God Rays (volumetric planes) ─────────────────
-export const GOD_RAY_COUNT = 5;
+export const GOD_RAY_COUNT = 9;
 export const GOD_RAY_HEIGHT = 40;
-export const GOD_RAY_PLANE_WIDTH = 0.32;
-export const GOD_RAY_MAX_OPACITY = 0.07;
+export const GOD_RAY_PLANE_WIDTH = 0.18;
+export const GOD_RAY_MAX_OPACITY = 0.10;
 export const GOD_RAY_COLOR = 0xa8d8ff;
 
 // ── Controls ───────────────────────────────────────
