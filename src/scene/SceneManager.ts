@@ -63,6 +63,7 @@ export class SceneManager {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = TONE_MAPPING_EXPOSURE;
+    this.renderer.setClearColor(DEFAULT_FOG_COLOR, 1);
     this.container.appendChild(this.renderer.domElement);
 
     this.clock = new THREE.Clock();

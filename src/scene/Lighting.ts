@@ -19,7 +19,7 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x0d6b9e,
+    ambientColor: 0x0d4a7a,
     ambientIntensity: 0.80,
     sunColor: 0x60c8ff,
     sunIntensity: 3.2,
@@ -70,10 +70,10 @@ export class Lighting {
   private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
-    this.ambientLight = new THREE.AmbientLight(0x0d6b9e, 0.80);
+    this.ambientLight = new THREE.AmbientLight(0x0d4a7a, 0.80);
     scene.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x0d6b9e, 1.0);
+    this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x0d4a7a, 1.0);
     scene.add(this.hemisphereLight);
 
     this.sunLight = new THREE.DirectionalLight(0x60c8ff, 2.8);
@@ -103,7 +103,6 @@ export class Lighting {
     scene.add(this.underFillPoint);
 
     // God Rays — SpotLights above surface with ShaderMaterial volumetric planes
-    const planeGeo = new THREE.PlaneGeometry(GOD_RAY_PLANE_WIDTH, GOD_RAY_HEIGHT);
     const rayColor = new THREE.Color(GOD_RAY_COLOR);
 
     const vertexShader = `
@@ -158,6 +157,8 @@ export class Lighting {
         side: THREE.DoubleSide,
       });
 
+      const rayWidth = GOD_RAY_PLANE_WIDTH * (1 + (Math.random() - 0.5) * 0.6);
+      const planeGeo = new THREE.PlaneGeometry(rayWidth, GOD_RAY_HEIGHT);
       const plane = new THREE.Mesh(planeGeo, planeMat);
       plane.position.set(x, SURFACE_HEIGHT - GOD_RAY_HEIGHT / 2, z);
       plane.rotation.y = (i / GOD_RAY_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
@@ -271,8 +272,8 @@ export class Lighting {
     this.hemisphereLight.dispose();
     this.dorsalFillLight.dispose();
     this.underFillPoint.dispose();
-    this.godRayCones[0]?.geometry.dispose();
     this.godRayCones.forEach((plane) => {
+      plane.geometry.dispose();
       plane.material.dispose();
     });
     this.nearRayGeo.dispose();
