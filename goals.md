@@ -220,13 +220,13 @@
 - [x] `src/scene/Ocean.ts`의 배경색 또는 fog 설정에서 `THREE.FogExp2` density를 현재 값 대비 15~20% 낮추고, ambient light color를 `#062040`→`#083a6a`로 올려 전체 씬 채도를 높임
 - [x] `src/scene/Ocean.ts` — 버블 파티클 생성 함수에서 고래상어 위치 기준 오프셋을 현재 `±0` 근방에서 `x: ±3~5, y: -1~+2` 범위로 분산시키고, 파티클 count를 현재 대비 40% 감소시켜 주체 실루엣 노출 확보
 - [x] `src/scene/Ocean.ts` 또는 `Lighting.ts`의 수중 ambient 색상을 `#0a1a3a`→`#0a4a7a`로 올려 배경 청록 채도를 높이고, `scene.fog` 색상도 동일 계열 채도로 맞춤
-- [ ] `src/scene/Lighting.ts` 내 god ray 빔 생성부에서 `opacity` / `intensity` 값을 현재 대비 약 0.4배로 줄이고, 빔 `width` 파라미터(또는 PlaneGeometry 가로 크기)를 0.5~0.8 단위로 축소하여 부드러운 가는 줄기 형태로 수정
-- [ ] `src/entities/WhaleShark.ts` 버블 파티클 스폰 위치를 현재 머리 정면(position offset `z+1` 등)에서 몸통 후방 또는 측면(`z-2`, `x±0.5`)으로 이동시키고, 최대 동시 버블 수를 현재의 절반 이하로 제한
-- [ ] `src/scene/Lighting.ts`의 ambient light intensity가 0으로 설정된 경우 `ambientLight.intensity = 0.4` 이상으로 복구하고, `src/utils/constants.ts`의 fog 설정(`scene.fog`)이 near/far=0이면 fog를 제거하거나 `near=10, far=200`으로 조정할 것
+- [x] `src/scene/Lighting.ts` 내 god ray 빔 생성부에서 `opacity` / `intensity` 값을 현재 대비 약 0.4배로 줄이고, 빔 `width` 파라미터(또는 PlaneGeometry 가로 크기)를 0.5~0.8 단위로 축소하여 부드러운 가는 줄기 형태로 수정
+- [x] `src/entities/WhaleShark.ts` 버블 파티클 스폰 위치를 현재 머리 정면(position offset `z+1` 등)에서 몸통 후방 또는 측면(`z-2`, `x±0.5`)으로 이동시키고, 최대 동시 버블 수를 현재의 절반 이하로 제한
+- [x] `src/scene/Lighting.ts`의 ambient light intensity가 0으로 설정된 경우 `ambientLight.intensity = 0.4` 이상으로 복구하고, `src/utils/constants.ts`의 fog 설정(`scene.fog`)이 near/far=0이면 fog를 제거하거나 `near=10, far=200`으로 조정할 것
 - [ ] **[3] 광선 부드럽게** — `src/scene/Lighting.ts` 또는 god ray 렌더링 코드에서 광선 메시의 `opacity`를 현재 값 대비 0.5배로 낮추고, 광선 폭(`rayWidth`)을 절반으로 줄이되 개수를 2배(6~8개)로 늘려 퍼짐감을 추가. `AdditiveBlending` + `depthWrite: false` 조합 확인.
 - [ ] `src/scene/Ocean.ts` 또는 `src/scene/SceneManager.ts`의 배경/fog 색상을 `#0d3a6e` → `#0a5a9a` 수준으로 밝히고, `THREE.FogExp2` density를 0.018 이하로 낮춰 중간 거리 채도를 높일 것
 - [ ] `WhaleShark.ts`의 버블 파티클 spawn 위치를 입 주변 단일 포인트에서 벗어나 몸통 측면으로 분산하거나 파티클 수를 현재의 50% 이하로 줄여 주체 가림을 완화할 것
-- [ ] `src/scene/Lighting.ts`의 god-ray 생성 함수에서 각 광선 메시의 `opacity`를 0.12→0.07로 낮추고, `ShaderMaterial`의 `blending`을 `AdditiveBlending`으로 유지하되 광선 폭(cone radius)을 현재 대비 0.6배로 줄여 과노출 기둥 현상 제거; 광선 수를 5→8개로 늘려 자연스러운 산란 연출
 - [ ] `src/utils/constants.ts`의 `OCEAN_COLOR` 또는 `src/scene/Ocean.ts`의 배경 fog 색상을 현재 `0x001a33` 계열에서 `0x003d6b`로 올려 중심부 채도를 높이고, `src/scene/SceneManager.ts`의 `renderer.setClearColor` 값도 동일하게 조정해 화면 전반의 청록 채도를 강화
-- [ ] `src/entities/WhaleShark.ts` — 머티리얼을 `MeshToonMaterial`로 교체하고 `gradientMap`에 3단계 계단형 텍스처(Three.js `NearestFilter` 적용 3px 그라디언트맵)를 설정해 셀쉐이딩 경계를 명확히 할 것
-- [ ] `src/scene/Ocean.ts` (또는 버블 파티클 생성 로직) — 버블 스폰 영역을 고래상어 머리 정면이 아닌 몸통 측면/하단으로 오프셋(`spawnOffset.x += 0.5` 등)하고, 최대 버블 수를 현재의 50~60% 수준으로 줄여 얼굴 가림 현상 제거
+- [ ] `src/scene/Lighting.ts` 또는 `src/scene/SceneManager.ts`의 ambient/directional light color를 `0x0a2a4a` → `0x0d4a7a`로 올려 중간 밝기 대역 채도를 높이고, Ocean 배경 fog color도 `#071428` → `#0a2255`로 변경해 청록 채도 확보
+- [ ] `src/scene/Lighting.ts`의 god ray 생성 함수에서 각 광선 `MeshBasicMaterial.opacity`를 현재 값 대비 1.5~2배(예: 0.08→0.14), 광선 `PlaneGeometry` 폭을 1.2→2.0으로 확대하고, `Math.random()`으로 폭을 ±30% 변조해 자연스러운 산란 연출
+- [ ] `Ocean.ts`의 `createBubbles()` 및 `update()` 리스폰 위치에서 `_sharkFwd` 오프셋을 `sharkPos + fwd * dist`(꼬리 후방)으로 교정 — whaleshark-front/side/screenshot-1~4 전부에서 버블이 머리 앞에 집중 스폰되어 §9 실패 기준에 해당하며 시각 품질 저하 확인됨

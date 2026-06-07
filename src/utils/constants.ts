@@ -39,7 +39,7 @@ export const SHARK_SWIM_SPEED = 0.65;
 
 // ── Particles ──────────────────────────────────────
 export const PARTICLE_COUNT = 500;
-export const BUBBLE_COUNT = 45;
+export const BUBBLE_COUNT = 20;
 
 // ── Boids (Fish School) ───────────────────────────
 export const FISH_COUNT = 120;
@@ -75,8 +75,8 @@ export const PREDATOR_FLEE_INTENSITY_NORM = 4.0;
 // ── God Rays (volumetric planes) ─────────────────
 export const GOD_RAY_COUNT = 9;
 export const GOD_RAY_HEIGHT = 40;
-export const GOD_RAY_PLANE_WIDTH = 0.36;
-export const GOD_RAY_MAX_OPACITY = 0.22;
+export const GOD_RAY_PLANE_WIDTH = 0.22;
+export const GOD_RAY_MAX_OPACITY = 0.09;
 export const GOD_RAY_COLOR = 0xa8d8ff;
 
 // ── Controls ───────────────────────────────────────

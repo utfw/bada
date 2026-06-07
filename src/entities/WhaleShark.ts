@@ -607,6 +607,10 @@ export class WhaleShark {
     this.group.getWorldPosition(target);
   }
 
+  getWorldDirection(target: THREE.Vector3): THREE.Vector3 {
+    return this.group.getWorldDirection(target);
+  }
+
   /** 런타임 관찰용 상태 스냅샷 (agent/observe.ts에서 사용) */
   getDebugState(): {
     position: { x: number; y: number; z: number };

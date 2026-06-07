@@ -175,19 +175,19 @@ export class Lighting {
       uniform float uMaxOpacity;
       varying vec2 vUv;
       void main() {
-        float fade = smoothstep(0.0, 1.0, 1.0 - abs(vUv.x - 0.5) * 2.0) * 0.36;
+        float fade = smoothstep(0.0, 1.0, 1.0 - abs(vUv.x - 0.5) * 2.0) * 0.14;
         gl_FragColor = vec4(uColor, fade * uMaxOpacity);
       }
     `;
 
-    this.nearRayGeo = new THREE.PlaneGeometry(0.50, 12);
+    this.nearRayGeo = new THREE.PlaneGeometry(0.30, 12);
     for (let i = 0; i < 14; i++) {
       const mat = new THREE.ShaderMaterial({
         vertexShader,
         fragmentShader: nearRayFragmentShader,
         uniforms: {
           uColor: { value: new THREE.Color(0x88ddff) },
-          uMaxOpacity: { value: 0.36 },
+          uMaxOpacity: { value: 0.14 },
         },
         transparent: true,
         blending: THREE.AdditiveBlending,
@@ -263,6 +263,7 @@ export class Lighting {
   applyAqi(aqi: number): void {
     const factor = Math.max(0.3, 1 - (aqi - 1) * 0.15);
     this.ambientLight.intensity *= factor;
+    this.ambientLight.intensity = Math.max(0.4, this.ambientLight.intensity);
     this.sunLight.intensity *= factor;
   }
 

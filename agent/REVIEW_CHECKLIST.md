@@ -188,6 +188,8 @@
 
 - **버블 파티클 크기/알파 상한 검증**: `Ocean.ts`의 `createBubbles()`에서 `sizes[i]` 최댓값(`random * range + min`)이 **0.2 이상**이거나, fragment shader의 기저 알파(`float alpha = X + ring * Y`)에서 **X ≥ 0.2**이면 버블이 고래상어·물고기보다 시각적으로 두드러질 수 있다. Reviewer는 이 두 값을 코드에서 직접 확인하고, `sizes 최대값 > 0.2` 또는 `기저 알파 X > 0.15`이면 **실패** 판정.
 
+- **[코드 검증] `getWorldDirection()` 꼬리-머리 방향 혼동**: `WhaleShark.getWorldDirection()`은 `group`의 로컬 +Z를 월드 좌표로 반환하며, 고래상어 모델에서 로컬 +Z = 꼬리 방향(`tailGroup.position.z = +SHARK_LENGTH/2`)이다. 버블을 꼬리(후방)에 스폰하려면 `sharkPos + sharkFwd * dist`를 사용해야 한다. `sharkPos - sharkFwd * dist`는 머리 앞쪽에 스폰되므로 **실패**. Reviewer는 `Ocean.ts`의 `createBubbles()` 및 `update()` 리스폰 두 위치 모두에서 `_sharkFwd` 오프셋 부호가 `+`인지 확인할 것. 어느 한 곳이라도 `-`이면 실패.
+
 ---
 
 ## 체크리스트 갱신 로그
@@ -199,7 +201,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-12) [human] §1 시각 검증을 탑뷰 방식으로 변경: Observer가 topview-t1.png/t2.png (높이 50, 2초 간격)을 촬영하고 Reviewer가 비교해 이동 방향 확인.
 - (2026-04-18) [human] 군집 분산도 내용 간략화. 방향 검증 수정
 - (2026-04-18) [reviewer] §7 추가: CatmullRomCurve3.getPointAt() optional target 미사용 시 루프 내 암시적 Vector3 할당 경고 기준 명시.
 - (2026-04-18) [human] §1 재작성: 코드 부호(add/sub) 기반 방향 판정 삭제. 탑뷰 스냅샷(topview-t1/t2.png) 비교만을 유일한 판정 기준으로 확립. 에이전트가 이론으로 add/sub을 바꾸는 것을 명시적으로 금지.
@@ -229,3 +230,4 @@
 - (2026-05-24) [human] §3-4 신설: 자율 진화 루프(`agent/evolve.ts`) 정합성 항목 추가 — Evolver 호출 위치(Observer 직후·Planner 직전), `currentSchoolDefs` Observation 전달, history.json schema·dramaScore 범위, 변이 목표 누적 한도, 정체 임계치 적정성, evolutionSummary Planner 전달. drama score = peakFleeIntensity × encounterRate × pathVariance × 균형도. 정체 시 가장 약한 학교의 단일 파라미터를 변이 제안으로 자동 추가.
 - (2026-05-25) [human] 갱신 로그 일괄 정리: "n차 검증/동일 수치 재확인/변경 파일 없음" 류의 verification noise 16개 entry 삭제. 갱신 로그는 규칙 변경 기록 전용이며, 검증 결과는 로그에 남기지 않는다는 규칙을 헤더에 명시.
 - (2026-06-04) [human] §3-3 "flee 후 회복 실패"에 범위(scope) 게이트 도입: 이번 목표가 flee/궤도 관련 코드(Fish schoolDefs·flee force·setSharkPosition / WhaleShark 경로 / constants PREDATOR_*·FISH_ORBIT_WEIGHT·BOID_BOUNDARY_MARGIN·BOID_*_WEIGHT)를 수정한 경우에만 REVIEW_FAIL, 미수정 시 pre-existing 이슈로 SUGGESTIONS 강등. 2026-06-03 조명 목표 4회 연속 미완료(목표 무관 §3-3 실패가 매번 차단·retry 예산 유실)에 대한 대응.
+- (2026-06-07) [reviewer] §9 추가: getWorldDirection()이 로컬 +Z(꼬리 방향)를 반환하므로 sharkPos - fwd*dist는 머리 앞에 스폰됨 — 꼬리 후방 스폰은 sharkPos + fwd*dist 사용 필수. createBubbles()·update() 두 위치 부호 동시 검증 기준 명시.

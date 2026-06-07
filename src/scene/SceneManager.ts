@@ -34,6 +34,7 @@ export class SceneManager {
   private isRunning = false;
   private animationFrameId = 0;
   private readonly _sharkWorldPos = new THREE.Vector3();
+  private readonly _sharkWorldFwd = new THREE.Vector3();
   private readonly _sharkNDC = new THREE.Vector3();
   private readonly _cameraLookTarget = new THREE.Vector3();
 
@@ -182,7 +183,9 @@ export class SceneManager {
     this.whaleShark.update(elapsed, delta);
     // WhaleShark 갱신 직후 위치를 읽어 FishSchool에 주입해야 flee force가 같은 프레임에 반영됨
     this.whaleShark.getWorldPosition(this._sharkWorldPos);
+    this.whaleShark.getWorldDirection(this._sharkWorldFwd);
     this.ocean.setSharkPosition(this._sharkWorldPos);
+    this.ocean.setSharkForward(this._sharkWorldFwd);
     this.fishSchool.setSharkPosition(this._sharkWorldPos);
     this.fishSchool.update(elapsed, delta);
     this.lighting.update(elapsed, this.camera);
