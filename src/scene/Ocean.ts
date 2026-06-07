@@ -156,9 +156,9 @@ export class Ocean {
 
     for (let i = 0; i < BUBBLE_COUNT; i++) {
       const sign = Math.random() < 0.5 ? -1 : 1;
-      const tailDist = 2 + Math.random() * 1.5;
-      positions[i * 3]     = this._sharkPos.x + this._sharkFwd.x * tailDist + sign * (Math.random() * 0.3 + 0.2);
-      positions[i * 3 + 1] = this._sharkPos.y + Math.random() * 3 - 1;
+      const tailDist = 1.5 + Math.random() * 2.0;
+      positions[i * 3]     = this._sharkPos.x + this._sharkFwd.x * tailDist + (Math.random() - 0.5) * 4.0;
+      positions[i * 3 + 1] = this._sharkPos.y + Math.random() * 2 - 0.5;
       positions[i * 3 + 2] = this._sharkPos.z + this._sharkFwd.z * tailDist;
       sizes[i] = Math.random() * 0.025 + 0.01;
     }
@@ -230,10 +230,9 @@ export class Ocean {
       let z = bubblePos.getZ(i) + Math.cos(elapsed + i) * 0.005;
 
       if (y > SURFACE_HEIGHT) {
-        y = this._sharkPos.y + Math.random() * 3 - 1;
-        const s = Math.random() < 0.5 ? -1 : 1;
-        const tailDist = 2 + Math.random() * 1.5;
-        x = this._sharkPos.x + this._sharkFwd.x * tailDist + s * (Math.random() * 0.3 + 0.2);
+        y = this._sharkPos.y + Math.random() * 2 - 0.5;
+        const tailDist = 1.5 + Math.random() * 2.0;
+        x = this._sharkPos.x + this._sharkFwd.x * tailDist + (Math.random() - 0.5) * 4.0;
         z = this._sharkPos.z + this._sharkFwd.z * tailDist;
       }
 
