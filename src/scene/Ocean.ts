@@ -12,6 +12,7 @@ export class Ocean {
   private surface!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   private debrisParticles!: THREE.Points;
   private bubbleParticles!: THREE.Points;
+  private _sharkPos = new THREE.Vector3();
 
   constructor(scene: THREE.Scene) {
     this.createSurface(scene);
@@ -139,6 +140,10 @@ export class Ocean {
     scene.add(this.debrisParticles);
   }
 
+  setSharkPosition(pos: THREE.Vector3): void {
+    this._sharkPos.copy(pos);
+  }
+
   private createBubbles(scene: THREE.Scene): void {
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(BUBBLE_COUNT * 3);
@@ -146,10 +151,9 @@ export class Ocean {
 
     for (let i = 0; i < BUBBLE_COUNT; i++) {
       const sign = Math.random() < 0.5 ? -1 : 1;
-      positions[i * 3] = sign * Math.max(Math.random() * 0.3 + 0.3, 0.15) * OCEAN_WIDTH * 0.4;
-      positions[i * 3 + 1] =
-        Math.random() * SURFACE_HEIGHT - OCEAN_DEPTH;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * OCEAN_WIDTH * 0.5;
+      positions[i * 3] = this._sharkPos.x + sign * (Math.random() * 2 + 3);
+      positions[i * 3 + 1] = this._sharkPos.y + Math.random() * 3 - 1;
+      positions[i * 3 + 2] = this._sharkPos.z + (Math.random() - 0.5) * 8;
       sizes[i] = Math.random() * 0.025 + 0.01;
     }
 
@@ -220,10 +224,10 @@ export class Ocean {
       let z = bubblePos.getZ(i) + Math.cos(elapsed + i) * 0.005;
 
       if (y > SURFACE_HEIGHT) {
-        y = -OCEAN_DEPTH + Math.random() * 10;
+        y = this._sharkPos.y + Math.random() * 3 - 1;
         const s = Math.random() < 0.5 ? -1 : 1;
-        x = s * Math.max(Math.random() * 0.3 + 0.3, 0.15) * OCEAN_WIDTH * 0.4;
-        z = (Math.random() - 0.5) * OCEAN_WIDTH * 0.5;
+        x = this._sharkPos.x + s * (Math.random() * 2 + 3);
+        z = this._sharkPos.z + (Math.random() - 0.5) * 8;
       }
 
       bubblePos.setXYZ(i, x, y, z);

@@ -19,7 +19,7 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x083a6a,
+    ambientColor: 0x0a4a7a,
     ambientIntensity: 0.75,
     sunColor: 0x60c8ff,
     sunIntensity: 3.2,
@@ -47,7 +47,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     godRayIntensity: 1.5,
   },
   fog: {
-    ambientColor: 0x3d5268,
+    ambientColor: 0x3d6880,
     ambientIntensity: 0.5,
     sunColor: 0x88a0b0,
     sunIntensity: 0.5,
@@ -65,14 +65,15 @@ export class Lighting {
   private godRaySpots: THREE.SpotLight[] = [];
   private godRayBaseXZ: { x: number; z: number }[] = [];
   private godRayCones: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
+  private godRayConeInitTiltX: number[] = [];
   private nearRayMeshes: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
   private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
-    this.ambientLight = new THREE.AmbientLight(0x083a6a, 0.75);
+    this.ambientLight = new THREE.AmbientLight(0x0a4a7a, 0.75);
     scene.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x0a2a4a, 1.0);
+    this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x0a4a7a, 1.0);
     scene.add(this.hemisphereLight);
 
     this.sunLight = new THREE.DirectionalLight(0x60c8ff, 2.8);
@@ -160,10 +161,12 @@ export class Lighting {
       const plane = new THREE.Mesh(planeGeo, planeMat);
       plane.position.set(x, SURFACE_HEIGHT - GOD_RAY_HEIGHT / 2, z);
       plane.rotation.y = (i / GOD_RAY_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-      plane.rotation.x = -(Math.random() * 0.08 + 0.02);
+      const initTiltX = -(Math.random() * 0.08 + 0.02);
+      plane.rotation.x = initTiltX;
       plane.renderOrder = 999;
       scene.add(plane);
       this.godRayCones.push(plane);
+      this.godRayConeInitTiltX.push(initTiltX);
     }
 
     // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
@@ -226,8 +229,15 @@ export class Lighting {
       spot.target.position.z = base.z + Math.cos(elapsed * 0.4 + i * 2) * 2;
       spot.target.updateMatrixWorld();
     });
-    this.godRayCones.forEach((plane) => {
+    this.godRayCones.forEach((plane, i) => {
       plane.material.uniforms.uTime.value = elapsed;
+      if (aboveSurface) {
+        plane.position.y = SURFACE_HEIGHT + GOD_RAY_HEIGHT / 2;
+        plane.rotation.x = Math.PI + this.godRayConeInitTiltX[i];
+      } else {
+        plane.position.y = SURFACE_HEIGHT - GOD_RAY_HEIGHT / 2;
+        plane.rotation.x = this.godRayConeInitTiltX[i];
+      }
     });
     // nearRayMeshes visibility: hide when camera is above surface (rays come from above)
     const nearRayVisible = !aboveSurface;

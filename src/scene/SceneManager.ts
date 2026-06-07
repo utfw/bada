@@ -182,6 +182,7 @@ export class SceneManager {
     this.whaleShark.update(elapsed, delta);
     // WhaleShark 갱신 직후 위치를 읽어 FishSchool에 주입해야 flee force가 같은 프레임에 반영됨
     this.whaleShark.getWorldPosition(this._sharkWorldPos);
+    this.ocean.setSharkPosition(this._sharkWorldPos);
     this.fishSchool.setSharkPosition(this._sharkWorldPos);
     this.fishSchool.update(elapsed, delta);
     this.lighting.update(elapsed, this.camera);
