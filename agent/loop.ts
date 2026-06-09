@@ -130,6 +130,69 @@ function getChangedFiles(): string[] {
   }
 }
 
+// 렌더링 결과(픽셀)에 영향을 주는 소스 파일. 이 중 하나라도 바뀐 목표가 완료되면
+// 그 시점 대표 스크린샷을 history에 보존해 "시각 변화 마일스톤"을 남긴다.
+const VISUAL_SOURCE_FILES = [
+  "src/scene/Lighting.ts",
+  "src/scene/Ocean.ts",
+  "src/scene/SkyBox.ts",
+  "src/entities/Fish.ts",
+  "src/entities/WhaleShark.ts",
+  "src/utils/constants.ts",
+];
+// 11장 전부가 아니라 변화가 가장 잘 드러나는 대표 프레임만 보존.
+const ARCHIVE_SHOTS = ["screenshot-1.png", "surface-up.png"];
+const HISTORY_DIR = path.join(OBS_DIR, "history");
+
+/**
+ * 시각 관련 소스가 바뀐 채로 목표가 완료됐을 때만 대표 스크린샷을 아카이브한다.
+ * 기준은 출력(픽셀·점수)이 아니라 입력(시각 코드 변경)이라 타이밍 오탐이 없고,
+ * meta.json으로 git 변경 내역과 연결돼 "무엇이 바뀌어 이렇게 됐는지" 추적 가능.
+ */
+function archiveVisualMilestone(
+  changedFiles: string[],
+  goalText: string,
+  commitMsg: string,
+): void {
+  const visualChanged = changedFiles.filter((f) => VISUAL_SOURCE_FILES.includes(f));
+  if (visualChanged.length === 0) return;
+
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  let sha = "nocommit";
+  try {
+    sha = execSync("git rev-parse --short HEAD 2>/dev/null || true", {
+      cwd: ROOT, encoding: "utf-8",
+    }).trim() || "nocommit";
+  } catch { /* sha 없으면 nocommit */ }
+
+  const destDir = path.join(HISTORY_DIR, `${stamp}_${sha}`);
+  fs.mkdirSync(destDir, { recursive: true });
+
+  const savedShots: string[] = [];
+  for (const shot of ARCHIVE_SHOTS) {
+    const srcPath = path.join(OBS_DIR, shot);
+    if (fs.existsSync(srcPath)) {
+      fs.copyFileSync(srcPath, path.join(destDir, shot));
+      savedShots.push(shot);
+    }
+  }
+
+  fs.writeFileSync(
+    path.join(destDir, "meta.json"),
+    JSON.stringify({
+      archivedAt: new Date().toISOString(),
+      commit: sha,
+      goal: goalText,
+      commitMsg,
+      visualFilesChanged: visualChanged,
+      shots: savedShots,
+    }, null, 2),
+    "utf-8",
+  );
+
+  console.log(`  📸 시각 변화 아카이브: ${path.relative(ROOT, destDir)} (${savedShots.length}장, 변경: ${visualChanged.join(", ")})`);
+}
+
 /**
  * 사람(또는 사람 지시로 Claude가) 만든 최근 커밋 oneline 목록.
  * `[agent]` 접미사가 붙은 자동 커밋과 옛 "agent auto-commit (N goals)" 패턴을 제외.
@@ -1338,6 +1401,7 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
       log.save();
       markGoal(goal.lineIndex, "done");
       recordCompletedGoal(goal.text, passedCommitMsg, goalMetrics);
+      archiveVisualMilestone(newlyChanged, goal.text, passedCommitMsg);
       console.log(`\n✓ 완료: ${goal.text}`);
       if (checklistUpdated) {
         console.log(`  (체크리스트가 갱신됐으나 이미 통과 — 다음 목표/실행에서 반영됨)`);
