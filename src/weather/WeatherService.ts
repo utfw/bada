@@ -14,10 +14,10 @@ export interface WeatherData {
 }
 
 const FOG_MAP: Record<WeatherCondition, { density: number; color: number }> = {
-  clear: { density: 0.0033, color: 0x003d6b },
-  cloudy: { density: 0.0066, color: 0x00325a },
-  rain: { density: 0.010, color: 0x002a4d },
-  snow: { density: 0.0083, color: 0x004d7a },
+  clear: { density: 0.0033, color: 0x0b3060 },
+  cloudy: { density: 0.0066, color: 0x083058 },
+  rain: { density: 0.010, color: 0x062850 },
+  snow: { density: 0.0083, color: 0x0a3a6e },
   fog: { density: 0.016, color: 0x003060 },
 };
 

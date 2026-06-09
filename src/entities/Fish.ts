@@ -103,16 +103,16 @@ export class FishSchool {
       const scale = 0.30 + Math.random() * 0.45;
       const { mesh, disposables } = this.createFishMesh(scale);
 
-      // Spawn near this group's initial orbit anchor ±7 units (tighter spread for FOV density)
+      // Spawn near this group's initial orbit anchor ±15 units (wider spread reduces edge clustering)
       const groupPhase = schoolIndex / FISH_SCHOOL_COUNT;
       const anchor = this.orbitPaths[schoolIndex].getPointAt(groupPhase);
       let spawnX = THREE.MathUtils.clamp(
-        anchor.x + (Math.random() - 0.5) * 7,
+        anchor.x + (Math.random() - 0.5) * 30,
         -OCEAN_WIDTH / 2 + 2,
         OCEAN_WIDTH / 2 - 2,
       );
       let spawnZ = THREE.MathUtils.clamp(
-        anchor.z + (Math.random() - 0.5) * 7,
+        anchor.z + (Math.random() - 0.5) * 30,
         -OCEAN_WIDTH / 2 + 2,
         OCEAN_WIDTH / 2 - 2,
       );
@@ -124,7 +124,7 @@ export class FishSchool {
       mesh.position.set(
         spawnX,
         THREE.MathUtils.clamp(
-          anchor.y + (Math.random() - 0.5) * 5,
+          anchor.y + (Math.random() - 0.5) * 8,
           -OCEAN_DEPTH + 2,
           SURFACE_HEIGHT - 3,
         ),

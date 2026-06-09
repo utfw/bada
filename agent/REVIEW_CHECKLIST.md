@@ -188,7 +188,7 @@
 
 - **버블 파티클 크기/알파 상한 검증**: `Ocean.ts`의 `createBubbles()`에서 `sizes[i]` 최댓값(`random * range + min`)이 **0.2 이상**이거나, fragment shader의 기저 알파(`float alpha = X + ring * Y`)에서 **X ≥ 0.2**이면 버블이 고래상어·물고기보다 시각적으로 두드러질 수 있다. Reviewer는 이 두 값을 코드에서 직접 확인하고, `sizes 최대값 > 0.2` 또는 `기저 알파 X > 0.15`이면 **실패** 판정.
 
-- **[코드 검증] `getWorldDirection()` 꼬리-머리 방향 혼동**: `WhaleShark.getWorldDirection()`은 `group`의 로컬 +Z를 월드 좌표로 반환하며, 고래상어 모델에서 로컬 +Z = 꼬리 방향(`tailGroup.position.z = +SHARK_LENGTH/2`)이다. 버블을 꼬리(후방)에 스폰하려면 `sharkPos + sharkFwd * dist`를 사용해야 한다. `sharkPos - sharkFwd * dist`는 머리 앞쪽에 스폰되므로 **실패**. Reviewer는 `Ocean.ts`의 `createBubbles()` 및 `update()` 리스폰 두 위치 모두에서 `_sharkFwd` 오프셋 부호가 `+`인지 확인할 것. 어느 한 곳이라도 `-`이면 실패.
+- **[코드 검증] `getWorldDirection()` 꼬리-머리 방향**: `_sharkFwd` 기본값은 `(0,0,−1)`. `getWorldDirection()` = +Z = **꼬리/후방 방향**. 꼬리 후방(이미 지나온 공간)에 스폰하려면 **`sharkPos + sharkFwd * dist`(`+` 부호)** 를 사용해야 한다. `sharkPos − sharkFwd * dist`(`−` 부호)는 머리 앞쪽에 스폰되므로 **실패**. *(근거: 기본값 `(0,0,−1)`로 `−` 부호 적용 시 `sharkPos.z + dist`가 되어 양의 Z = 머리 방향 편향; screenshot-1~4, whaleshark-front/side/surface-up 5개 이상에서 `-` 부호 → 머리 앞 집중 시각 확인됨.)* Reviewer는 `Ocean.ts`의 `createBubbles()` 및 `update()` 리스폰 두 위치 모두에서 `_sharkFwd` 오프셋 부호가 `+`인지 확인할 것. 어느 한 곳이라도 `−`이면 **실패**.
 
 ---
 
@@ -201,8 +201,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-18) [human] 군집 분산도 내용 간략화. 방향 검증 수정
-- (2026-04-18) [reviewer] §7 추가: CatmullRomCurve3.getPointAt() optional target 미사용 시 루프 내 암시적 Vector3 할당 경고 기준 명시.
 - (2026-04-18) [human] §1 재작성: 코드 부호(add/sub) 기반 방향 판정 삭제. 탑뷰 스냅샷(topview-t1/t2.png) 비교만을 유일한 판정 기준으로 확립. 에이전트가 이론으로 add/sub을 바꾸는 것을 명시적으로 금지.
 - (2026-04-18) [human] §3 보강: 고래상어 지느러미 접합을 코드 수치로 검증하는 기준 추가 — pectoral position.x vs body radius×1.1, dorsal position.y vs body radius×0.75, animateBodyUndulation 웨이브와 지느러미 연동 구조 필수, 반점 스케일 반영 확인. §3-2 재작성: FISH_ORBIT_WEIGHT ≤ BOID_SEPARATION_WEIGHT×0.5 조건 추가, 군집 덩어리 이동 명시적 실패 기준화.
 - (2026-04-18) [reviewer] §1 추가: Fish.ts `lookAt` 타겟 부호 코드 검증 규칙 — `pos.sub(velocity)` 패턴이면 바로 실패 판정 가능(탑뷰 개체가 너무 작아 육안 판별이 어려운 경우의 보완 기준).
@@ -231,3 +229,5 @@
 - (2026-05-25) [human] 갱신 로그 일괄 정리: "n차 검증/동일 수치 재확인/변경 파일 없음" 류의 verification noise 16개 entry 삭제. 갱신 로그는 규칙 변경 기록 전용이며, 검증 결과는 로그에 남기지 않는다는 규칙을 헤더에 명시.
 - (2026-06-04) [human] §3-3 "flee 후 회복 실패"에 범위(scope) 게이트 도입: 이번 목표가 flee/궤도 관련 코드(Fish schoolDefs·flee force·setSharkPosition / WhaleShark 경로 / constants PREDATOR_*·FISH_ORBIT_WEIGHT·BOID_BOUNDARY_MARGIN·BOID_*_WEIGHT)를 수정한 경우에만 REVIEW_FAIL, 미수정 시 pre-existing 이슈로 SUGGESTIONS 강등. 2026-06-03 조명 목표 4회 연속 미완료(목표 무관 §3-3 실패가 매번 차단·retry 예산 유실)에 대한 대응.
 - (2026-06-07) [reviewer] §9 추가: getWorldDirection()이 로컬 +Z(꼬리 방향)를 반환하므로 sharkPos - fwd*dist는 머리 앞에 스폰됨 — 꼬리 후방 스폰은 sharkPos + fwd*dist 사용 필수. createBubbles()·update() 두 위치 부호 동시 검증 기준 명시.
+- (2026-06-07) [reviewer] §9 정정: 위 항목의 부호 기준이 틀림. lookAt(pathPoint−tangent) → Three.js +Z=tangent=진행(머리) 방향이므로 꼬리 후방 스폰은 sharkPos−fwd*dist(−부호), 머리 앞 스폰은 +부호. 검증 기준 반전.
+- (2026-06-09) [reviewer] §9 재정정: 2026-06-07 "정정" 항목이 오류. _sharkFwd 기본값 (0,0,−1) 하에서 `-` 부호 = sharkPos.z+dist = 머리 앞 스폰(5개 스크린샷 시각 확인). `+` 부호가 꼬리 후방. §9 본문 수정 완료.

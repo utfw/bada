@@ -229,12 +229,17 @@
 - [x] `src/utils/constants.ts`의 `OCEAN_COLOR` 또는 `src/scene/Ocean.ts`의 배경 fog 색상을 현재 `0x001a33` 계열에서 `0x003d6b`로 올려 중심부 채도를 높이고, `src/scene/SceneManager.ts`의 `renderer.setClearColor` 값도 동일하게 조정해 화면 전반의 청록 채도를 강화
 - [x] `src/scene/Lighting.ts` 또는 `src/scene/SceneManager.ts`의 ambient/directional light color를 `0x0a2a4a` → `0x0d4a7a`로 올려 중간 밝기 대역 채도를 높이고, Ocean 배경 fog color도 `#071428` → `#0a2255`로 변경해 청록 채도 확보
 - [x] `src/scene/Lighting.ts`의 god ray 생성 함수에서 각 광선 `MeshBasicMaterial.opacity`를 현재 값 대비 1.5~2배(예: 0.08→0.14), 광선 `PlaneGeometry` 폭을 1.2→2.0으로 확대하고, `Math.random()`으로 폭을 ±30% 변조해 자연스러운 산란 연출
-- [ ] `Ocean.ts`의 `createBubbles()` 및 `update()` 리스폰 위치에서 `_sharkFwd` 오프셋을 `sharkPos + fwd * dist`(꼬리 후방)으로 교정 — whaleshark-front/side/screenshot-1~4 전부에서 버블이 머리 앞에 집중 스폰되어 §9 실패 기준에 해당하며 시각 품질 저하 확인됨
-- [ ] `src/scene/Lighting.ts`의 ambient light color를 `#0a1530` → `#0a3a6e`, fog color를 `#071020` → `#0b3060`으로 올려 배경 채도를 청록 계열로 전환
-- [ ] `src/entities/Fish.ts`의 Boids 군집 spawn 범위를 카메라 기준 좌우 ±15 이상으로 분산시켜 단일 물고기가 화면 가장자리를 점유하는 빈도를 줄임
+- [x] `Ocean.ts`의 `createBubbles()` 및 `update()` 리스폰 위치에서 `_sharkFwd` 오프셋을 `sharkPos + fwd * dist`(꼬리 후방)으로 교정 — whaleshark-front/side/screenshot-1~4 전부에서 버블이 머리 앞에 집중 스폰되어 §9 실패 기준에 해당하며 시각 품질 저하 확인됨
+- [x] `src/scene/Lighting.ts`의 ambient light color를 `#0a1530` → `#0a3a6e`, fog color를 `#071020` → `#0b3060`으로 올려 배경 채도를 청록 계열로 전환
+- [x] `src/entities/Fish.ts`의 Boids 군집 spawn 범위를 카메라 기준 좌우 ±15 이상으로 분산시켜 단일 물고기가 화면 가장자리를 점유하는 빈도를 줄임
 - [ ] `src/scene/Lighting.ts`의 god ray 생성부에서 광선 수를 6→10으로 늘리고 각 줄기의 opacity를 `0.06~0.14` 범위 랜덤으로 설정, width를 `0.015~0.04` 범위로 불균일하게 적용해 자연스러운 산란 느낌을 강화
-- [ ] `src/scene/Ocean.ts` 또는 `src/scene/SceneManager.ts`의 배경색/fog 설정에서 `THREE.FogExp2` color를 `#0a4a7a` → `#0d6b9e`로 올리고, ambient light intensity를 `0.4→0.6`으로 높여 중간 채도 청록 영역을 화면 전반으로 확대
 - [ ] `src/entities/WhaleShark.ts` — 꼬리 버블 파티클 생성 위치를 현재 `tail tip` 기준에서 **몸체 뒤쪽 -0.5~-1.0 단위** 오프셋으로 이동시키고, 동시 활성 파티클 수를 현재 대비 **40% 감소**시켜 머리 실루엣 가림을 해소할 것
-- [ ] `src/scene/Lighting.ts` — ambient light 색상을 `#0a78aa`→`#1ec0e0`으로, intensity를 현재값 대비 1.4배 상향하고, directional light color를 `#4dd9f0`으로 설정해 배경 전체 채도를 끌어올릴 것
-- [ ] `src/scene/Ocean.ts` — god ray 빌보드 메시의 `opacity`를 현재 추정값(~0.08)에서 0.18~0.22로 높이고, 광선 폭(`scaleX`)을 1.5배 확장하여 줄기가 육안으로 뚜렷하게 보이도록 조정할 것
 - [ ] `src/entities/WhaleShark.ts` — surface-up 카메라 각도(Y > 0) 감지 시 고래상어 경로 반경을 현재보다 1.5배 크게 늘려 카메라 근접 시 화면을 과점유하지 않도록 할 것
+- [ ] `src/scene/Lighting.ts` — `ambientLight` 강도를 현재 값(추정 0.3~0.4)에서 **0.6**으로, `directionalLight` color를 `#1ec8e8`(채도 높은 청록)으로 변경해 수중 중간층 밝기·채도를 끌어올릴 것
+- [ ] `src/scene/Lighting.ts` — God Ray 줄기의 불투명도(opacity/alpha) 값을 현재 대비 **1.5×** 증가시키거나 줄기 폭(geometry width)을 0.3→0.5로 넓혀 광선 가시성을 개선할 것
+- [ ] **채도 향상** — `src/scene/Lighting.ts`의 ambient/directional light color를 `0x0a2a4a` → `0x0a5080` 수준으로 높이고, `src/scene/Ocean.ts`의 배경 fog 색상을 `#0d1f35` → `#0a4060`으로 올려 하단 심해도 청록 채도를 유지할 것. `fogColor` 또는 `scene.background` 값 조정.
+- [ ] **God Ray 품질** — `src/scene/Lighting.ts` 또는 god ray 렌더링 코드에서 광선 스프라이트/플레인의 `opacity`를 현재 추정값(~0.15)에서 0.08~0.10으로 낮추고 `width`를 2배 넓혀 부드러운 산란광 느낌으로 교체할 것; 줄기 수를 6~8개 → 3~4개로 줄이면 자연스러움 증가.
+- [ ] WhaleShark 카메라 가시성 - Observer의 시간순 스크린샷 4장 중 최소 1장에서 고래상어의 몸통이 화면 내에 보여야 함
+- [ ] Fish school별 독립 orbit path 분리 - 각 school을 씬의 다른 위치/깊이에 배치
+- [ ] FishSchool 단일 orbitPath 공유 시 씬 단조로움 및 궤도 중심 분산
+- [ ] FISH_ORBIT_WEIGHT ≤ BOID_SEPARATION_WEIGHT×0.5 조건 추가 및 군집 덩어리 이동 명시적 실패 기준화
