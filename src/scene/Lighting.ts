@@ -19,9 +19,9 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x0a3a6e,
-    ambientIntensity: 0.80,
-    sunColor: 0x60c8ff,
+    ambientColor: 0x0a5a8e,
+    ambientIntensity: 0.60,
+    sunColor: 0x1ec8e8,
     sunIntensity: 3.2,
     godRayIntensity: 3.0,
   },
@@ -71,13 +71,13 @@ export class Lighting {
   private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
-    this.ambientLight = new THREE.AmbientLight(0x0a3a6e, 0.80);
+    this.ambientLight = new THREE.AmbientLight(0x0a5a8e, 0.60);
     scene.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x0a3a6e, 1.0);
+    this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x0a5a8e, 1.0);
     scene.add(this.hemisphereLight);
 
-    this.sunLight = new THREE.DirectionalLight(0x60c8ff, 2.8);
+    this.sunLight = new THREE.DirectionalLight(0x1ec8e8, 2.8);
     this.sunLight.position.set(5, SURFACE_HEIGHT + 10, 3);
     this.sunLight.target.position.set(0, -SURFACE_HEIGHT, 0);
     scene.add(this.sunLight);
@@ -143,7 +143,7 @@ export class Lighting {
       this.godRaySpots.push(spot);
       this.godRayBaseXZ.push({ x, z });
 
-      const baseOpacity = 0.06 + Math.random() * 0.08;
+      const baseOpacity = 0.08 + Math.random() * 0.02;
       this.godRayConeBaseOpacity.push(baseOpacity);
 
       const planeMat = new THREE.ShaderMaterial({
@@ -161,7 +161,7 @@ export class Lighting {
         side: THREE.DoubleSide,
       });
 
-      const rayWidth = 0.015 + Math.random() * 0.025;
+      const rayWidth = 0.06 + Math.random() * 0.06;
       const planeGeo = new THREE.PlaneGeometry(rayWidth, GOD_RAY_HEIGHT);
       const plane = new THREE.Mesh(planeGeo, planeMat);
       plane.position.set(x, SURFACE_HEIGHT - GOD_RAY_HEIGHT / 2, z);
@@ -185,14 +185,14 @@ export class Lighting {
       }
     `;
 
-    this.nearRayGeo = new THREE.PlaneGeometry(0.30, 12);
-    for (let i = 0; i < 14; i++) {
+    this.nearRayGeo = new THREE.PlaneGeometry(0.60, 12);
+    for (let i = 0; i < 6; i++) {
       const mat = new THREE.ShaderMaterial({
         vertexShader,
         fragmentShader: nearRayFragmentShader,
         uniforms: {
           uColor: { value: new THREE.Color(0x88ddff) },
-          uMaxOpacity: { value: 0.14 },
+          uMaxOpacity: { value: 0.09 },
         },
         transparent: true,
         blending: THREE.AdditiveBlending,
@@ -201,7 +201,7 @@ export class Lighting {
       });
       const mesh = new THREE.Mesh(this.nearRayGeo, mat);
       mesh.position.set(
-        (i / 14 * 2 - 1) * 3,
+        (i / 6 * 2 - 1) * 3,
         0,
         Math.random() * 6 - 3,
       );
