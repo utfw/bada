@@ -181,7 +181,7 @@ export class SceneManager {
     // console.log(delta)
     this.controls.update(delta);
     this.ocean.update(elapsed, delta);
-    this.whaleShark.update(elapsed, delta);
+    this.whaleShark.update(elapsed, delta, this.camera.position.y);
     // WhaleShark 갱신 직후 위치를 읽어 FishSchool에 주입해야 flee force가 같은 프레임에 반영됨
     this.whaleShark.getWorldPosition(this._sharkWorldPos);
     this.whaleShark.getWorldDirection(this._sharkWorldFwd);

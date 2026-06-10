@@ -66,6 +66,7 @@ export class Lighting {
   private godRayBaseXZ: { x: number; z: number }[] = [];
   private godRayCones: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
   private godRayConeInitTiltX: number[] = [];
+  private godRayConeBaseOpacity: number[] = [];
   private nearRayMeshes: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
   private nearRayGeo!: THREE.PlaneGeometry;
 
@@ -142,6 +143,9 @@ export class Lighting {
       this.godRaySpots.push(spot);
       this.godRayBaseXZ.push({ x, z });
 
+      const baseOpacity = 0.06 + Math.random() * 0.08;
+      this.godRayConeBaseOpacity.push(baseOpacity);
+
       const planeMat = new THREE.ShaderMaterial({
         vertexShader,
         fragmentShader,
@@ -149,7 +153,7 @@ export class Lighting {
           uTime: { value: 0 },
           uPhase: { value: (i / GOD_RAY_COUNT) * Math.PI * 2 },
           uColor: { value: rayColor },
-          uMaxOpacity: { value: GOD_RAY_MAX_OPACITY },
+          uMaxOpacity: { value: baseOpacity },
         },
         transparent: true,
         blending: THREE.AdditiveBlending,
@@ -157,7 +161,7 @@ export class Lighting {
         side: THREE.DoubleSide,
       });
 
-      const rayWidth = GOD_RAY_PLANE_WIDTH * (1 + (Math.random() - 0.5) * 0.6);
+      const rayWidth = 0.015 + Math.random() * 0.025;
       const planeGeo = new THREE.PlaneGeometry(rayWidth, GOD_RAY_HEIGHT);
       const plane = new THREE.Mesh(planeGeo, planeMat);
       plane.position.set(x, SURFACE_HEIGHT - GOD_RAY_HEIGHT / 2, z);
@@ -256,8 +260,8 @@ export class Lighting {
     this.godRaySpots.forEach((s) => (s.intensity = preset.godRayIntensity));
 
     const opacityScale = preset.godRayIntensity / WEATHER_PRESETS.clear.godRayIntensity;
-    this.godRayCones.forEach((plane) => {
-      plane.material.uniforms.uMaxOpacity.value = GOD_RAY_MAX_OPACITY * opacityScale;
+    this.godRayCones.forEach((plane, i) => {
+      plane.material.uniforms.uMaxOpacity.value = this.godRayConeBaseOpacity[i] * opacityScale;
     });
   }
 

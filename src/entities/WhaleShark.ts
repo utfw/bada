@@ -41,6 +41,8 @@ export class WhaleShark {
 
   // Swim animation — closed loop path, always swimming
   private swimPath!: THREE.CatmullRomCurve3;
+  private expandedSwimPath!: THREE.CatmullRomCurve3;
+  private activeSwimPath!: THREE.CatmullRomCurve3;
   private pathProgress = 0;
   private speedBoostRemaining = 0;
   // Pre-allocated Vector3s to avoid per-frame GC pressure
@@ -475,30 +477,34 @@ export class WhaleShark {
     // 카메라 위치: (0,0,0), FOV=75°, 전방=-Z
     // z=-18에서 |x|≤13 이면 시야 내 (tan(37.5°)≈0.77 → 18*0.77≈14)
     // 후방(+Z) 포인트 3개 추가로 완전한 타원 궤도: 카메라 앞+뒤 모두 통과
-    this.swimPath = new THREE.CatmullRomCurve3(
-      [
-        new THREE.Vector3(1.3, -3, -15.6),    // ✓ 정면 PASS 1
-        new THREE.Vector3(2.0, -3.3, -14.3),  // 전방 우측 체류 연장
-        new THREE.Vector3(2.6, -3.2, -13.7),  // 전방 통과 체류 연장
-        new THREE.Vector3(3.9, -3.5, -12.4),  // 우측 이탈 완충
-        new THREE.Vector3(5.2, -4, -10.4),    // 우측 완만한 이탈
-        new THREE.Vector3(8.5, -5, -5.2),     // 오른쪽-앞
-        new THREE.Vector3(9.1, -5, 0),        // 오른쪽 측면
-        new THREE.Vector3(7.8, -5, 2.6),      // 우측 후방 전환점
-        new THREE.Vector3(0, -3, 3.9),        // 카메라 정후방 중심
-        new THREE.Vector3(-7.8, -5, 2.6),     // 좌측 후방 전환점
-        new THREE.Vector3(-9.1, -4, 0),       // 왼쪽 측면
-        new THREE.Vector3(-8.5, -5, -5.2),    // 왼쪽-앞
-        new THREE.Vector3(-5.2, -4, -10.4),   // 좌측 완만한 이탈
-        new THREE.Vector3(-3.9, -3.5, -12.4), // 좌측 이탈 완충
-        new THREE.Vector3(-2.6, -3.5, -13.7), // 전방 좌측 체류 연장
-        new THREE.Vector3(-2.0, -3.8, -14.3), // 전방 좌측 체류 연장
-        new THREE.Vector3(-1.3, -4, -15.6),   // ✓ 정면 PASS 2
-      ],
-      true,
-      'catmullrom',
-      0.5,
+    const basePoints = [
+      new THREE.Vector3(1.3, -3, -15.6),
+      new THREE.Vector3(2.0, -3.3, -14.3),
+      new THREE.Vector3(2.6, -3.2, -13.7),
+      new THREE.Vector3(3.9, -3.5, -12.4),
+      new THREE.Vector3(5.2, -4, -10.4),
+      new THREE.Vector3(8.5, -5, -5.2),
+      new THREE.Vector3(9.1, -5, 0),
+      new THREE.Vector3(7.8, -5, 2.6),
+      new THREE.Vector3(0, -3, 3.9),
+      new THREE.Vector3(-7.8, -5, 2.6),
+      new THREE.Vector3(-9.1, -4, 0),
+      new THREE.Vector3(-8.5, -5, -5.2),
+      new THREE.Vector3(-5.2, -4, -10.4),
+      new THREE.Vector3(-3.9, -3.5, -12.4),
+      new THREE.Vector3(-2.6, -3.5, -13.7),
+      new THREE.Vector3(-2.0, -3.8, -14.3),
+      new THREE.Vector3(-1.3, -4, -15.6),
+    ];
+
+    this.swimPath = new THREE.CatmullRomCurve3(basePoints, true, 'catmullrom', 0.5);
+
+    const expandedPoints = basePoints.map(
+      (p) => new THREE.Vector3(p.x * 1.5, p.y, p.z * 1.5),
     );
+    this.expandedSwimPath = new THREE.CatmullRomCurve3(expandedPoints, true, 'catmullrom', 0.5);
+
+    this.activeSwimPath = this.swimPath;
   }
 
   /** 탭 시 잠시 속도를 높여 사용자 근처를 빠르게 지나감. */
@@ -506,7 +512,9 @@ export class WhaleShark {
     this.speedBoostRemaining = 4.0;
   }
 
-  update(elapsed: number, delta: number): void {
+  update(elapsed: number, delta: number, cameraY = 0): void {
+    this.activeSwimPath = cameraY > 0 ? this.expandedSwimPath : this.swimPath;
+
     const boost = this.speedBoostRemaining > 0 ? 2.8 : 1.0;
     if (this.speedBoostRemaining > 0) {
       this.speedBoostRemaining = Math.max(0, this.speedBoostRemaining - delta);
@@ -514,11 +522,11 @@ export class WhaleShark {
 
     this.pathProgress = (this.pathProgress + delta * SHARK_SWIM_SPEED * 0.02 * boost) % 1;
 
-    this.swimPath.getPointAt(this.pathProgress, this._pathPoint);
+    this.activeSwimPath.getPointAt(this.pathProgress, this._pathPoint);
     this.group.position.copy(this._pathPoint);
 
     // 진행 방향으로 몸체를 향하게 — lookAt은 -Z를 타겟으로 정렬하므로 tangent를 더함
-    this.swimPath.getTangentAt(this.pathProgress, this._pathTangent);
+    this.activeSwimPath.getTangentAt(this.pathProgress, this._pathTangent);
     this._lookTarget.copy(this._pathPoint).sub(this._pathTangent);
     this.group.lookAt(this._lookTarget);
 

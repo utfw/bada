@@ -156,7 +156,7 @@ export class Ocean {
 
     for (let i = 0; i < BUBBLE_COUNT; i++) {
       const sign = Math.random() < 0.5 ? -1 : 1;
-      const tailDist = 1.5 + Math.random() * 2.0;
+      const tailDist = 0.5 + Math.random() * 0.5;
       positions[i * 3]     = this._sharkPos.x + this._sharkFwd.x * tailDist + (Math.random() - 0.5) * 4.0;
       positions[i * 3 + 1] = this._sharkPos.y + Math.random() * 2 - 0.5;
       positions[i * 3 + 2] = this._sharkPos.z + this._sharkFwd.z * tailDist;
@@ -231,7 +231,7 @@ export class Ocean {
 
       if (y > SURFACE_HEIGHT) {
         y = this._sharkPos.y + Math.random() * 2 - 0.5;
-        const tailDist = 1.5 + Math.random() * 2.0;
+        const tailDist = 0.5 + Math.random() * 0.5;
         x = this._sharkPos.x + this._sharkFwd.x * tailDist + (Math.random() - 0.5) * 4.0;
         z = this._sharkPos.z + this._sharkFwd.z * tailDist;
       }
