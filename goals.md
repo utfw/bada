@@ -238,12 +238,13 @@
 - [x] `src/scene/Lighting.ts` — `ambientLight` 강도를 현재 값(추정 0.3~0.4)에서 **0.6**으로, `directionalLight` color를 `#1ec8e8`(채도 높은 청록)으로 변경해 수중 중간층 밝기·채도를 끌어올릴 것
 - [x] **채도 향상** — `src/scene/Lighting.ts`의 ambient/directional light color를 `0x0a2a4a` → `0x0a5080` 수준으로 높이고, `src/scene/Ocean.ts`의 배경 fog 색상을 `#0d1f35` → `#0a4060`으로 올려 하단 심해도 청록 채도를 유지할 것. `fogColor` 또는 `scene.background` 값 조정.
 - [x] **God Ray 품질** — `src/scene/Lighting.ts` 또는 god ray 렌더링 코드에서 광선 스프라이트/플레인의 `opacity`를 현재 추정값(~0.15)에서 0.08~0.10으로 낮추고 `width`를 2배 넓혀 부드러운 산란광 느낌으로 교체할 것; 줄기 수를 6~8개 → 3~4개로 줄이면 자연스러움 증가.
-- [ ] WhaleShark 카메라 가시성 - Observer의 시간순 스크린샷 4장 중 최소 1장에서 고래상어의 몸통이 화면 내에 보여야 함
-- [ ] Fish school별 독립 orbit path 분리 - 각 school을 씬의 다른 위치/깊이에 배치
-- [ ] FishSchool 단일 orbitPath 공유 시 씬 단조로움 및 궤도 중심 분산
+- [x] WhaleShark 카메라 가시성 - Observer의 시간순 스크린샷 4장 중 최소 1장에서 고래상어의 몸통이 화면 내에 보여야 함
+- [x] Fish school별 독립 orbit path 분리 - 각 school을 씬의 다른 위치/깊이에 배치
+- [x] FishSchool 단일 orbitPath 공유 시 씬 단조로움 및 궤도 중심 분산
 - [ ] FISH_ORBIT_WEIGHT ≤ BOID_SEPARATION_WEIGHT×0.5 조건 추가 및 군집 덩어리 이동 명시적 실패 기준화
 - [ ] `src/scene/Lighting.ts`의 ambient light color를 `#0d2a4a` → `#0a5a7a`(채도 +40%)로, directional light color를 `#1a4a6a` → `#0099cc`로 올려 배경 전체의 청록 채도를 강화; fog color도 동일 계열로 상향 조정
-- [ ] `src/entities/WhaleShark.ts`의 버블 파티클 spawn 위치 오프셋을 코 끝 단일 점에서 몸통 길이 전체(x: -bodyLength*0.5 ~ +0.2)로 분산시키고, 동시 표시 최대 개수를 현재 대비 50% 감소시켜 주체 실루엣이 드러나도록 수정
 - [ ] `src/entities/Fish.ts`의 boids spawn 범위를 카메라 기준 반경 내로 제한해 screenshot-2처럼 물고기가 화면 밖으로 빠지는 구도 공백을 방지
 - [ ] `src/scene/Lighting.ts` 또는 god ray 셰이더에서 ray 스프라이트의 `opacity` 최솟값을 현재 추정 `0.05~0.08` → `0.18`로, `blending`을 `AdditiveBlending`으로 명시 설정해 광선 가시성 강화
-- [ ] `src/entities/WhaleShark.ts`의 버블 파티클 spawn offset을 머리 정중앙(`x:0`)에서 측면(`x: ±0.3`)으로 분산시켜 얼굴 가림 현상 완화
+- [ ] `src/scene/Ocean.ts` — `addGodRays()` 함수(또는 ShaderMaterial 기반 스프라이트 평면)를 추가하여 수면 위에서 Y축 하향으로 3~5개의 반투명 흰색 광선 스프라이트(opacity 0.04~0.08, width 0.3~0.8, height 8~14)를 배치하고 `update()`에서 sin 기반 미세 흔들림 적용
+- [ ] `src/scene/Lighting.ts`의 directional light 방향을 수면 위 수직(y=-1)으로 설정하고, `src/scene/Ocean.ts`에 반투명 SpriteMaterial(blending: AdditiveBlending, opacity 0.15~0.25) 기반 god ray 스프라이트 4~6개를 y축 +2~+8 구간에 배치해 광선 효과 추가
+- [ ] `src/scene/Ocean.ts` 또는 `src/scene/Lighting.ts`에 God Ray 패스 추가 — `THREE.Mesh`(PlaneGeometry, ShaderMaterial)로 수직 광선 4~6개를 수면 위치(y=0 기준 +2~+8)에서 아래로 투사, opacity 0.08~0.15, 색상 `#7dd6f5`, SceneManager의 `update(delta)`에서 `time * 0.3` 속도로 U좌표 스크롤

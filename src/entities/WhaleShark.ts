@@ -472,29 +472,23 @@ export class WhaleShark {
    * closed=true로 시작점과 끝점이 매끄럽게 이어져 순환 유영이 가능.
    */
   private generateSwimPath(): void {
-    // 경로 제어점 중 최소 2개를 카메라 전방 시야(-Z, |x|<15) 안에 배치해
-    // 고래상어가 반드시 카메라 시야권을 통과하도록 한다.
-    // 카메라 위치: (0,0,0), FOV=75°, 전방=-Z
-    // z=-18에서 |x|≤13 이면 시야 내 (tan(37.5°)≈0.77 → 18*0.77≈14)
-    // 후방(+Z) 포인트 3개 추가로 완전한 타원 궤도: 카메라 앞+뒤 모두 통과
+    // 카메라(원점) 기준 시야 계산:
+    //   - FOV 75° vertical, 모바일 portrait aspect ≈ 0.56
+    //   - horizontal half-FOV ≈ 23.3° → z=-8 에서 |x|≤3.4 이면 시야 중심권
+    // 경로를 z=-9~+4 로 압축하고 front arc(z<-4)에서 |x|≤3.5 유지.
     const basePoints = [
-      new THREE.Vector3(1.3, -3, -15.6),
-      new THREE.Vector3(2.0, -3.3, -14.3),
-      new THREE.Vector3(2.6, -3.2, -13.7),
-      new THREE.Vector3(3.9, -3.5, -12.4),
-      new THREE.Vector3(5.2, -4, -10.4),
-      new THREE.Vector3(8.5, -5, -5.2),
-      new THREE.Vector3(9.1, -5, 0),
-      new THREE.Vector3(7.8, -5, 2.6),
-      new THREE.Vector3(0, -3, 3.9),
-      new THREE.Vector3(-7.8, -5, 2.6),
-      new THREE.Vector3(-9.1, -4, 0),
-      new THREE.Vector3(-8.5, -5, -5.2),
-      new THREE.Vector3(-5.2, -4, -10.4),
-      new THREE.Vector3(-3.9, -3.5, -12.4),
-      new THREE.Vector3(-2.6, -3.5, -13.7),
-      new THREE.Vector3(-2.0, -3.8, -14.3),
-      new THREE.Vector3(-1.3, -4, -15.6),
+      new THREE.Vector3(0, -3, -9),
+      new THREE.Vector3(1.5, -3.3, -8.5),
+      new THREE.Vector3(3.0, -3.8, -7),
+      new THREE.Vector3(4.5, -4.2, -3),
+      new THREE.Vector3(5.5, -4.5, 1),
+      new THREE.Vector3(3.5, -4, 3.5),
+      new THREE.Vector3(0, -3.5, 4.5),
+      new THREE.Vector3(-3.5, -4, 3.5),
+      new THREE.Vector3(-5.5, -4.5, 1),
+      new THREE.Vector3(-4.5, -4.2, -3),
+      new THREE.Vector3(-3.0, -3.8, -7),
+      new THREE.Vector3(-1.5, -3.3, -8.5),
     ];
 
     this.swimPath = new THREE.CatmullRomCurve3(basePoints, true, 'catmullrom', 0.5);

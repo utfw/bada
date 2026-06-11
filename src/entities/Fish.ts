@@ -70,11 +70,11 @@ export class FishSchool {
     // Centers spread across all 4 quadrants at varied depths for a rich 360° scene.
     // [cx, cz, yBase, semi_a, semi_b, yWave]
     this.schoolDefs = [
-      [-12, -12,  -4,  8,  6, 2.5],  // 0: left-front,  shallow (max_dist≈16.9+8=24.9, within r30)
-      [ 12,   8,  -8, 10,  8, 2.0],  // 1: right-rear,  mid (max_dist≈14.4+10=24.4, within r30)
-      [-10,  10,  -3, 12,  7, 1.5],  // 2: left-rear,   mid (max_dist≈14.1+12=26.1, within r30)
-      [ -7,   8,  -6, 13, 15, 2.0],  // 3: left-back,   mid (max_dist≈10.6+15=25.6, within r30)
-      [-10,  -7,  -3, 12, 10, 3.0],  // 4: left-front,  near surface (max_dist≈12.2+12=24.2, within r30)
+      [-12, -12,  -4,  8,  6, 2.5],  // 0: Q3(-,-) shallow  max_xz: 20×18 ✓
+      [  9,   8,  -8,  8,  7, 2.0],  // 1: Q1(+,+) mid      max_xz: 17×15 ✓
+      [-10,  14,  -3,  8,  6, 1.5],  // 2: Q2(-,+) mid      max_xz: 18×20 ✓
+      [ 10, -12,  -7,  9,  8, 2.5],  // 3: Q4(+,-) deep     max_xz: 19×20 ✓
+      [  8,  -8,  -3, 10,  8, 3.0],  // 4: Q4(+,-) surface  max_xz: 18×16 ✓
     ];
     this.orbitPaths = this.schoolDefs.map((def) => this.buildOrbitPath(def));
 
