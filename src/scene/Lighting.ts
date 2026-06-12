@@ -78,8 +78,8 @@ export class Lighting {
     scene.add(this.hemisphereLight);
 
     this.sunLight = new THREE.DirectionalLight(0x00bbdd, 2.8);
-    this.sunLight.position.set(5, SURFACE_HEIGHT + 10, 3);
-    this.sunLight.target.position.set(0, -SURFACE_HEIGHT, 0);
+    this.sunLight.position.set(0, SURFACE_HEIGHT + 10, 0);
+    this.sunLight.target.position.set(0, -1, 0);
     scene.add(this.sunLight);
     scene.add(this.sunLight.target);
 
@@ -143,7 +143,7 @@ export class Lighting {
       this.godRaySpots.push(spot);
       this.godRayBaseXZ.push({ x, z });
 
-      const baseOpacity = 0.08 + Math.random() * 0.02;
+      const baseOpacity = 0.18 + Math.random() * 0.02;
       this.godRayConeBaseOpacity.push(baseOpacity);
 
       const planeMat = new THREE.ShaderMaterial({
@@ -192,7 +192,7 @@ export class Lighting {
         fragmentShader: nearRayFragmentShader,
         uniforms: {
           uColor: { value: new THREE.Color(0x88ddff) },
-          uMaxOpacity: { value: 0.09 },
+          uMaxOpacity: { value: 0.18 },
         },
         transparent: true,
         blending: THREE.AdditiveBlending,
@@ -214,13 +214,8 @@ export class Lighting {
 
   update(elapsed: number, camera: THREE.Camera): void {
     const aboveSurface = camera.position.y > SURFACE_HEIGHT;
-    if (aboveSurface) {
-      this.sunLight.position.y = SURFACE_HEIGHT + 10;
-      this.sunLight.target.position.y = 0;
-    } else {
-      this.sunLight.position.y = SURFACE_HEIGHT + 10;
-      this.sunLight.target.position.y = -SURFACE_HEIGHT;
-    }
+    this.sunLight.position.set(0, SURFACE_HEIGHT + 10, 0);
+    this.sunLight.target.position.set(0, -1, 0);
     this.sunLight.target.updateMatrixWorld();
     this.godRaySpots.forEach((spot, i) => {
       if (aboveSurface) {

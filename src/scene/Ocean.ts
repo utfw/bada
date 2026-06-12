@@ -8,17 +8,27 @@ import {
 } from '../utils/constants';
 import { WeatherData } from '../weather/WeatherService';
 
+interface GodRay {
+  mesh: THREE.Sprite;
+  baseOpacity: number;
+}
+
 export class Ocean {
   private surface!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   private debrisParticles!: THREE.Points;
   private bubbleParticles!: THREE.Points;
   private _sharkPos = new THREE.Vector3();
   private _sharkFwd = new THREE.Vector3(0, 0, -1);
+  private godRays: GodRay[] = [];
+  private godRayTime: number = 0;
+  private _scene!: THREE.Scene;
 
   constructor(scene: THREE.Scene) {
+    this._scene = scene;
     this.createSurface(scene);
     this.createDebris(scene);
     this.createBubbles(scene);
+    this.addGodRays(scene);
   }
 
   private createSurface(scene: THREE.Scene): void {
@@ -149,6 +159,31 @@ export class Ocean {
     this._sharkFwd.copy(fwd).normalize();
   }
 
+  private addGodRays(scene: THREE.Scene): void {
+    const configs: { x: number; z: number; scaleX: number; scaleY: number; opacity: number; yOffset: number }[] = [
+      { x:  1.2, z: -0.8, scaleX: 0.5, scaleY: 7.0, opacity: 0.20, yOffset: 5 },
+      { x: -1.5, z:  1.0, scaleX: 0.7, scaleY: 6.5, opacity: 0.15, yOffset: 3 },
+      { x:  0.5, z:  1.8, scaleX: 0.4, scaleY: 8.0, opacity: 0.22, yOffset: 6 },
+      { x: -1.0, z: -1.5, scaleX: 0.6, scaleY: 6.0, opacity: 0.18, yOffset: 4 },
+      { x:  1.8, z:  0.3, scaleX: 0.8, scaleY: 7.5, opacity: 0.25, yOffset: 7 },
+    ];
+
+    for (const cfg of configs) {
+      const material = new THREE.SpriteMaterial({
+        color: 0x88ddff,
+        blending: THREE.AdditiveBlending,
+        transparent: true,
+        opacity: cfg.opacity,
+        depthWrite: false,
+      });
+      const sprite = new THREE.Sprite(material);
+      sprite.scale.set(cfg.scaleX, cfg.scaleY, 1);
+      sprite.position.set(cfg.x, SURFACE_HEIGHT + cfg.yOffset - cfg.scaleY / 2, cfg.z);
+      scene.add(sprite);
+      this.godRays.push({ mesh: sprite, baseOpacity: cfg.opacity });
+    }
+  }
+
   private createBubbles(scene: THREE.Scene): void {
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(BUBBLE_COUNT * 3);
@@ -197,8 +232,14 @@ export class Ocean {
     scene.add(this.bubbleParticles);
   }
 
-  update(elapsed: number, _delta: number): void {
+  update(elapsed: number, delta: number): void {
     this.surface.material.uniforms.uTime.value = elapsed;
+
+    // Animate god rays
+    this.godRayTime += delta;
+    this.godRays.forEach((ray, i) => {
+      ray.mesh.material.opacity = ray.baseOpacity + Math.sin(this.godRayTime * 0.5 + i) * 0.04;
+    });
 
     // Animate debris
     const debrisPos = this.debrisParticles.geometry.attributes
@@ -291,5 +332,11 @@ export class Ocean {
 
     this.bubbleParticles.geometry.dispose();
     (this.bubbleParticles.material as THREE.Material).dispose();
+
+    this.godRays.forEach(({ mesh }) => {
+      mesh.material.dispose();
+      this._scene.remove(mesh);
+    });
+    this.godRays = [];
   }
 }

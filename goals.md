@@ -244,12 +244,15 @@
 - [x] FISH_ORBIT_WEIGHT ≤ BOID_SEPARATION_WEIGHT×0.5 조건 추가 및 군집 덩어리 이동 명시적 실패 기준화
 - [x] `src/scene/Lighting.ts`의 ambient light color를 `#0d2a4a` → `#0a5a7a`(채도 +40%)로, directional light color를 `#1a4a6a` → `#0099cc`로 올려 배경 전체의 청록 채도를 강화; fog color도 동일 계열로 상향 조정
 - [x] `src/entities/Fish.ts`의 boids spawn 범위를 카메라 기준 반경 내로 제한해 screenshot-2처럼 물고기가 화면 밖으로 빠지는 구도 공백을 방지
-- [ ] `src/scene/Lighting.ts` 또는 god ray 셰이더에서 ray 스프라이트의 `opacity` 최솟값을 현재 추정 `0.05~0.08` → `0.18`로, `blending`을 `AdditiveBlending`으로 명시 설정해 광선 가시성 강화
-- [ ] `src/scene/Ocean.ts` — `addGodRays()` 함수(또는 ShaderMaterial 기반 스프라이트 평면)를 추가하여 수면 위에서 Y축 하향으로 3~5개의 반투명 흰색 광선 스프라이트(opacity 0.04~0.08, width 0.3~0.8, height 8~14)를 배치하고 `update()`에서 sin 기반 미세 흔들림 적용
-- [ ] `src/scene/Lighting.ts`의 directional light 방향을 수면 위 수직(y=-1)으로 설정하고, `src/scene/Ocean.ts`에 반투명 SpriteMaterial(blending: AdditiveBlending, opacity 0.15~0.25) 기반 god ray 스프라이트 4~6개를 y축 +2~+8 구간에 배치해 광선 효과 추가
+- [x] `src/scene/Lighting.ts` 또는 god ray 셰이더에서 ray 스프라이트의 `opacity` 최솟값을 현재 추정 `0.05~0.08` → `0.18`로, `blending`을 `AdditiveBlending`으로 명시 설정해 광선 가시성 강화
+- [x] `src/scene/Ocean.ts` — `addGodRays()` 함수(또는 ShaderMaterial 기반 스프라이트 평면)를 추가하여 수면 위에서 Y축 하향으로 3~5개의 반투명 흰색 광선 스프라이트(opacity 0.04~0.08, width 0.3~0.8, height 8~14)를 배치하고 `update()`에서 sin 기반 미세 흔들림 적용
+- [x] `src/scene/Lighting.ts`의 directional light 방향을 수면 위 수직(y=-1)으로 설정하고, `src/scene/Ocean.ts`에 반투명 SpriteMaterial(blending: AdditiveBlending, opacity 0.15~0.25) 기반 god ray 스프라이트 4~6개를 y축 +2~+8 구간에 배치해 광선 효과 추가
 - [ ] `src/scene/Ocean.ts` 또는 `src/scene/Lighting.ts`에 God Ray 패스 추가 — `THREE.Mesh`(PlaneGeometry, ShaderMaterial)로 수직 광선 4~6개를 수면 위치(y=0 기준 +2~+8)에서 아래로 투사, opacity 0.08~0.15, 색상 `#7dd6f5`, SceneManager의 `update(delta)`에서 `time * 0.3` 속도로 U좌표 스크롤
 - [ ] `src/scene/Ocean.ts` — god ray 효과 추가: `THREE.Mesh` 기반 반투명 수직 원뿔(cone) 스프라이트를 수면 y좌표 기준 아래로 6~12개 배치, `MeshBasicMaterial({ color: 0x88ddff, transparent: true, opacity: 0.06~0.10, depthWrite: false })`로 설정하고 `update(delta)`에서 opacity를 `0.05 + 0.03 * sin(time * 0.4)` 주기로 흔들어 자연스러운 빛 산란 연출
 - [ ] `src/scene/Lighting.ts`의 ambient/directional light 색상을 `#0a78aa`→`#1ec0e0` 범위로 올리고, `src/scene/Ocean.ts`에 수직 방향 SpotLight(angle 0.15, color `#7de8ff`, intensity 2.0)를 수면 위 y=30 위치에 추가해 god ray 효과를 시뮬레이션할 것
 - [ ] **배경 채도 강화** — `src/scene/Lighting.ts`의 `scene.background` 또는 fog 색상을 현재 값에서 `0x0a3d6b`(상단) → `0x061828`(하단)으로 교체하고, `src/utils/constants.ts`에 있는 ambient/directional light color를 `0x1a8fc0`(채도 높은 청록)으로 올려 배경 전체의 채도를 끌어올릴 것
 - [ ] **Topview 관찰 섹션**이 제공되지 않았습니다. 이는 Reviewer가 무효이며 자동으로 REVIEW_FAIL로 처리됩니다.
 - [ ] **WhaleShark의 몸통이 모든 스크린샷에서 보이지 않습니다.** 카메라 경로나 스케일이 문제가 있는 것으로 보입니다. Observer가 확인해주세요.
+- [ ] `src/scene/Lighting.ts`의 ambient/directional light 색상을 `0x0a78aa`→`0x1ec0e0`으로 높이고, `src/scene/Ocean.ts`에 SpotLight(color `0x88ddff`, angle 0.15, penumbra 0.8)를 수면 위(y=10)에 3~5개 배치해 수직 광선 줄기를 생성할 것
+- [ ] `src/scene/Ocean.ts`의 배경 fog 또는 배경색을 상단 `0x0d4f7c` → 하단 `0x020d1a`로 명도 차이를 넓혀 수직 그라디언트를 강화하고, ambient light intensity를 현재 값 대비 1.4× 증가시켜 전체 채도를 올릴 것
+- [ ] `src/scene/Ocean.ts` (또는 `SceneManager.ts` fog 설정) — `scene.fog` 색상을 현재 #0a1a30 계열에서 #0a4a7a~#0a5a9a 수준으로 밝고 채도 높은 청록 계열로 교체하고, `ambientLight` intensity를 0.1~0.2 증가시켜 배경 전체 채도를 끌어올릴 것

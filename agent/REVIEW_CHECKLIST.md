@@ -176,6 +176,8 @@
 
 - **[시각 검증] 갓레이 가시성**: `screenshot-1~4.png` 중 최소 1장에서 수면에서 내려오는 밝은 쐐기형 광선 줄기가 보여야 한다. 4장 모두에서 광선이 보이지 않으면 opacity·위치·각도 문제이므로 **실패 징후** — SUGGESTIONS에 갓레이 opacity/위치 개선 추가.
 
+- **[코드 검증] Ocean.ts god ray 수직 방향 필수**: `Ocean.ts`의 `addGodRays()`에서 PlaneGeometry 메시의 `rotation.x`가 `Math.PI/2`이면 **수평 평면(XZ)**이 되어 height(8~14) 단위가 Z축으로 전개된다 — 측면 카메라에서 edge-on으로만 보이므로 광선 기둥 효과가 없다. 목표("Y축 하향 광선 스프라이트")를 달성하려면 `|rotation.x| < 0.5`(기본 수직 방향)이어야 하며 height가 Y축으로 전개되어야 한다. `rotation.x = Math.PI/2` 설정이면 **실패**.
+
 - **[코드 검증] 수면 애니메이션**: `Ocean.ts`의 수면 material(또는 ShaderMaterial) 에 `time` 또는 `elapsed` 기반 uniform 갱신 코드가 `update()` 또는 `animate()` 내에 있어야 한다. 정적 material(갱신 없음)이면 수면이 고정된 평면으로 보이므로 **실패**.
 
 - **[시각 검증] surface-up.png 수면 투시**: Observer가 아래에서 위를 바라보는 `surface-up.png`를 촬영한다(카메라 y=-10, target y=15). 이 이미지에서 수면이 단일 불투명 면이거나 빛의 변화가 전혀 없으면 투명도·굴절 미구현을 의미한다 — SUGGESTIONS에 수면 투명도 또는 굴절 효과 개선 추가.
@@ -203,7 +205,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-18) [human] §3 보강: 고래상어 지느러미 접합을 코드 수치로 검증하는 기준 추가 — pectoral position.x vs body radius×1.1, dorsal position.y vs body radius×0.75, animateBodyUndulation 웨이브와 지느러미 연동 구조 필수, 반점 스케일 반영 확인. §3-2 재작성: FISH_ORBIT_WEIGHT ≤ BOID_SEPARATION_WEIGHT×0.5 조건 추가, 군집 덩어리 이동 명시적 실패 기준화.
 - (2026-04-18) [reviewer] §1 추가: Fish.ts `lookAt` 타겟 부호 코드 검증 규칙 — `pos.sub(velocity)` 패턴이면 바로 실패 판정 가능(탑뷰 개체가 너무 작아 육안 판별이 어려운 경우의 보완 기준).
 - (2026-04-18) [human] §1 재수정: Reviewer가 추가한 코드 부호 검증 규칙 삭제. lookAt 수식(add/sub, rotation.y) 수정을 Planner·Implementer·Reviewer 모두에게 ⛔ 절대 금지로 격상. Reviewer 프롬프트와 Planner 프롬프트에도 동일 금지 추가.
 - (2026-04-19) [reviewer] §7 보강: getTangentAt(t) 도 target 인자 생략 시 루프 내 암시적 Vector3 할당 발생 — getPointAt과 동일 경고 기준 적용 명시.
@@ -233,3 +234,4 @@
 - (2026-06-07) [reviewer] §9 정정: 위 항목의 부호 기준이 틀림. lookAt(pathPoint−tangent) → Three.js +Z=tangent=진행(머리) 방향이므로 꼬리 후방 스폰은 sharkPos−fwd*dist(−부호), 머리 앞 스폰은 +부호. 검증 기준 반전.
 - (2026-06-09) [reviewer] §9 재정정: 2026-06-07 "정정" 항목이 오류. _sharkFwd 기본값 (0,0,−1) 하에서 `-` 부호 = sharkPos.z+dist = 머리 앞 스폰(5개 스크린샷 시각 확인). `+` 부호가 꼬리 후방. §9 본문 수정 완료.
 - (2026-06-12) [reviewer] §3-3 추가: _schoolPeakFlee 원소가 PREDATOR_FLEE_INTENSITY_NORM×0.1 미만이면 해당 학교 fleeIntensity≈1.0 고정 → effectiveOrbitWeight=FISH_ORBIT_WEIGHT×0.3 → 궤도 복귀 불능. schoolPeakFlee[2]=0.02 설정으로 school 2 recoveryTimeSec=-1 확인.
+- (2026-06-12) [reviewer] §10 추가: Ocean.ts addGodRays()에서 rotation.x=Math.PI/2는 PlaneGeometry를 수평으로 눕혀 측면 카메라에서 광선 기둥이 보이지 않음 — god ray 수직 방향 필수(|rotation.x|<0.5) 항목 추가.
