@@ -241,10 +241,15 @@
 - [x] WhaleShark 카메라 가시성 - Observer의 시간순 스크린샷 4장 중 최소 1장에서 고래상어의 몸통이 화면 내에 보여야 함
 - [x] Fish school별 독립 orbit path 분리 - 각 school을 씬의 다른 위치/깊이에 배치
 - [x] FishSchool 단일 orbitPath 공유 시 씬 단조로움 및 궤도 중심 분산
-- [ ] FISH_ORBIT_WEIGHT ≤ BOID_SEPARATION_WEIGHT×0.5 조건 추가 및 군집 덩어리 이동 명시적 실패 기준화
-- [ ] `src/scene/Lighting.ts`의 ambient light color를 `#0d2a4a` → `#0a5a7a`(채도 +40%)로, directional light color를 `#1a4a6a` → `#0099cc`로 올려 배경 전체의 청록 채도를 강화; fog color도 동일 계열로 상향 조정
-- [ ] `src/entities/Fish.ts`의 boids spawn 범위를 카메라 기준 반경 내로 제한해 screenshot-2처럼 물고기가 화면 밖으로 빠지는 구도 공백을 방지
+- [x] FISH_ORBIT_WEIGHT ≤ BOID_SEPARATION_WEIGHT×0.5 조건 추가 및 군집 덩어리 이동 명시적 실패 기준화
+- [x] `src/scene/Lighting.ts`의 ambient light color를 `#0d2a4a` → `#0a5a7a`(채도 +40%)로, directional light color를 `#1a4a6a` → `#0099cc`로 올려 배경 전체의 청록 채도를 강화; fog color도 동일 계열로 상향 조정
+- [x] `src/entities/Fish.ts`의 boids spawn 범위를 카메라 기준 반경 내로 제한해 screenshot-2처럼 물고기가 화면 밖으로 빠지는 구도 공백을 방지
 - [ ] `src/scene/Lighting.ts` 또는 god ray 셰이더에서 ray 스프라이트의 `opacity` 최솟값을 현재 추정 `0.05~0.08` → `0.18`로, `blending`을 `AdditiveBlending`으로 명시 설정해 광선 가시성 강화
 - [ ] `src/scene/Ocean.ts` — `addGodRays()` 함수(또는 ShaderMaterial 기반 스프라이트 평면)를 추가하여 수면 위에서 Y축 하향으로 3~5개의 반투명 흰색 광선 스프라이트(opacity 0.04~0.08, width 0.3~0.8, height 8~14)를 배치하고 `update()`에서 sin 기반 미세 흔들림 적용
 - [ ] `src/scene/Lighting.ts`의 directional light 방향을 수면 위 수직(y=-1)으로 설정하고, `src/scene/Ocean.ts`에 반투명 SpriteMaterial(blending: AdditiveBlending, opacity 0.15~0.25) 기반 god ray 스프라이트 4~6개를 y축 +2~+8 구간에 배치해 광선 효과 추가
 - [ ] `src/scene/Ocean.ts` 또는 `src/scene/Lighting.ts`에 God Ray 패스 추가 — `THREE.Mesh`(PlaneGeometry, ShaderMaterial)로 수직 광선 4~6개를 수면 위치(y=0 기준 +2~+8)에서 아래로 투사, opacity 0.08~0.15, 색상 `#7dd6f5`, SceneManager의 `update(delta)`에서 `time * 0.3` 속도로 U좌표 스크롤
+- [ ] `src/scene/Ocean.ts` — god ray 효과 추가: `THREE.Mesh` 기반 반투명 수직 원뿔(cone) 스프라이트를 수면 y좌표 기준 아래로 6~12개 배치, `MeshBasicMaterial({ color: 0x88ddff, transparent: true, opacity: 0.06~0.10, depthWrite: false })`로 설정하고 `update(delta)`에서 opacity를 `0.05 + 0.03 * sin(time * 0.4)` 주기로 흔들어 자연스러운 빛 산란 연출
+- [ ] `src/scene/Lighting.ts`의 ambient/directional light 색상을 `#0a78aa`→`#1ec0e0` 범위로 올리고, `src/scene/Ocean.ts`에 수직 방향 SpotLight(angle 0.15, color `#7de8ff`, intensity 2.0)를 수면 위 y=30 위치에 추가해 god ray 효과를 시뮬레이션할 것
+- [ ] **배경 채도 강화** — `src/scene/Lighting.ts`의 `scene.background` 또는 fog 색상을 현재 값에서 `0x0a3d6b`(상단) → `0x061828`(하단)으로 교체하고, `src/utils/constants.ts`에 있는 ambient/directional light color를 `0x1a8fc0`(채도 높은 청록)으로 올려 배경 전체의 채도를 끌어올릴 것
+- [ ] **Topview 관찰 섹션**이 제공되지 않았습니다. 이는 Reviewer가 무효이며 자동으로 REVIEW_FAIL로 처리됩니다.
+- [ ] **WhaleShark의 몸통이 모든 스크린샷에서 보이지 않습니다.** 카메라 경로나 스케일이 문제가 있는 것으로 보입니다. Observer가 확인해주세요.

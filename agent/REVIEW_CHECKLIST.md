@@ -110,6 +110,8 @@
 
 - **[Observer 시계열 검증] 최소 거리 정합성**: `predatorMetrics[*].minDistance`가 0.5 미만이면 shark와 fish 메시가 물리적으로 겹친 것 — 시각 품질 저하 및 향후 충돌 처리 추가 시 NaN 가능. Reviewer는 해당 학교를 SUGGESTIONS에 "fish 카메라 컬링 또는 fish-shark 최소 거리 클램프" 항목으로 기록.
 
+- **[코드 검증] _schoolPeakFlee 최솟값**: `Fish.ts`의 `this._schoolPeakFlee` 배열 각 원소가 `PREDATOR_FLEE_INTENSITY_NORM × 0.1`(기본값 기준 0.4) 미만이면, 해당 학교는 아주 미세한 flee force(`avgFleeMag ≥ threshold`)에도 `fleeIntensity=1.0`에 고정되어 `effectiveOrbitWeight = FISH_ORBIT_WEIGHT × 0.3`으로 감소 — 궤도 복귀 불능의 직접 원인이므로 **실패**. Reviewer는 배열 원소별 값과 `PREDATOR_FLEE_INTENSITY_NORM`을 비교해 0.1 미만인 항목이 있으면 지적 사항에 포함.
+
 - **[코드 검증] 학교 정의 보존**: `getDebugState()`가 반환하는 `schoolDefs` 배열은 학교당 6원소 튜플([cx, cz, yBase, semi_a, semi_b, yWave])이어야 한다. `updateOrbitDef()` 사용 후 길이/원소 수가 깨지면 Observer 직렬화가 실패하므로 **실패**.
 
 ## 3-4. 진화 루프 정합성 (Evolver)
@@ -201,7 +203,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-18) [human] §1 재작성: 코드 부호(add/sub) 기반 방향 판정 삭제. 탑뷰 스냅샷(topview-t1/t2.png) 비교만을 유일한 판정 기준으로 확립. 에이전트가 이론으로 add/sub을 바꾸는 것을 명시적으로 금지.
 - (2026-04-18) [human] §3 보강: 고래상어 지느러미 접합을 코드 수치로 검증하는 기준 추가 — pectoral position.x vs body radius×1.1, dorsal position.y vs body radius×0.75, animateBodyUndulation 웨이브와 지느러미 연동 구조 필수, 반점 스케일 반영 확인. §3-2 재작성: FISH_ORBIT_WEIGHT ≤ BOID_SEPARATION_WEIGHT×0.5 조건 추가, 군집 덩어리 이동 명시적 실패 기준화.
 - (2026-04-18) [reviewer] §1 추가: Fish.ts `lookAt` 타겟 부호 코드 검증 규칙 — `pos.sub(velocity)` 패턴이면 바로 실패 판정 가능(탑뷰 개체가 너무 작아 육안 판별이 어려운 경우의 보완 기준).
 - (2026-04-18) [human] §1 재수정: Reviewer가 추가한 코드 부호 검증 규칙 삭제. lookAt 수식(add/sub, rotation.y) 수정을 Planner·Implementer·Reviewer 모두에게 ⛔ 절대 금지로 격상. Reviewer 프롬프트와 Planner 프롬프트에도 동일 금지 추가.
@@ -231,3 +232,4 @@
 - (2026-06-07) [reviewer] §9 추가: getWorldDirection()이 로컬 +Z(꼬리 방향)를 반환하므로 sharkPos - fwd*dist는 머리 앞에 스폰됨 — 꼬리 후방 스폰은 sharkPos + fwd*dist 사용 필수. createBubbles()·update() 두 위치 부호 동시 검증 기준 명시.
 - (2026-06-07) [reviewer] §9 정정: 위 항목의 부호 기준이 틀림. lookAt(pathPoint−tangent) → Three.js +Z=tangent=진행(머리) 방향이므로 꼬리 후방 스폰은 sharkPos−fwd*dist(−부호), 머리 앞 스폰은 +부호. 검증 기준 반전.
 - (2026-06-09) [reviewer] §9 재정정: 2026-06-07 "정정" 항목이 오류. _sharkFwd 기본값 (0,0,−1) 하에서 `-` 부호 = sharkPos.z+dist = 머리 앞 스폰(5개 스크린샷 시각 확인). `+` 부호가 꼬리 후방. §9 본문 수정 완료.
+- (2026-06-12) [reviewer] §3-3 추가: _schoolPeakFlee 원소가 PREDATOR_FLEE_INTENSITY_NORM×0.1 미만이면 해당 학교 fleeIntensity≈1.0 고정 → effectiveOrbitWeight=FISH_ORBIT_WEIGHT×0.3 → 궤도 복귀 불능. schoolPeakFlee[2]=0.02 설정으로 school 2 recoveryTimeSec=-1 확인.

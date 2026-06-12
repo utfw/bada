@@ -16,6 +16,7 @@ import {
   BOID_BOUNDARY_FORCE,
   FISH_ORBIT_SPEED,
   FISH_ORBIT_WEIGHT,
+  FISH_ORBIT_RECOVERY_BOOST,
   PREDATOR_FLEE_RANGE,
   PREDATOR_FLEE_WEIGHT,
   PREDATOR_FLEE_INTENSITY_NORM,
@@ -70,18 +71,18 @@ export class FishSchool {
     // Centers spread across all 4 quadrants at varied depths for a rich 360° scene.
     // [cx, cz, yBase, semi_a, semi_b, yWave]
     this.schoolDefs = [
-      [-12, -12,  -4,  8,  6, 2.5],  // 0: Q3(-,-) shallow  max_xz: 20×18 ✓
-      [  9,   8,  -8,  8,  7, 2.0],  // 1: Q1(+,+) mid      max_xz: 17×15 ✓
-      [-10,  14,  -3,  8,  6, 1.5],  // 2: Q2(-,+) mid      max_xz: 18×20 ✓
-      [ 10, -12,  -7,  9,  8, 2.5],  // 3: Q4(+,-) deep     max_xz: 19×20 ✓
-      [  8,  -8,  -3, 10,  8, 3.0],  // 4: Q4(+,-) surface  max_xz: 18×16 ✓
+      [ -7,  -7,  -4,  5,  5, 2.5],  // 0: Q3(-,-) shallow  max_xz: 12×12 ✓
+      [  6,   6,  -8,  6,  5, 2.0],  // 1: Q1(+,+) mid      max_xz: 12×11 ✓
+      [ -6,   8,  -3,  6,  5, 1.5],  // 2: Q2(-,+) mid      max_xz: 12×13 ✓
+      [  7,  -7,  -7,  6,  6, 2.5],  // 3: Q4(+,-) deep     max_xz: 13×13 ✓
+      [  5,  -5,  -3,  7,  6, 3.0],  // 4: Q4(+,-) surface  max_xz: 12×11 ✓
     ];
     this.orbitPaths = this.schoolDefs.map((def) => this.buildOrbitPath(def));
 
     this._schoolPeakFlee = [
       PREDATOR_FLEE_INTENSITY_NORM, // 0
       PREDATOR_FLEE_INTENSITY_NORM, // 1
-      0.02,                         // 2: lower threshold → reaches max intensity sooner
+      PREDATOR_FLEE_INTENSITY_NORM, // 2
       PREDATOR_FLEE_INTENSITY_NORM, // 3
       PREDATOR_FLEE_INTENSITY_NORM, // 4
     ];
@@ -103,28 +104,28 @@ export class FishSchool {
       const scale = 0.30 + Math.random() * 0.45;
       const { mesh, disposables } = this.createFishMesh(scale);
 
-      // Spawn near this group's initial orbit anchor ±15 units (wider spread reduces edge clustering)
+      // Spawn near this group's initial orbit anchor ±5 units (tight spread keeps fish in camera view)
       const groupPhase = schoolIndex / FISH_SCHOOL_COUNT;
       const anchor = this.orbitPaths[schoolIndex].getPointAt(groupPhase);
       let spawnX = THREE.MathUtils.clamp(
-        anchor.x + (Math.random() - 0.5) * 30,
+        anchor.x + (Math.random() - 0.5) * 10,
         -OCEAN_WIDTH / 2 + 2,
         OCEAN_WIDTH / 2 - 2,
       );
       let spawnZ = THREE.MathUtils.clamp(
-        anchor.z + (Math.random() - 0.5) * 30,
+        anchor.z + (Math.random() - 0.5) * 10,
         -OCEAN_WIDTH / 2 + 2,
         OCEAN_WIDTH / 2 - 2,
       );
       const xzLen = Math.sqrt(spawnX * spawnX + spawnZ * spawnZ);
-      if (xzLen > 30) {
-        spawnX *= 30 / xzLen;
-        spawnZ *= 30 / xzLen;
+      if (xzLen > 15) {
+        spawnX *= 15 / xzLen;
+        spawnZ *= 15 / xzLen;
       }
       mesh.position.set(
         spawnX,
         THREE.MathUtils.clamp(
-          anchor.y + (Math.random() - 0.5) * 8,
+          anchor.y + (Math.random() - 0.5) * 5,
           -OCEAN_DEPTH + 2,
           SURFACE_HEIGHT - 3,
         ),
@@ -407,9 +408,11 @@ export class FishSchool {
       // Spring formula: force = FISH_ORBIT_WEIGHT × orbitDist, so a fish 14 units away
       // receives 11.2 units of pull-back while fish near orbit (≤3u) receive ≤2.4.
       this._orbitTarget.subVectors(orbitAnchor, pos);
-      // Scale orbit pull down during active flee so shark presence doesn't trap fish on-orbit.
-      // As fleeIntensity decays to 0, orbit weight returns to full, pulling fish back naturally.
-      const effectiveOrbitWeight = FISH_ORBIT_WEIGHT * (1 - this._fleeIntensity[si] * 0.7);
+      // During flee: suppress orbit so fish can scatter. After flee: boost orbit to recover.
+      // At fleeIntensity=0 → weight = FISH_ORBIT_WEIGHT * FISH_ORBIT_RECOVERY_BOOST (1.5).
+      // At fleeIntensity=1 → weight = FISH_ORBIT_WEIGHT * 0.3 (0.15). Smooth in between.
+      const fleeI = this._fleeIntensity[si];
+      const effectiveOrbitWeight = FISH_ORBIT_WEIGHT * (FISH_ORBIT_RECOVERY_BOOST - (FISH_ORBIT_RECOVERY_BOOST - 0.3) * fleeI);
       accel.addScaledVector(this._orbitTarget, effectiveOrbitWeight);
 
       // Soft boundary steering

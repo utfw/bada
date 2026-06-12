@@ -9,7 +9,7 @@ export const CAMERA_NEAR = 0.1;
 export const CAMERA_FAR = 200;
 export const MAX_PIXEL_RATIO = 2;
 export const DEFAULT_FOG_DENSITY = 0.016;
-export const DEFAULT_FOG_COLOR = 0x0a4a7a;
+export const DEFAULT_FOG_COLOR = 0x0a5a8e;
 export const TONE_MAPPING_EXPOSURE = 1.4;
 
 // ── Weather API ────────────────────────────────────
@@ -62,7 +62,9 @@ export const INTRA_SCHOOL_AVOID_WEIGHT = 14.0;
 export const BOID_BOUNDARY_MARGIN = 8;
 export const BOID_BOUNDARY_FORCE = 5;
 export const FISH_ORBIT_SPEED = 0.06;
+// invariant: FISH_ORBIT_WEIGHT ≤ BOID_SEPARATION_WEIGHT * 0.5 (0.5 ≤ 4.0) — do not raise
 export const FISH_ORBIT_WEIGHT = 0.5;
+// applied as orbit-weight multiplier when fleeIntensity=0; see Fish.ts effectiveOrbitWeight
 export const FISH_ORBIT_RECOVERY_BOOST = 3.0;
 // ── Predator avoidance (Boids ↔ WhaleShark) ──────
 // flee range = shark가 학교 중심에서 이 거리 안에 들어오면 flee force가 적용되는 임계
