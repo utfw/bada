@@ -112,7 +112,7 @@ export class WhaleShark {
     this.originalPositions.set(latheGeo.attributes.position.array);
 
     // sRGB → linear 변환: 셰이더 내부는 리니어 색 공간
-    const bellyLinear = new THREE.Color(0xbecdd8).convertSRGBToLinear();
+    const bellyLinear = new THREE.Color(0xd8eaf5).convertSRGBToLinear();
     const dorsalLinear = new THREE.Color(0x3a4e63).convertSRGBToLinear();
 
     const gradientData = new Uint8Array([64, 128, 255]);
@@ -125,7 +125,7 @@ export class WhaleShark {
     const material = new THREE.MeshToonMaterial({
       color: 0x3a4e63,
       emissive: new THREE.Color(0x1a2e3a),
-      emissiveIntensity: 0.18,
+      emissiveIntensity: 0.28,
       vertexColors: false,
       gradientMap,
     });

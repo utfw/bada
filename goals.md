@@ -250,12 +250,14 @@
 - [x] `src/scene/Ocean.ts` 또는 `src/scene/Lighting.ts`에 God Ray 패스 추가 — `THREE.Mesh`(PlaneGeometry, ShaderMaterial)로 수직 광선 4~6개를 수면 위치(y=0 기준 +2~+8)에서 아래로 투사, opacity 0.08~0.15, 색상 `#7dd6f5`, SceneManager의 `update(delta)`에서 `time * 0.3` 속도로 U좌표 스크롤
 - [x] `src/scene/Ocean.ts` — god ray 효과 추가: `THREE.Mesh` 기반 반투명 수직 원뿔(cone) 스프라이트를 수면 y좌표 기준 아래로 6~12개 배치, `MeshBasicMaterial({ color: 0x88ddff, transparent: true, opacity: 0.06~0.10, depthWrite: false })`로 설정하고 `update(delta)`에서 opacity를 `0.05 + 0.03 * sin(time * 0.4)` 주기로 흔들어 자연스러운 빛 산란 연출
 - [x] `src/scene/Lighting.ts`의 ambient/directional light 색상을 `#0a78aa`→`#1ec0e0` 범위로 올리고, `src/scene/Ocean.ts`에 수직 방향 SpotLight(angle 0.15, color `#7de8ff`, intensity 2.0)를 수면 위 y=30 위치에 추가해 god ray 효과를 시뮬레이션할 것
-- [ ] **배경 채도 강화** — `src/scene/Lighting.ts`의 `scene.background` 또는 fog 색상을 현재 값에서 `0x0a3d6b`(상단) → `0x061828`(하단)으로 교체하고, `src/utils/constants.ts`에 있는 ambient/directional light color를 `0x1a8fc0`(채도 높은 청록)으로 올려 배경 전체의 채도를 끌어올릴 것
-- [ ] **Topview 관찰 섹션**이 제공되지 않았습니다. 이는 Reviewer가 무효이며 자동으로 REVIEW_FAIL로 처리됩니다.
-- [ ] **WhaleShark의 몸통이 모든 스크린샷에서 보이지 않습니다.** 카메라 경로나 스케일이 문제가 있는 것으로 보입니다. Observer가 확인해주세요.
+- [x] **배경 채도 강화** — `src/scene/Lighting.ts`의 `scene.background` 또는 fog 색상을 현재 값에서 `0x0a3d6b`(상단) → `0x061828`(하단)으로 교체하고, `src/utils/constants.ts`에 있는 ambient/directional light color를 `0x1a8fc0`(채도 높은 청록)으로 올려 배경 전체의 채도를 끌어올릴 것
+- [x] **Topview 관찰 섹션**이 제공되지 않았습니다. 이는 Reviewer가 무효이며 자동으로 REVIEW_FAIL로 처리됩니다.
+- [x] **WhaleShark의 몸통이 모든 스크린샷에서 보이지 않습니다.** 카메라 경로나 스케일이 문제가 있는 것으로 보입니다. Observer가 확인해주세요.
 - [ ] `src/scene/Lighting.ts`의 ambient/directional light 색상을 `0x0a78aa`→`0x1ec0e0`으로 높이고, `src/scene/Ocean.ts`에 SpotLight(color `0x88ddff`, angle 0.15, penumbra 0.8)를 수면 위(y=10)에 3~5개 배치해 수직 광선 줄기를 생성할 것
 - [ ] `src/scene/Ocean.ts`의 배경 fog 또는 배경색을 상단 `0x0d4f7c` → 하단 `0x020d1a`로 명도 차이를 넓혀 수직 그라디언트를 강화하고, ambient light intensity를 현재 값 대비 1.4× 증가시켜 전체 채도를 올릴 것
 - [ ] `src/scene/Ocean.ts` (또는 `SceneManager.ts` fog 설정) — `scene.fog` 색상을 현재 #0a1a30 계열에서 #0a4a7a~#0a5a9a 수준으로 밝고 채도 높은 청록 계열로 교체하고, `ambientLight` intensity를 0.1~0.2 증가시켜 배경 전체 채도를 끌어올릴 것
 - [ ] `src/scene/Ocean.ts` 또는 갓레이 관련 함수에서 광선 Mesh의 `opacity`를 현재 값에서 `0.18~0.25`로, `width` 스케일을 `1.5~2×` 증가시켜 줄기 가시성을 높일 것
 - [ ] `src/entities/WhaleShark.ts`의 버블/파티클 생성 로직에서 스폰 오프셋을 고래상어 몸체 중심이 아닌 입 앞 `z+1.5` 위치로 이동하고, 최대 파티클 수를 현재 대비 60% 이하로 제한해 주체 가림 현상 제거
 - [ ] `src/scene/SceneManager.ts`의 카메라 기본 `lookAt` 또는 고래상어 경로 높이 오프셋을 `y +0.5~1.0` 조정해 고래상어가 화면 수직 중앙 근처에 위치하도록 구도 개선
+- [ ] `src/scene/Lighting.ts`의 god ray SpotLight `intensity`를 현재 값에서 1.5~2.0 배 높이고, `src/scene/Ocean.ts`의 god ray sprite `material.opacity`를 0.12→0.25로 올려 줄기가 식별 가능하게 할 것; 동시에 sprite 폭(`scale.x`)을 0.3 미만으로 유지해 과노출 기둥 방지
+- [ ] `src/scene/Lighting.ts`의 god ray SpotLight/스프라이트 opacity 또는 intensity 값을 확인하고, `SpriteMaterial` opacity를 0.35→0.6, SpotLight intensity를 현재값 × 1.5로 상향 조정; god ray 스프라이트가 카메라 frustum 내에 위치하는지 position.y 범위도 검증
