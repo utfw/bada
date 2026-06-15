@@ -19,9 +19,9 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x0a6a9a,
+    ambientColor: 0x1ec0e0,
     ambientIntensity: 0.60,
-    sunColor: 0x00bbdd,
+    sunColor: 0x1ec0e0,
     sunIntensity: 3.2,
     godRayIntensity: 3.0,
   },
@@ -71,13 +71,13 @@ export class Lighting {
   private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
-    this.ambientLight = new THREE.AmbientLight(0x0a6a9a, 0.60);
+    this.ambientLight = new THREE.AmbientLight(0x1ec0e0, 0.60);
     scene.add(this.ambientLight);
 
     this.hemisphereLight = new THREE.HemisphereLight(0x00aacc, 0x0a6a9a, 1.0);
     scene.add(this.hemisphereLight);
 
-    this.sunLight = new THREE.DirectionalLight(0x00bbdd, 2.8);
+    this.sunLight = new THREE.DirectionalLight(0x1ec0e0, 2.8);
     this.sunLight.position.set(0, SURFACE_HEIGHT + 10, 0);
     this.sunLight.target.position.set(0, -1, 0);
     scene.add(this.sunLight);

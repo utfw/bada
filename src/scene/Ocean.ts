@@ -9,7 +9,7 @@ import {
 import { WeatherData } from '../weather/WeatherService';
 
 interface GodRay {
-  mesh: THREE.Sprite;
+  mesh: THREE.Mesh<THREE.ConeGeometry, THREE.MeshBasicMaterial>;
   baseOpacity: number;
 }
 
@@ -21,6 +21,7 @@ export class Ocean {
   private _sharkFwd = new THREE.Vector3(0, 0, -1);
   private godRays: GodRay[] = [];
   private godRayTime: number = 0;
+  private godRaySpot!: THREE.SpotLight;
   private _scene!: THREE.Scene;
 
   constructor(scene: THREE.Scene) {
@@ -160,28 +161,41 @@ export class Ocean {
   }
 
   private addGodRays(scene: THREE.Scene): void {
-    const configs: { x: number; z: number; scaleX: number; scaleY: number; opacity: number; yOffset: number }[] = [
-      { x:  1.2, z: -0.8, scaleX: 0.5, scaleY: 7.0, opacity: 0.20, yOffset: 5 },
-      { x: -1.5, z:  1.0, scaleX: 0.7, scaleY: 6.5, opacity: 0.15, yOffset: 3 },
-      { x:  0.5, z:  1.8, scaleX: 0.4, scaleY: 8.0, opacity: 0.22, yOffset: 6 },
-      { x: -1.0, z: -1.5, scaleX: 0.6, scaleY: 6.0, opacity: 0.18, yOffset: 4 },
-      { x:  1.8, z:  0.3, scaleX: 0.8, scaleY: 7.5, opacity: 0.25, yOffset: 7 },
+    // 8 cones with apex at surface, extending downward into the water
+    const configs: { x: number; z: number; radius: number; height: number; opacity: number }[] = [
+      { x:  1.2, z: -0.8, radius: 0.7, height: 12, opacity: 0.09 },
+      { x: -1.5, z:  1.0, radius: 0.6, height: 10, opacity: 0.07 },
+      { x:  0.5, z:  1.8, radius: 0.9, height: 13, opacity: 0.08 },
+      { x: -1.0, z: -1.5, radius: 0.7, height: 11, opacity: 0.06 },
+      { x:  1.8, z:  0.3, radius: 0.8, height: 12, opacity: 0.09 },
+      { x: -2.5, z: -0.5, radius: 0.6, height: 10, opacity: 0.07 },
+      { x:  0.0, z: -2.0, radius: 1.0, height: 14, opacity: 0.08 },
+      { x:  2.2, z:  1.5, radius: 0.7, height: 11, opacity: 0.06 },
     ];
 
     for (const cfg of configs) {
-      const material = new THREE.SpriteMaterial({
+      // ConeGeometry: apex at +Y, base at -Y. Place center at SURFACE_HEIGHT - height/2
+      // so apex sits at SURFACE_HEIGHT (water surface) and cone extends downward.
+      const geometry = new THREE.ConeGeometry(cfg.radius, cfg.height, 6);
+      const material = new THREE.MeshBasicMaterial({
         color: 0x88ddff,
-        blending: THREE.AdditiveBlending,
         transparent: true,
         opacity: cfg.opacity,
         depthWrite: false,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
       });
-      const sprite = new THREE.Sprite(material);
-      sprite.scale.set(cfg.scaleX, cfg.scaleY, 1);
-      sprite.position.set(cfg.x, SURFACE_HEIGHT + cfg.yOffset - cfg.scaleY / 2, cfg.z);
-      scene.add(sprite);
-      this.godRays.push({ mesh: sprite, baseOpacity: cfg.opacity });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(cfg.x, SURFACE_HEIGHT - cfg.height / 2, cfg.z);
+      scene.add(mesh);
+      this.godRays.push({ mesh, baseOpacity: cfg.opacity });
     }
+
+    this.godRaySpot = new THREE.SpotLight(0x7de8ff, 2.0, 80, 0.15, 0.6, 1.5);
+    this.godRaySpot.position.set(0, 30, 0);
+    this.godRaySpot.target.position.set(0, -10, 0);
+    scene.add(this.godRaySpot);
+    scene.add(this.godRaySpot.target);
   }
 
   private createBubbles(scene: THREE.Scene): void {
@@ -235,10 +249,10 @@ export class Ocean {
   update(elapsed: number, delta: number): void {
     this.surface.material.uniforms.uTime.value = elapsed;
 
-    // Animate god rays
+    // Animate god rays — opacity pulsed per-ray with phase offset
     this.godRayTime += delta;
-    this.godRays.forEach((ray, i) => {
-      ray.mesh.material.opacity = ray.baseOpacity + Math.sin(this.godRayTime * 0.5 + i) * 0.04;
+    this.godRays.forEach((ray, idx) => {
+      ray.mesh.material.opacity = 0.05 + 0.03 * Math.sin(this.godRayTime * 0.4 + idx * 0.8);
     });
 
     // Animate debris
@@ -334,9 +348,14 @@ export class Ocean {
     (this.bubbleParticles.material as THREE.Material).dispose();
 
     this.godRays.forEach(({ mesh }) => {
+      mesh.geometry.dispose();
       mesh.material.dispose();
       this._scene.remove(mesh);
     });
     this.godRays = [];
+
+    this._scene.remove(this.godRaySpot);
+    this._scene.remove(this.godRaySpot.target);
+    this.godRaySpot.dispose();
   }
 }

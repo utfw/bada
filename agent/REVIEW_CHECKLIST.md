@@ -172,7 +172,7 @@
 
 ## 10. 조명·수면 시각 품질 (Lighting & Ocean Surface)
 
-- **[코드 검증] 갓레이(God Ray) 존재**: `Lighting.ts`의 constructor에 `GOD_RAY_COUNT` 개수만큼 PlaneGeometry 기반 볼류메트릭 광선 메시(`THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>`)가 생성되고 씬에 add 되어야 한다. 재질은 ShaderMaterial(animated opacity)을 사용하며 MeshBasicMaterial이 아님. `GOD_RAY_MAX_OPACITY`가 0이거나 geometry를 씬에 추가하지 않으면 **실패**. SpotLight target은 `scene.add(spot.target)` 필수.
+- **[코드 검증] 갓레이(God Ray) 존재**: `Ocean.ts`의 `addGodRays()` 또는 `Lighting.ts`의 constructor에 6~8개의 볼류메트릭 광선 메시가 생성되고 씬에 add 되어야 한다. 구현 방식은 다음 중 하나: (A) `PlaneGeometry + ShaderMaterial(animated uTime uniform)`, 또는 (B) `ConeGeometry + MeshBasicMaterial(transparent, depthWrite:false, update()에서 opacity pulsed)`. opacity가 0이거나 geometry를 씬에 추가하지 않으면 **실패**. (갓레이 구현 위치는 리팩터링에 따라 Ocean.ts 또는 Lighting.ts 중 하나에 있을 수 있으며, 두 파일 모두 확인할 것.)
 
 - **[시각 검증] 갓레이 가시성**: `screenshot-1~4.png` 중 최소 1장에서 수면에서 내려오는 밝은 쐐기형 광선 줄기가 보여야 한다. 4장 모두에서 광선이 보이지 않으면 opacity·위치·각도 문제이므로 **실패 징후** — SUGGESTIONS에 갓레이 opacity/위치 개선 추가.
 
@@ -205,8 +205,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-18) [reviewer] §1 추가: Fish.ts `lookAt` 타겟 부호 코드 검증 규칙 — `pos.sub(velocity)` 패턴이면 바로 실패 판정 가능(탑뷰 개체가 너무 작아 육안 판별이 어려운 경우의 보완 기준).
-- (2026-04-18) [human] §1 재수정: Reviewer가 추가한 코드 부호 검증 규칙 삭제. lookAt 수식(add/sub, rotation.y) 수정을 Planner·Implementer·Reviewer 모두에게 ⛔ 절대 금지로 격상. Reviewer 프롬프트와 Planner 프롬프트에도 동일 금지 추가.
 - (2026-04-19) [reviewer] §7 보강: getTangentAt(t) 도 target 인자 생략 시 루프 내 암시적 Vector3 할당 발생 — getPointAt과 동일 경고 기준 적용 명시.
 - (2026-04-19) [reviewer] §1 재확인: fish.avgForwardDot = -1.00 이 32/32 샘플 전체에서 관측됨. 탑뷰에서 개체가 너무 작아 육안 확정 불가 → REVIEW_FAIL + 사람 보고. Fish.ts:306 lookTarget 수식 사람 검증 필요.
 - (2026-04-19) [reviewer] §3-2 추가: fish.centroid.y 궤도 이탈 판정 기준 — 마지막 샘플 |centroid.y - FISH_ORBIT_Y| > BOID_BOUNDARY_MARGIN(=8)이면 실패. 이번 실행에서 y=-6.1→-19.4 드리프트 관측(target=-5, margin=8, 이탈량=14.4).
@@ -235,3 +233,5 @@
 - (2026-06-09) [reviewer] §9 재정정: 2026-06-07 "정정" 항목이 오류. _sharkFwd 기본값 (0,0,−1) 하에서 `-` 부호 = sharkPos.z+dist = 머리 앞 스폰(5개 스크린샷 시각 확인). `+` 부호가 꼬리 후방. §9 본문 수정 완료.
 - (2026-06-12) [reviewer] §3-3 추가: _schoolPeakFlee 원소가 PREDATOR_FLEE_INTENSITY_NORM×0.1 미만이면 해당 학교 fleeIntensity≈1.0 고정 → effectiveOrbitWeight=FISH_ORBIT_WEIGHT×0.3 → 궤도 복귀 불능. schoolPeakFlee[2]=0.02 설정으로 school 2 recoveryTimeSec=-1 확인.
 - (2026-06-12) [reviewer] §10 추가: Ocean.ts addGodRays()에서 rotation.x=Math.PI/2는 PlaneGeometry를 수평으로 눕혀 측면 카메라에서 광선 기둥이 보이지 않음 — god ray 수직 방향 필수(|rotation.x|<0.5) 항목 추가.
+- (2026-06-15) [reviewer] §10 수정: 갓레이 존재 항목 파일 참조 "Lighting.ts의 constructor에"→"Ocean.ts의 addGodRays() 또는 Lighting.ts"로 일반화 — 현재 구현이 Ocean.ts에 있어 미래 Reviewer가 Lighting.ts만 보고 오판할 위험 제거.
+- (2026-06-15) [reviewer] §10 갱신: 갓레이 재질 규칙을 PlaneGeometry+ShaderMaterial 단독에서 ConeGeometry+MeshBasicMaterial(opacity pulsed in update()) 방식도 허용하도록 확장 — 목표 명세가 MeshBasicMaterial을 명시 지정했으므로 ShaderMaterial 전용 규칙이 goal과 충돌했던 문제 해소.
