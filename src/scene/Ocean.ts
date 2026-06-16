@@ -21,7 +21,7 @@ export class Ocean {
   private _sharkFwd = new THREE.Vector3(0, 0, -1);
   private godRays: GodRay[] = [];
   private godRayTime: number = 0;
-  private godRaySpot!: THREE.SpotLight;
+  private godRaySpots: THREE.SpotLight[] = [];
   private _scene!: THREE.Scene;
 
   constructor(scene: THREE.Scene) {
@@ -191,11 +191,20 @@ export class Ocean {
       this.godRays.push({ mesh, baseOpacity: cfg.opacity });
     }
 
-    this.godRaySpot = new THREE.SpotLight(0x7de8ff, 2.0, 80, 0.15, 0.6, 1.5);
-    this.godRaySpot.position.set(0, 30, 0);
-    this.godRaySpot.target.position.set(0, -10, 0);
-    scene.add(this.godRaySpot);
-    scene.add(this.godRaySpot.target);
+    const spotPositions: { x: number; z: number }[] = [
+      { x: -8, z:  0 },
+      { x:  8, z:  0 },
+      { x:  0, z: -8 },
+      { x:  0, z:  8 },
+    ];
+    for (const pos of spotPositions) {
+      const spot = new THREE.SpotLight(0x88ddff, 1.5, 30, 0.15, 0.8);
+      spot.position.set(pos.x, 10, pos.z);
+      spot.target.position.set(pos.x, -10, pos.z);
+      scene.add(spot);
+      scene.add(spot.target);
+      this.godRaySpots.push(spot);
+    }
   }
 
   private createBubbles(scene: THREE.Scene): void {
@@ -354,8 +363,11 @@ export class Ocean {
     });
     this.godRays = [];
 
-    this._scene.remove(this.godRaySpot);
-    this._scene.remove(this.godRaySpot.target);
-    this.godRaySpot.dispose();
+    for (const spot of this.godRaySpots) {
+      this._scene.remove(spot);
+      this._scene.remove(spot.target);
+      spot.dispose();
+    }
+    this.godRaySpots = [];
   }
 }

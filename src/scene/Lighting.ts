@@ -19,36 +19,36 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x1a8fc0,
-    ambientIntensity: 0.60,
-    sunColor: 0x1a8fc0,
+    ambientColor: 0x1ec0e0,
+    ambientIntensity: 0.95,
+    sunColor: 0x1ec0e0,
     sunIntensity: 3.2,
     godRayIntensity: 3.0,
   },
   cloudy: {
     ambientColor: 0x2a6b9a,
-    ambientIntensity: 0.7,
+    ambientIntensity: 1.05,
     sunColor: 0xc0d8e8,
     sunIntensity: 1.2,
     godRayIntensity: 1.0,
   },
   rain: {
     ambientColor: 0x0a3060,
-    ambientIntensity: 0.6,
+    ambientIntensity: 0.95,
     sunColor: 0x9abccc,
     sunIntensity: 0.8,
     godRayIntensity: 0.5,
   },
   snow: {
     ambientColor: 0x5d7fa8,
-    ambientIntensity: 0.8,
+    ambientIntensity: 1.20,
     sunColor: 0xd8ecff,
     sunIntensity: 1.4,
     godRayIntensity: 1.5,
   },
   fog: {
     ambientColor: 0x3d6880,
-    ambientIntensity: 0.5,
+    ambientIntensity: 0.85,
     sunColor: 0x88a0b0,
     sunIntensity: 0.5,
     godRayIntensity: 0.2,
@@ -71,14 +71,14 @@ export class Lighting {
   private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
-    this.ambientLight = new THREE.AmbientLight(0x1a8fc0, 0.60);
+    this.ambientLight = new THREE.AmbientLight(0x1ec0e0, 0.95);
     scene.add(this.ambientLight);
 
     this.hemisphereLight = new THREE.HemisphereLight(0x00aacc, 0x0a6a9a, 1.0);
     scene.add(this.hemisphereLight);
 
-    this.sunLight = new THREE.DirectionalLight(0x1a8fc0, 2.8);
-    scene.background = new THREE.Color(0x0a3d6b);
+    this.sunLight = new THREE.DirectionalLight(0x1ec0e0, 2.8);
+    scene.background = new THREE.Color(0x0a4a7a);
     this.sunLight.position.set(0, SURFACE_HEIGHT + 10, 0);
     this.sunLight.target.position.set(0, -1, 0);
     scene.add(this.sunLight);
