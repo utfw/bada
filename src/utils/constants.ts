@@ -39,7 +39,7 @@ export const SHARK_SWIM_SPEED = 0.65;
 
 // ── Particles ──────────────────────────────────────
 export const PARTICLE_COUNT = 500;
-export const BUBBLE_COUNT = 5;
+export const BUBBLE_COUNT = 3;
 
 // ── Boids (Fish School) ───────────────────────────
 export const FISH_COUNT = 120;

@@ -163,14 +163,14 @@ export class Ocean {
   private addGodRays(scene: THREE.Scene): void {
     // 8 cones with apex at surface, extending downward into the water
     const configs: { x: number; z: number; radius: number; height: number; opacity: number }[] = [
-      { x:  1.2, z: -0.8, radius: 0.7, height: 12, opacity: 0.09 },
-      { x: -1.5, z:  1.0, radius: 0.6, height: 10, opacity: 0.07 },
-      { x:  0.5, z:  1.8, radius: 0.9, height: 13, opacity: 0.08 },
-      { x: -1.0, z: -1.5, radius: 0.7, height: 11, opacity: 0.06 },
-      { x:  1.8, z:  0.3, radius: 0.8, height: 12, opacity: 0.09 },
-      { x: -2.5, z: -0.5, radius: 0.6, height: 10, opacity: 0.07 },
-      { x:  0.0, z: -2.0, radius: 1.0, height: 14, opacity: 0.08 },
-      { x:  2.2, z:  1.5, radius: 0.7, height: 11, opacity: 0.06 },
+      { x:  1.2, z: -0.8, radius: 1.2, height: 12, opacity: 0.22 },
+      { x: -1.5, z:  1.0, radius: 1.0, height: 10, opacity: 0.18 },
+      { x:  0.5, z:  1.8, radius: 1.5, height: 13, opacity: 0.20 },
+      { x: -1.0, z: -1.5, radius: 1.2, height: 11, opacity: 0.18 },
+      { x:  1.8, z:  0.3, radius: 1.4, height: 12, opacity: 0.22 },
+      { x: -2.5, z: -0.5, radius: 1.0, height: 10, opacity: 0.19 },
+      { x:  0.0, z: -2.0, radius: 1.8, height: 14, opacity: 0.25 },
+      { x:  2.2, z:  1.5, radius: 1.2, height: 11, opacity: 0.18 },
     ];
 
     for (const cfg of configs) {
@@ -212,12 +212,11 @@ export class Ocean {
     const positions = new Float32Array(BUBBLE_COUNT * 3);
     const sizes = new Float32Array(BUBBLE_COUNT);
 
+    const mouthDist = 1.5;
     for (let i = 0; i < BUBBLE_COUNT; i++) {
-      const sign = Math.random() < 0.5 ? -1 : 1;
-      const tailDist = 0.5 + Math.random() * 0.5;
-      positions[i * 3]     = this._sharkPos.x + this._sharkFwd.x * tailDist + (Math.random() - 0.5) * 4.0;
-      positions[i * 3 + 1] = this._sharkPos.y + Math.random() * 2 - 0.5;
-      positions[i * 3 + 2] = this._sharkPos.z + this._sharkFwd.z * tailDist;
+      positions[i * 3]     = this._sharkPos.x - this._sharkFwd.x * mouthDist + (Math.random() - 0.5) * 0.8;
+      positions[i * 3 + 1] = this._sharkPos.y - 0.3 + Math.random() * 0.6;
+      positions[i * 3 + 2] = this._sharkPos.z - this._sharkFwd.z * mouthDist + (Math.random() - 0.5) * 0.8;
       sizes[i] = Math.random() * 0.025 + 0.01;
     }
 
@@ -261,7 +260,7 @@ export class Ocean {
     // Animate god rays — opacity pulsed per-ray with phase offset
     this.godRayTime += delta;
     this.godRays.forEach((ray, idx) => {
-      ray.mesh.material.opacity = 0.05 + 0.03 * Math.sin(this.godRayTime * 0.4 + idx * 0.8);
+      ray.mesh.material.opacity = 0.18 + 0.06 * Math.sin(this.godRayTime * 0.4 + idx * 0.8);
     });
 
     // Animate debris
@@ -294,10 +293,10 @@ export class Ocean {
       let z = bubblePos.getZ(i) + Math.cos(elapsed + i) * 0.005;
 
       if (y > SURFACE_HEIGHT) {
-        y = this._sharkPos.y + Math.random() * 2 - 0.5;
-        const tailDist = 0.5 + Math.random() * 0.5;
-        x = this._sharkPos.x + this._sharkFwd.x * tailDist + (Math.random() - 0.5) * 4.0;
-        z = this._sharkPos.z + this._sharkFwd.z * tailDist;
+        const mouthDist = 1.5;
+        x = this._sharkPos.x - this._sharkFwd.x * mouthDist + (Math.random() - 0.5) * 0.8;
+        y = this._sharkPos.y - 0.3 + Math.random() * 0.6;
+        z = this._sharkPos.z - this._sharkFwd.z * mouthDist + (Math.random() - 0.5) * 0.8;
       }
 
       bubblePos.setXYZ(i, x, y, z);

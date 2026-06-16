@@ -256,10 +256,17 @@
 - [x] `src/scene/Lighting.ts`의 ambient/directional light 색상을 `0x0a78aa`→`0x1ec0e0`으로 높이고, `src/scene/Ocean.ts`에 SpotLight(color `0x88ddff`, angle 0.15, penumbra 0.8)를 수면 위(y=10)에 3~5개 배치해 수직 광선 줄기를 생성할 것
 - [x] `src/scene/Ocean.ts`의 배경 fog 또는 배경색을 상단 `0x0d4f7c` → 하단 `0x020d1a`로 명도 차이를 넓혀 수직 그라디언트를 강화하고, ambient light intensity를 현재 값 대비 1.4× 증가시켜 전체 채도를 올릴 것
 - [x] `src/scene/Ocean.ts` (또는 `SceneManager.ts` fog 설정) — `scene.fog` 색상을 현재 #0a1a30 계열에서 #0a4a7a~#0a5a9a 수준으로 밝고 채도 높은 청록 계열로 교체하고, `ambientLight` intensity를 0.1~0.2 증가시켜 배경 전체 채도를 끌어올릴 것
-- [ ] `src/scene/Ocean.ts` 또는 갓레이 관련 함수에서 광선 Mesh의 `opacity`를 현재 값에서 `0.18~0.25`로, `width` 스케일을 `1.5~2×` 증가시켜 줄기 가시성을 높일 것
-- [ ] `src/entities/WhaleShark.ts`의 버블/파티클 생성 로직에서 스폰 오프셋을 고래상어 몸체 중심이 아닌 입 앞 `z+1.5` 위치로 이동하고, 최대 파티클 수를 현재 대비 60% 이하로 제한해 주체 가림 현상 제거
-- [ ] `src/scene/SceneManager.ts`의 카메라 기본 `lookAt` 또는 고래상어 경로 높이 오프셋을 `y +0.5~1.0` 조정해 고래상어가 화면 수직 중앙 근처에 위치하도록 구도 개선
+- [x] `src/scene/Ocean.ts` 또는 갓레이 관련 함수에서 광선 Mesh의 `opacity`를 현재 값에서 `0.18~0.25`로, `width` 스케일을 `1.5~2×` 증가시켜 줄기 가시성을 높일 것
+- [x] `src/entities/WhaleShark.ts`의 버블/파티클 생성 로직에서 스폰 오프셋을 고래상어 몸체 중심이 아닌 입 앞 `z+1.5` 위치로 이동하고, 최대 파티클 수를 현재 대비 60% 이하로 제한해 주체 가림 현상 제거
+- [x] `src/scene/SceneManager.ts`의 카메라 기본 `lookAt` 또는 고래상어 경로 높이 오프셋을 `y +0.5~1.0` 조정해 고래상어가 화면 수직 중앙 근처에 위치하도록 구도 개선
 - [ ] `src/scene/Lighting.ts`의 god ray SpotLight `intensity`를 현재 값에서 1.5~2.0 배 높이고, `src/scene/Ocean.ts`의 god ray sprite `material.opacity`를 0.12→0.25로 올려 줄기가 식별 가능하게 할 것; 동시에 sprite 폭(`scale.x`)을 0.3 미만으로 유지해 과노출 기둥 방지
 - [ ] `src/scene/Lighting.ts`의 god ray SpotLight/스프라이트 opacity 또는 intensity 값을 확인하고, `SpriteMaterial` opacity를 0.35→0.6, SpotLight intensity를 현재값 × 1.5로 상향 조정; god ray 스프라이트가 카메라 frustum 내에 위치하는지 position.y 범위도 검증
-- [ ] `src/entities/WhaleShark.ts`의 카메라 근접 시 클리핑 거리(`camera.near`) 또는 whale shark 경로 최소 카메라 거리를 조정하여 surface-up 뷰에서 고래상어가 화면을 압도하지 않도록 스케일 또는 경로 반경 보정
 - [ ] **광선 효과 복구** (`src/scene/Lighting.ts` → god ray SpotLight 설정): `SpotLight` intensity를 현재 값에서 3~5배 상향하고 `angle`을 `Math.PI / 18`(10°) 이하로 좁혀 줄기가 뚜렷이 보이도록 조정. 스프라이트 방식이라면 `Ocean.ts`의 god ray `SpriteMaterial` opacity를 `0.08→0.25`로, scale을 현재 대비 50% 축소해 기둥이 아닌 줄기 형태로 수정.
+- [ ] `src/scene/Ocean.ts` 또는 `src/scene/SkyBox.ts`에서 배경 안개(`scene.fog`) 색을 현재 `#060d1a` 계열에서 `#0a3055` 정도의 채도 높은 딥블루로 교체하여 화면 전체 채도를 끌어올릴 것
+- [ ] `src/scene/SkyBox.ts` 또는 `SceneManager.ts`의 `renderer.setClearColor`를 `#0a1628`→`#063a6e`(채도 높은 코발트)로 변경하고, `src/scene/Ocean.ts`의 배경 안개(`scene.fog`) color를 `#051020`→`#0a4a7a`로 올려 채도를 확보할 것
+- [ ] `src/scene/Lighting.ts`의 god ray SpotLight 또는 sprite 생성 부분에서 god ray 텍스처를 radial gradient (중심 밝고 가장자리 투명) 스프라이트로 교체하고, `SpriteMaterial.opacity`를 0.15~0.25로 설정해 부드러운 광선 줄기로 개선
+- [ ] `src/scene/Ocean.ts` 또는 `Lighting.ts`의 ambient/fog 색상을 현재 `#020d1a` 수준에서 `#062a4a`~`#083d6b`로 올려 배경 전체 채도를 높이고, `scene.fog = new THREE.FogExp2(0x083d6b, 0.018)` 수준으로 조정
+- [ ] `src/scene/SceneManager.ts`의 카메라 lookAt 또는 고래상어 CatmullRomCurve3 경로 범위를 x축 ±3 이내로 제한해 고래상어가 화면 중앙 60% 영역 내에 더 자주 위치하도록 개선
+- [ ] `src/scene/Lighting.ts`의 god ray SpotLight intensity를 현재 대비 1.5~2배 상향하고, `src/scene/Ocean.ts`의 god ray sprite opacity를 0.25→0.5, 줄기 개수를 현재의 2배로 증가시켜 모든 앵글에서 광선이 식별되도록 할 것
+- [ ] `src/scene/Ocean.ts` 또는 `src/scene/SkyBox.ts`에서 배경 fog/ambient 색상을 `#0a2a4a`→`#0a4a6e`(채도 +30%)로 조정하고, 수면 직하 영역에 밝은 청록(#1ab8d8) 포인트 라이트를 추가해 상단-하단 색상 대비를 강화할 것
+- [ ] `src/entities/WhaleShark.ts`에서 bubble 파티클 생성 반경을 현재 대비 50% 축소하거나 opacity를 0.6→0.35로 낮춰 코 부위 버블 클러스터가 고래상어 전두부를 가리지 않도록 조정할 것

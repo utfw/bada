@@ -192,7 +192,7 @@
 
 - **버블 파티클 크기/알파 상한 검증**: `Ocean.ts`의 `createBubbles()`에서 `sizes[i]` 최댓값(`random * range + min`)이 **0.2 이상**이거나, fragment shader의 기저 알파(`float alpha = X + ring * Y`)에서 **X ≥ 0.2**이면 버블이 고래상어·물고기보다 시각적으로 두드러질 수 있다. Reviewer는 이 두 값을 코드에서 직접 확인하고, `sizes 최대값 > 0.2` 또는 `기저 알파 X > 0.15`이면 **실패** 판정.
 
-- **[코드 검증] `getWorldDirection()` 꼬리-머리 방향**: `_sharkFwd` 기본값은 `(0,0,−1)`. `getWorldDirection()` = +Z = **꼬리/후방 방향**. 꼬리 후방(이미 지나온 공간)에 스폰하려면 **`sharkPos + sharkFwd * dist`(`+` 부호)** 를 사용해야 한다. `sharkPos − sharkFwd * dist`(`−` 부호)는 머리 앞쪽에 스폰되므로 **실패**. *(근거: 기본값 `(0,0,−1)`로 `−` 부호 적용 시 `sharkPos.z + dist`가 되어 양의 Z = 머리 방향 편향; screenshot-1~4, whaleshark-front/side/surface-up 5개 이상에서 `-` 부호 → 머리 앞 집중 시각 확인됨.)* Reviewer는 `Ocean.ts`의 `createBubbles()` 및 `update()` 리스폰 두 위치 모두에서 `_sharkFwd` 오프셋 부호가 `+`인지 확인할 것. 어느 한 곳이라도 `−`이면 **실패**.
+- **[코드 검증] `getWorldDirection()` 꼬리-머리 방향 및 현재 스폰 의도**: `_sharkFwd` 기본값은 `(0,0,−1)`. 부호 규칙: `sharkPos − sharkFwd * dist`(`−` 부호) = 머리(입) 앞 스폰; `sharkPos + sharkFwd * dist`(`+` 부호) = 꼬리 후방 스폰. *(근거: 기본값 `(0,0,−1)`로 `−` 부호 적용 시 `sharkPos.z + dist`가 되어 양의 Z = 머리 방향 편향; screenshot-1~4, whaleshark-front/side/surface-up 5개 이상에서 `-` 부호 → 머리 앞 집중 시각 확인됨.)* **현재 의도(2026-06-16 목표 변경)**: 버블은 입 앞(`mouthDist=1.5`)에서 스폰되어야 하므로 **`−` 부호가 정상**. Reviewer는 `Ocean.ts`의 `createBubbles()` 및 `update()` 리스폰 두 위치 모두에서 `_sharkFwd` 오프셋 부호가 **`−`** 인지 확인할 것. 어느 한 곳이라도 `+`이면 꼬리 후방 스폰으로 역행하므로 **실패**.
 
 ---
 
@@ -205,7 +205,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-19) [reviewer] §7 보강: getTangentAt(t) 도 target 인자 생략 시 루프 내 암시적 Vector3 할당 발생 — getPointAt과 동일 경고 기준 적용 명시.
 - (2026-04-19) [reviewer] §1 재확인: fish.avgForwardDot = -1.00 이 32/32 샘플 전체에서 관측됨. 탑뷰에서 개체가 너무 작아 육안 확정 불가 → REVIEW_FAIL + 사람 보고. Fish.ts:306 lookTarget 수식 사람 검증 필요.
 - (2026-04-19) [reviewer] §3-2 추가: fish.centroid.y 궤도 이탈 판정 기준 — 마지막 샘플 |centroid.y - FISH_ORBIT_Y| > BOID_BOUNDARY_MARGIN(=8)이면 실패. 이번 실행에서 y=-6.1→-19.4 드리프트 관측(target=-5, margin=8, 이탈량=14.4).
 - (2026-04-20) [reviewer] §3 보강: finWave finZ 정합성 검증 항목 추가 — finWave 연동은 존재하지만 finZ 인자가 실제 fin.position.z와 다르면 위상 불일치로 gap 발생. create*() 코드와 대조 필수 기준 명시.
@@ -235,3 +234,4 @@
 - (2026-06-12) [reviewer] §10 추가: Ocean.ts addGodRays()에서 rotation.x=Math.PI/2는 PlaneGeometry를 수평으로 눕혀 측면 카메라에서 광선 기둥이 보이지 않음 — god ray 수직 방향 필수(|rotation.x|<0.5) 항목 추가.
 - (2026-06-15) [reviewer] §10 수정: 갓레이 존재 항목 파일 참조 "Lighting.ts의 constructor에"→"Ocean.ts의 addGodRays() 또는 Lighting.ts"로 일반화 — 현재 구현이 Ocean.ts에 있어 미래 Reviewer가 Lighting.ts만 보고 오판할 위험 제거.
 - (2026-06-15) [reviewer] §10 갱신: 갓레이 재질 규칙을 PlaneGeometry+ShaderMaterial 단독에서 ConeGeometry+MeshBasicMaterial(opacity pulsed in update()) 방식도 허용하도록 확장 — 목표 명세가 MeshBasicMaterial을 명시 지정했으므로 ShaderMaterial 전용 규칙이 goal과 충돌했던 문제 해소.
+- (2026-06-16) [reviewer] §9 수정: 버블 스폰 의도가 꼬리 후방→입 앞으로 변경됨에 따라 부호 판정 반전 — 이제 `−` 부호가 정상(입 앞), `+` 부호가 실패(꼬리). 미래 Reviewer가 old 규칙으로 올바른 구현을 오탐하지 않도록 본문 갱신.
