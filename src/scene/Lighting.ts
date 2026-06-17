@@ -23,35 +23,35 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     ambientIntensity: 0.95,
     sunColor: 0x1ec0e0,
     sunIntensity: 3.2,
-    godRayIntensity: 3.0,
+    godRayIntensity: 5.0,
   },
   cloudy: {
     ambientColor: 0x2a6b9a,
     ambientIntensity: 1.05,
     sunColor: 0xc0d8e8,
     sunIntensity: 1.2,
-    godRayIntensity: 1.0,
+    godRayIntensity: 1.8,
   },
   rain: {
     ambientColor: 0x0a3060,
     ambientIntensity: 0.95,
     sunColor: 0x9abccc,
     sunIntensity: 0.8,
-    godRayIntensity: 0.5,
+    godRayIntensity: 0.85,
   },
   snow: {
     ambientColor: 0x5d7fa8,
     ambientIntensity: 1.20,
     sunColor: 0xd8ecff,
     sunIntensity: 1.4,
-    godRayIntensity: 1.5,
+    godRayIntensity: 2.5,
   },
   fog: {
     ambientColor: 0x3d6880,
     ambientIntensity: 0.85,
     sunColor: 0x88a0b0,
     sunIntensity: 0.5,
-    godRayIntensity: 0.2,
+    godRayIntensity: 0.35,
   },
 };
 
@@ -136,7 +136,7 @@ export class Lighting {
       const z = Math.sin(angle) * radius;
       const spotY = SURFACE_HEIGHT + 15 + Math.random() * 10;
 
-      const spot = new THREE.SpotLight(0x88ddff, 5.5, 80, 0.22, 0.7, 1.4);
+      const spot = new THREE.SpotLight(0x88ddff, 38.0, 80, Math.PI / 18, 0.90, 1.4);
       spot.position.set(x, spotY, z);
       spot.target.position.set(x, -30, z);
       scene.add(spot);
@@ -144,7 +144,7 @@ export class Lighting {
       this.godRaySpots.push(spot);
       this.godRayBaseXZ.push({ x, z });
 
-      const baseOpacity = 0.18 + Math.random() * 0.02;
+      const baseOpacity = 0.12 + Math.random() * 0.04;
       this.godRayConeBaseOpacity.push(baseOpacity);
 
       const planeMat = new THREE.ShaderMaterial({
@@ -162,7 +162,7 @@ export class Lighting {
         side: THREE.DoubleSide,
       });
 
-      const rayWidth = 0.06 + Math.random() * 0.06;
+      const rayWidth = 0.04 + Math.random() * 0.03;
       const planeGeo = new THREE.PlaneGeometry(rayWidth, GOD_RAY_HEIGHT);
       const plane = new THREE.Mesh(planeGeo, planeMat);
       plane.position.set(x, SURFACE_HEIGHT - GOD_RAY_HEIGHT / 2, z);
@@ -193,7 +193,7 @@ export class Lighting {
         fragmentShader: nearRayFragmentShader,
         uniforms: {
           uColor: { value: new THREE.Color(0x88ddff) },
-          uMaxOpacity: { value: 0.18 },
+          uMaxOpacity: { value: 0.10 },
         },
         transparent: true,
         blending: THREE.AdditiveBlending,

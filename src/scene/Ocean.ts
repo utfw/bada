@@ -163,14 +163,14 @@ export class Ocean {
   private addGodRays(scene: THREE.Scene): void {
     // 8 cones with apex at surface, extending downward into the water
     const configs: { x: number; z: number; radius: number; height: number; opacity: number }[] = [
-      { x:  1.2, z: -0.8, radius: 1.2, height: 12, opacity: 0.22 },
-      { x: -1.5, z:  1.0, radius: 1.0, height: 10, opacity: 0.18 },
-      { x:  0.5, z:  1.8, radius: 1.5, height: 13, opacity: 0.20 },
-      { x: -1.0, z: -1.5, radius: 1.2, height: 11, opacity: 0.18 },
-      { x:  1.8, z:  0.3, radius: 1.4, height: 12, opacity: 0.22 },
-      { x: -2.5, z: -0.5, radius: 1.0, height: 10, opacity: 0.19 },
-      { x:  0.0, z: -2.0, radius: 1.8, height: 14, opacity: 0.25 },
-      { x:  2.2, z:  1.5, radius: 1.2, height: 11, opacity: 0.18 },
+      { x:  1.2, z: -0.8, radius: 1.2, height: 12, opacity: 0.32 },
+      { x: -1.5, z:  1.0, radius: 1.0, height: 10, opacity: 0.28 },
+      { x:  0.5, z:  1.8, radius: 1.2, height: 13, opacity: 0.30 },
+      { x: -1.0, z: -1.5, radius: 1.2, height: 11, opacity: 0.28 },
+      { x:  1.8, z:  0.3, radius: 1.2, height: 12, opacity: 0.32 },
+      { x: -2.5, z: -0.5, radius: 1.0, height: 10, opacity: 0.29 },
+      { x:  0.0, z: -2.0, radius: 1.2, height: 14, opacity: 0.35 },
+      { x:  2.2, z:  1.5, radius: 1.2, height: 11, opacity: 0.28 },
     ];
 
     for (const cfg of configs) {
@@ -198,7 +198,7 @@ export class Ocean {
       { x:  0, z:  8 },
     ];
     for (const pos of spotPositions) {
-      const spot = new THREE.SpotLight(0x88ddff, 1.5, 30, 0.15, 0.8);
+      const spot = new THREE.SpotLight(0x88ddff, 5.0, 30, Math.PI / 18, 0.8);
       spot.position.set(pos.x, 10, pos.z);
       spot.target.position.set(pos.x, -10, pos.z);
       scene.add(spot);
@@ -260,7 +260,7 @@ export class Ocean {
     // Animate god rays — opacity pulsed per-ray with phase offset
     this.godRayTime += delta;
     this.godRays.forEach((ray, idx) => {
-      ray.mesh.material.opacity = 0.18 + 0.06 * Math.sin(this.godRayTime * 0.4 + idx * 0.8);
+      ray.mesh.material.opacity = 0.28 + 0.06 * Math.sin(this.godRayTime * 0.4 + idx * 0.8);
     });
 
     // Animate debris
