@@ -15,6 +15,8 @@ interface LightingPreset {
   sunColor: number;
   sunIntensity: number;
   godRayIntensity: number;
+  fogColor: number;
+  fogDensity: number;
 }
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
@@ -24,6 +26,8 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x1ec0e0,
     sunIntensity: 3.2,
     godRayIntensity: 5.0,
+    fogColor: 0x083d6b,
+    fogDensity: 0.015,
   },
   cloudy: {
     ambientColor: 0x2a6b9a,
@@ -31,13 +35,17 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0xc0d8e8,
     sunIntensity: 1.2,
     godRayIntensity: 1.8,
+    fogColor: 0x062a4a,
+    fogDensity: 0.022,
   },
   rain: {
-    ambientColor: 0x0a3060,
+    ambientColor: 0x0d3a6b,
     ambientIntensity: 0.95,
     sunColor: 0x9abccc,
     sunIntensity: 0.8,
     godRayIntensity: 0.85,
+    fogColor: 0x041e38,
+    fogDensity: 0.028,
   },
   snow: {
     ambientColor: 0x5d7fa8,
@@ -45,6 +53,8 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0xd8ecff,
     sunIntensity: 1.4,
     godRayIntensity: 2.5,
+    fogColor: 0x2a4a6b,
+    fogDensity: 0.018,
   },
   fog: {
     ambientColor: 0x3d6880,
@@ -52,10 +62,13 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x88a0b0,
     sunIntensity: 0.5,
     godRayIntensity: 0.35,
+    fogColor: 0x2a3a4a,
+    fogDensity: 0.035,
   },
 };
 
 export class Lighting {
+  private scene: THREE.Scene;
   private ambientLight: THREE.AmbientLight;
   private sunLight: THREE.DirectionalLight;
   private fillLight: THREE.DirectionalLight;
@@ -71,6 +84,10 @@ export class Lighting {
   private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
+    this.scene = scene;
+    scene.fog = new THREE.FogExp2(0x083d6b, 0.018);
+    scene.background = new THREE.Color(0x083d6b);
+
     this.ambientLight = new THREE.AmbientLight(0x1ec0e0, 0.95);
     scene.add(this.ambientLight);
 
@@ -78,7 +95,6 @@ export class Lighting {
     scene.add(this.hemisphereLight);
 
     this.sunLight = new THREE.DirectionalLight(0x1ec0e0, 2.8);
-    scene.background = new THREE.Color(0x0a4a7a);
     this.sunLight.position.set(0, SURFACE_HEIGHT + 10, 0);
     this.sunLight.target.position.set(0, -1, 0);
     scene.add(this.sunLight);
@@ -254,6 +270,11 @@ export class Lighting {
     this.sunLight.color.set(preset.sunColor);
     this.sunLight.intensity = preset.sunIntensity;
     this.godRaySpots.forEach((s) => (s.intensity = preset.godRayIntensity));
+
+    const fog = this.scene.fog as THREE.FogExp2;
+    fog.color.set(preset.fogColor);
+    fog.density = preset.fogDensity;
+    (this.scene.background as THREE.Color).set(preset.fogColor);
 
     const opacityScale = preset.godRayIntensity / WEATHER_PRESETS.clear.godRayIntensity;
     this.godRayCones.forEach((plane, i) => {

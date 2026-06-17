@@ -262,12 +262,15 @@
 - [x] `src/scene/Lighting.ts`의 god ray SpotLight `intensity`를 현재 값에서 1.5~2.0 배 높이고, `src/scene/Ocean.ts`의 god ray sprite `material.opacity`를 0.12→0.25로 올려 줄기가 식별 가능하게 할 것; 동시에 sprite 폭(`scale.x`)을 0.3 미만으로 유지해 과노출 기둥 방지
 - [x] `src/scene/Lighting.ts`의 god ray SpotLight/스프라이트 opacity 또는 intensity 값을 확인하고, `SpriteMaterial` opacity를 0.35→0.6, SpotLight intensity를 현재값 × 1.5로 상향 조정; god ray 스프라이트가 카메라 frustum 내에 위치하는지 position.y 범위도 검증
 - [x] **광선 효과 복구** (`src/scene/Lighting.ts` → god ray SpotLight 설정): `SpotLight` intensity를 현재 값에서 3~5배 상향하고 `angle`을 `Math.PI / 18`(10°) 이하로 좁혀 줄기가 뚜렷이 보이도록 조정. 스프라이트 방식이라면 `Ocean.ts`의 god ray `SpriteMaterial` opacity를 `0.08→0.25`로, scale을 현재 대비 50% 축소해 기둥이 아닌 줄기 형태로 수정.
-- [ ] `src/scene/Ocean.ts` 또는 `src/scene/SkyBox.ts`에서 배경 안개(`scene.fog`) 색을 현재 `#060d1a` 계열에서 `#0a3055` 정도의 채도 높은 딥블루로 교체하여 화면 전체 채도를 끌어올릴 것
-- [ ] `src/scene/SkyBox.ts` 또는 `SceneManager.ts`의 `renderer.setClearColor`를 `#0a1628`→`#063a6e`(채도 높은 코발트)로 변경하고, `src/scene/Ocean.ts`의 배경 안개(`scene.fog`) color를 `#051020`→`#0a4a7a`로 올려 채도를 확보할 것
-- [ ] `src/scene/Ocean.ts` 또는 `Lighting.ts`의 ambient/fog 색상을 현재 `#020d1a` 수준에서 `#062a4a`~`#083d6b`로 올려 배경 전체 채도를 높이고, `scene.fog = new THREE.FogExp2(0x083d6b, 0.018)` 수준으로 조정
+- [x] `src/scene/Ocean.ts` 또는 `src/scene/SkyBox.ts`에서 배경 안개(`scene.fog`) 색을 현재 `#060d1a` 계열에서 `#0a3055` 정도의 채도 높은 딥블루로 교체하여 화면 전체 채도를 끌어올릴 것
+- [x] `src/scene/SkyBox.ts` 또는 `SceneManager.ts`의 `renderer.setClearColor`를 `#0a1628`→`#063a6e`(채도 높은 코발트)로 변경하고, `src/scene/Ocean.ts`의 배경 안개(`scene.fog`) color를 `#051020`→`#0a4a7a`로 올려 채도를 확보할 것
+- [x] `src/scene/Ocean.ts` 또는 `Lighting.ts`의 ambient/fog 색상을 현재 `#020d1a` 수준에서 `#062a4a`~`#083d6b`로 올려 배경 전체 채도를 높이고, `scene.fog = new THREE.FogExp2(0x083d6b, 0.018)` 수준으로 조정
 - [ ] `src/scene/Ocean.ts` 또는 `src/scene/SkyBox.ts`에서 배경 fog/ambient 색상을 `#0a2a4a`→`#0a4a6e`(채도 +30%)로 조정하고, 수면 직하 영역에 밝은 청록(#1ab8d8) 포인트 라이트를 추가해 상단-하단 색상 대비를 강화할 것
 - [ ] `src/entities/WhaleShark.ts`에서 bubble 파티클 생성 반경을 현재 대비 50% 축소하거나 opacity를 0.6→0.35로 낮춰 코 부위 버블 클러스터가 고래상어 전두부를 가리지 않도록 조정할 것
 - [ ] `src/scene/Lighting.ts` god ray 구현부에서 SpotLight/sprite 기반 광선을 `ShaderMaterial` + `AdditiveBlending`의 원뿔형 볼류메트릭 메시로 교체하고, opacity를 0.08~0.15로 설정해 과노출 없이 부드러운 줄기를 만들 것; 수중 뷰에도 2~3개 광선이 항상 표시되도록 위치 조건 제거
 - [ ] `src/scene/Ocean.ts` 배경 fog 또는 `scene.background` 색상을 현재 `#0a1628` 수준에서 `#0d3a6e`(중간 채도 코발트)로 밝히고, 수직 gradient를 위해 배경 쿼드 메시에 `vertexColors`로 상단 `#1a6fa8` → 하단 `#051025` 그라디언트를 적용할 것
 - [ ] `src/scene/Lighting.ts`의 god ray SpotLight — `penumbra`를 현재값에서 **0.85~0.95**로 높이고 `intensity`를 **0.3 이하**로 낮춰 기둥 경계를 흐리게; god ray 스프라이트 PlaneGeometry라면 `opacity`를 0.12~0.18로 감소시켜 과노출 흰 블록 제거
 - [ ] `src/scene/Ocean.ts` 또는 `SceneManager.ts`의 배경 fog/ambient 설정 — `THREE.FogExp2` density를 **0.018→0.028**로 높이거나, 배경 색상을 상단 `#0d3d6e` → 하단 `#020d1a`로 수직 셰이더 그라디언트를 추가해 명도 낙차를 확보
+- [ ] `src/scene/Lighting.ts`의 god ray SpotLight/스프라이트 강도·불투명도를 높이거나, `src/scene/Ocean.ts`의 god ray 스프라이트 `material.opacity`를 현재값 대비 1.5~2배 증가, `position.y` 범위를 카메라 시야 내(y: -5~5)로 제한해 광선이 화면에 걸리도록 수정
+- [ ] `src/scene/Lighting.ts`의 god ray SpotLight 또는 sprite god ray 생성 함수에서 `opacity` 값을 현재보다 0.15~0.25로 낮추고, sprite 텍스처 폭을 줄여 과노출 패치 대신 좁고 부드러운 줄기 형태로 수정; 모든 날씨 프리셋에서 씬 내부(수중 카메라 시야)에도 god ray가 렌더링되도록 `visible` 조건 점검
+- [ ] `src/scene/Ocean.ts` 또는 배경 색상을 정의하는 `renderer.setClearColor` / `fog` 설정에서 수직 그라디언트 fog를 강화 — `THREE.FogExp2` density를 카메라 Y 위치에 따라 동적으로 조정하거나, 배경 쿼드에 상단 `#1a6a9a` → 하단 `#050e1f` 수직 그라디언트 셰이더를 적용해 깊이감 구간을 화면 전체로 확장
