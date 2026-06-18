@@ -70,8 +70,8 @@ export class SkyBox {
       fragmentShader: `
         varying float vY;
         void main() {
-          vec3 deep = vec3(0.008, 0.051, 0.102);
-          vec3 surface = vec3(0.051, 0.310, 0.486);
+          vec3 deep = vec3(0.039, 0.290, 0.431);
+          vec3 surface = vec3(0.102, 0.471, 0.545);
           float t = clamp(vY * 0.1 + 0.5, 0.0, 1.0);
           gl_FragColor = vec4(mix(deep, surface, t), 1.0);
         }

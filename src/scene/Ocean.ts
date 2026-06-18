@@ -214,9 +214,9 @@ export class Ocean {
 
     const mouthDist = 1.5;
     for (let i = 0; i < BUBBLE_COUNT; i++) {
-      positions[i * 3]     = this._sharkPos.x - this._sharkFwd.x * mouthDist + (Math.random() - 0.5) * 0.8;
+      positions[i * 3]     = this._sharkPos.x - this._sharkFwd.x * mouthDist + (Math.random() - 0.5) * 0.4;
       positions[i * 3 + 1] = this._sharkPos.y - 0.3 + Math.random() * 0.6;
-      positions[i * 3 + 2] = this._sharkPos.z - this._sharkFwd.z * mouthDist + (Math.random() - 0.5) * 0.8;
+      positions[i * 3 + 2] = this._sharkPos.z - this._sharkFwd.z * mouthDist + (Math.random() - 0.5) * 0.4;
       sizes[i] = Math.random() * 0.025 + 0.01;
     }
 
@@ -294,9 +294,9 @@ export class Ocean {
 
       if (y > SURFACE_HEIGHT) {
         const mouthDist = 1.5;
-        x = this._sharkPos.x - this._sharkFwd.x * mouthDist + (Math.random() - 0.5) * 0.8;
+        x = this._sharkPos.x - this._sharkFwd.x * mouthDist + (Math.random() - 0.5) * 0.4;
         y = this._sharkPos.y - 0.3 + Math.random() * 0.6;
-        z = this._sharkPos.z - this._sharkFwd.z * mouthDist + (Math.random() - 0.5) * 0.8;
+        z = this._sharkPos.z - this._sharkFwd.z * mouthDist + (Math.random() - 0.5) * 0.4;
       }
 
       bubblePos.setXYZ(i, x, y, z);
