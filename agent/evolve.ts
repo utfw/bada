@@ -31,7 +31,7 @@ const GOALS_FILE = path.join(ROOT, "goals.md");
 
 // 정체 판정 파라미터 — 최근 N회 dramaScore 변동폭이 이 값 미만이면 정체로 본다
 const STAGNATION_WINDOW = 3;
-const STAGNATION_DELTA = 0.05;
+const STAGNATION_DELTA = 0.15;
 // 최저 학교 drama가 이 값 미만이고 정체 조건도 만족하면 변이 제안
 const WEAK_SCHOOL_THRESHOLD = 0.3;
 
@@ -103,6 +103,32 @@ interface Mutation {
   fromValue: number;
   toValue: number;
   reason: string;
+  lineNumber: number;
+  originalDef: OrbitDef;
+}
+
+// ── Fish.ts schoolDefs 라인 번호 파싱 ─────────────────────────────────────────
+
+const FISH_TS_PATH = path.join(ROOT, "src", "entities", "Fish.ts");
+
+function getSchoolDefLineNumber(schoolIndex: number, fishTsLines: string[]): number {
+  try {
+    const headerIdx = fishTsLines.findIndex((l) => /this\.schoolDefs\s*=\s*\[/.test(l));
+    if (headerIdx === -1) return -1;
+    let entryCount = 0;
+    for (let i = headerIdx + 1; i < fishTsLines.length; i++) {
+      // 배열 항목은 [ 로 시작하는 줄 (공백 허용)
+      if (/^\s*\[/.test(fishTsLines[i])) {
+        if (entryCount === schoolIndex) return i + 1; // 1-based
+        entryCount++;
+      }
+      // 닫는 ] 만나면 종료
+      if (/^\s*\]\s*;?\s*$/.test(fishTsLines[i])) break;
+    }
+    return -1;
+  } catch {
+    return -1;
+  }
 }
 
 // ── 드라마 점수 계산 ───────────────────────────────────────────────────────────
@@ -114,10 +140,11 @@ export function computeDramaScore(metrics: PredatorMetrics[]): DramaScoreResult 
 
   // 학교별 drama: 회피 강도 × 만남 빈도 × 경로 다양성
   // 각 인자를 [0, 1]로 정규화한 뒤 곱셈 — 어느 하나라도 0이면 0
-  const perSchool = metrics.map((m) => {
+  const perSchool = metrics.map((m, i) => {
+    const w = i === 0 ? 0.5 : 1.0; // school 0은 낮은 encounterRate로 전체 score 억제 → 절반 가중
     const encScore = Math.min(m.encounterRate * 5, 1); // 0.2 encounter rate = full credit
     const varScore = Math.min(m.pathVariance / 8, 1); // stdev 합 8 = full credit
-    return m.peakFleeIntensity * encScore * varScore;
+    return m.peakFleeIntensity * encScore * varScore * w;
   });
 
   const peakSum = metrics.reduce((s, m) => s + m.peakFleeIntensity, 0);
@@ -217,6 +244,14 @@ export function proposeMutation(
 ): Mutation | null {
   if (metrics.length === 0 || metrics.length !== currentDefs.length) return null;
 
+  // Fish.ts를 한 번만 읽어 라인 파싱에 재사용
+  let fishTsLines: string[] = [];
+  try {
+    fishTsLines = fs.readFileSync(FISH_TS_PATH, "utf-8").split("\n");
+  } catch {
+    // 파일 읽기 실패 시 lineNumber=-1로 진행
+  }
+
   // 학교별 drama로 가장 약한 학교 찾기
   const ranked = drama.perSchool
     .map((d, i) => ({ i, d, m: metrics[i] }))
@@ -227,6 +262,8 @@ export function proposeMutation(
   const def = currentDefs[worst.i];
   const [cx, cz, yBase, semi_a, semi_b, yWave] = def;
   const m = worst.m;
+  const lineNumber = getSchoolDefLineNumber(worst.i, fishTsLines);
+  const originalDef: OrbitDef = def;
 
   const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
   const round1 = (v: number): number => Math.round(v * 10) / 10;
@@ -243,6 +280,8 @@ export function proposeMutation(
           fromValue: cx,
           toValue: next,
           reason: `school ${worst.i} encounterRate=0 (minDist=${m.minDistance.toFixed(1)}) — orbit center cx 원점 쪽으로 이동`,
+          lineNumber,
+          originalDef,
         };
       }
     }
@@ -255,6 +294,8 @@ export function proposeMutation(
         fromValue: cz,
         toValue: next,
         reason: `school ${worst.i} encounterRate=0 (minDist=${m.minDistance.toFixed(1)}) — orbit center cz 원점 쪽으로 이동`,
+        lineNumber,
+        originalDef,
       };
     }
   }
@@ -270,6 +311,8 @@ export function proposeMutation(
         fromValue: semi_a,
         toValue: next,
         reason: `school ${worst.i} pathVariance=${m.pathVariance.toFixed(2)} — semi_a 확대로 궤도 반경 증가`,
+        lineNumber,
+        originalDef,
       };
     }
     if (yWave < 4) {
@@ -281,6 +324,8 @@ export function proposeMutation(
         fromValue: yWave,
         toValue: next,
         reason: `school ${worst.i} pathVariance=${m.pathVariance.toFixed(2)} — yWave 확대로 수직 변동 증가`,
+        lineNumber,
+        originalDef,
       };
     }
   }
@@ -299,6 +344,8 @@ export function proposeMutation(
         fromValue: yBase,
         toValue: next,
         reason: `school ${worst.i} peakFleeIntensity=${m.peakFleeIntensity.toFixed(2)} — yBase 조정으로 수심 변경`,
+        lineNumber,
+        originalDef,
       };
     }
   }
@@ -311,9 +358,12 @@ export function proposeMutation(
 const EVOLVER_SECTION_HEADER = "## 진화 목표 (Evolver)";
 
 export function mutationToGoalText(mutation: Mutation): string {
+  const lineRef = mutation.lineNumber > 0 ? `Fish.ts:${mutation.lineNumber}` : "Fish.ts";
+  const defStr = mutation.originalDef.join(", ");
   return (
-    `Fish.ts schoolDefs[${mutation.schoolIndex}]의 ${mutation.paramName}을 ` +
-    `${mutation.fromValue}에서 ${mutation.toValue}로 변경 — ${mutation.reason}`
+    `${lineRef} schoolDefs[${mutation.schoolIndex}]의 ${mutation.paramName}을 ` +
+    `${mutation.fromValue}에서 ${mutation.toValue}로 변경 ` +
+    `(원본 def: [${defStr}]) — ${mutation.reason}`
   );
 }
 

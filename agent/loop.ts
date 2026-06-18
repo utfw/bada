@@ -23,6 +23,8 @@ import { runEvolutionStep, type DramaScoreResult } from "./evolve.js";
 const ROOT = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const GOALS_FILE = path.join(ROOT, "goals.md");
 const LOGS_DIR = path.join(ROOT, "agent", "logs");
+// logs/ 밖에 둬서 로그 디렉토리 청소에 휩쓸리지 않게 한다 (git 비추적, 분석 전용).
+const METRICS_FILE = path.join(ROOT, "agent", "metrics.jsonl");
 const OBS_DIR = path.join(ROOT, "agent", "observations");
 const OBSERVE_SCRIPT = path.join(ROOT, "agent", "observe.ts");
 const MAX_REVIEW_RETRIES = 2;
@@ -46,15 +48,39 @@ type Stage = "observe" | "plan" | "impl" | "review";
 class AgentLog {
   private summaryLines: string[] = [];
   private runDir: string;
+  private runId: string;
 
   constructor() {
-    this.runDir = path.join(LOGS_DIR, timestamp());
+    this.runId = timestamp();
+    this.runDir = path.join(LOGS_DIR, this.runId);
     fs.mkdirSync(this.runDir, { recursive: true });
     this.summaryLines.push(`# 에이전트 실행 로그 — ${new Date().toLocaleString("ko-KR")}\n`);
   }
 
   get directory(): string {
     return this.runDir;
+  }
+
+  // 단계별 토큰·비용·소요시간을 전역 누적 JSONL(metrics.jsonl)에 한 줄 append.
+  // 콘솔로만 흘러가던 usage 데이터를 구조화 저장해 사후 회계/재현성 분석을 가능케 한다.
+  metric(goalIndex: number, stage: Stage, attempt: number, success: boolean, m: StageMetrics): void {
+    const record = {
+      ts: new Date().toISOString(),
+      run: this.runId,
+      goal: goalIndex + 1,
+      stage,
+      attempt,
+      success,
+      durationMs: m.durationMs,
+      apiDurationMs: m.apiDurationMs,
+      costUsd: m.costUsd,
+      in: m.inputTokens,
+      out: m.outputTokens,
+      cacheRead: m.cacheReadTokens,
+      cacheCreate: m.cacheCreationTokens,
+      turns: m.numTurns,
+    };
+    fs.appendFileSync(METRICS_FILE, JSON.stringify(record) + "\n", "utf-8");
   }
 
   goalStart(goalText: string, index: number): void {
@@ -916,6 +942,10 @@ ${fileList}
 자동 수치 검증 (LLM 미사용, 코드로 결정론적 평가 — 산술/위치 검증 재수행 금지):
 ${numericReport}
 
+⚠️ 출력 필수 조건 (먼저 숙지):
+아래 "## 탑뷰 관찰 (필수)" 섹션을 REVIEW_PASS/REVIEW_FAIL 선언 **이전**에 반드시 출력해야 한다.
+이 섹션이 없는 REVIEW_PASS는 코드로 자동 감지되어 REVIEW_FAIL로 처리된다. 템플릿 복붙 금지 — 실제 이미지를 Read로 열어 관찰한 내용만 기재.
+
 검증 절차 (순서대로):
 1. agent/REVIEW_CHECKLIST.md Read → 모든 항목 점검 (금지 규칙·갱신 규칙 포함).
    다만 [코드 수치 검증] 표기 항목 중 위 자동 수치 검증에 포함된 항목(pectoral/dorsal 위치, rotation 부호, 가중치 비율, GOD_RAY_MAX_OPACITY, createSpots scale)은 **자동 결과를 그대로 인용**하고 재검증하지 말 것.
@@ -1179,6 +1209,7 @@ function logAndCheck(
   console.log(result.output.slice(-1200));
   if (result.metrics) {
     console.log(`\n📊 ${label}: ${formatMetrics(result.metrics)}`);
+    log.metric(goalIndex, stage, attempt, result.success, result.metrics);
   }
   if (result.rateLimited) {
     console.log(`\n⏸  ${label}: API 사용량 한도 도달`);

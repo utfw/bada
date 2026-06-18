@@ -30,6 +30,7 @@ interface Vec3 {
 interface WhaleSharkState {
   position: Vec3;
   progress: number;
+  pectoralHorizontal: { left: boolean; right: boolean };
 }
 interface SchoolSpread {
   school: number;
@@ -311,6 +312,16 @@ function detectAnomalies(samples: Sample[]): string[] {
     // (이 값이 음수여도 lookAt 수식 수정 금지 — 탑뷰 스냅샷으로만 판단)
   }
 
+  const firstWs = samples[0]?.whaleShark;
+  if (firstWs) {
+    const { left, right } = firstWs.pectoralHorizontal;
+    if (!left || !right) {
+      anomalies.push(
+        `가슴지느러미 수평 방향 이상: left=${left}, right=${right} — rotation.x 수직 평면 위치 의심`,
+      );
+    }
+  }
+
   return anomalies;
 }
 
@@ -386,6 +397,8 @@ async function observe(): Promise<Observation> {
               getDebugState(): {
                 position: { x: number; y: number; z: number };
                 progress: number;
+                pectoralRotationX: { left: number; right: number };
+                pectoralHorizontal: { left: boolean; right: boolean };
               };
             };
             fishSchool?: {

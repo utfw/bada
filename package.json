@@ -14,6 +14,7 @@
     "agent": "tsx --tsconfig tsconfig.agent.json agent/loop.ts",
     "agent:goals": "tsx --tsconfig tsconfig.agent.json agent/setGoals.ts",
     "agent:observe": "tsx --tsconfig tsconfig.agent.json agent/observe.ts",
+    "report": "tsx --tsconfig tsconfig.agent.json agent/report.ts",
     "agent:review": "tsx --tsconfig tsconfig.agent.json agent/loop.ts --review"
   },
   "dependencies": {
