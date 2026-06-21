@@ -648,6 +648,13 @@ function isRateLimitMessage(text: string): boolean {
   return /rate.?limit|too many requests|429|usage.?limit|quota|hit your limit|reset(s)?\s+\d{1,2}:\d{2}\s?(am|pm)/i.test(text);
 }
 
+// 서버 일시 과부하(529/overloaded) 또는 일시적 서버 오류 — 재시도하면 대개 풀린다.
+// 일 사용량 한도(isRateLimitMessage)와 달리 짧은 백오프로 회복 가능.
+function isOverloadMessage(text: string): boolean {
+  // status code는 단어 경계로 감싸 비용/토큰 수치 오탐 방지. 성공 응답엔 적용 안 됨(success로 먼저 걸러짐).
+  return /overloaded|\b(529|503|500)\b|service unavailable|temporarily|internal server error|timeout|ETIMEDOUT|ECONNRESET/i.test(text);
+}
+
 type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max";
 
 interface ClaudeOptions {
@@ -656,7 +663,7 @@ interface ClaudeOptions {
   budgetUsd?: number;
 }
 
-function runClaude(
+function runClaudeOnce(
   prompt: string,
   allowedTools: string,
   maxTurns: number,
@@ -700,6 +707,39 @@ function runClaude(
     const rateLimited = isRateLimitMessage(finalOutput);
     return { output: finalOutput, success: false, rateLimited, metrics };
   }
+}
+
+// 일시적 인프라 장애(overload/529, 5xx, 타임아웃)에 회복력을 더하는 재시도 래퍼.
+// overload는 지수 백오프로 재시도하면 대개 풀린다. 일 사용량 한도(rate-limit)는
+// 짧은 대기로 안 풀리므로 마지막 시도까지 실패하면 그대로 rate-limited를 반환한다
+// (호출부의 기존 rate-limited 처리 흐름 유지). 성공/코드실패/한도도달은 즉시 반환.
+const MAX_API_RETRIES = 3;
+const RETRY_BASE_MS = 4000;
+
+// 동기 파이프라인을 블로킹 대기 (CPU 점유 없이). Atomics.wait는 메인 스레드에서도 동작.
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function runClaude(
+  prompt: string,
+  allowedTools: string,
+  maxTurns: number,
+  opts: ClaudeOptions = {},
+): StageResult {
+  let last: StageResult = { output: "", success: false, rateLimited: false };
+  for (let attempt = 0; attempt <= MAX_API_RETRIES; attempt++) {
+    last = runClaudeOnce(prompt, allowedTools, maxTurns, opts);
+    // 성공이거나, 일시 과부하가 아닌 실패(코드 실패·일 한도)면 재시도 무의미 → 즉시 반환.
+    if (last.success || !isOverloadMessage(last.output)) return last;
+    if (attempt < MAX_API_RETRIES) {
+      const waitMs = RETRY_BASE_MS * 2 ** attempt; // 4s, 8s, 16s
+      console.log(`  ⚠ 일시적 서버 과부하 감지 — ${waitMs / 1000}s 후 재시도 (${attempt + 1}/${MAX_API_RETRIES})`);
+      sleepSync(waitMs);
+    }
+  }
+  console.log(`  ✗ 재시도 ${MAX_API_RETRIES}회 모두 과부하로 실패`);
+  return last;
 }
 
 // ── Ollama 로컬 API 호출 ──────────────────────────────────────────────────────
