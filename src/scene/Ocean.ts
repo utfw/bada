@@ -266,7 +266,7 @@ export class Ocean {
     // Animate god rays — opacity pulsed per-ray with phase offset
     this.godRayTime += delta;
     this.godRays.forEach((ray, idx) => {
-      ray.mesh.material.opacity = 0.21 + 0.06 * Math.sin(this.godRayTime * 0.4 + idx * 0.8);
+      ray.mesh.material.opacity = ray.baseOpacity * (1 + 0.25 * Math.sin(this.godRayTime * 0.4 + idx * 0.8));
     });
 
     // Animate debris
@@ -349,8 +349,8 @@ export class Ocean {
     // (Three.js PlaneGeometry starts at top-left and goes row by row)
     const posAttr = geo.attributes.position as THREE.BufferAttribute;
     const colors = new Float32Array(posAttr.count * 3);
-    const topColor = new THREE.Color(0x1a6fa8);
-    const bottomColor = new THREE.Color(0x051025);
+    const topColor = new THREE.Color(0x1a6080);
+    const bottomColor = new THREE.Color(0x050d1a);
     for (let i = 0; i < posAttr.count; i++) {
       const y = posAttr.getY(i);
       const c = y >= 0 ? topColor : bottomColor;

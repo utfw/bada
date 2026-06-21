@@ -153,7 +153,7 @@ export class Lighting {
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
 
-      const baseOpacity = GOD_RAY_MAX_OPACITY * (1.0 + Math.random() * 0.4);
+      const baseOpacity = GOD_RAY_MAX_OPACITY * (1.0 + Math.random() * 0.2);
       this.godRayConeBaseOpacity.push(baseOpacity);
 
       const coneMat = new THREE.ShaderMaterial({
@@ -172,7 +172,7 @@ export class Lighting {
       });
 
       // CylinderGeometry(radiusTop=0, radiusBottom, height) — apex at top (surface), opens downward
-      const bottomRadius = 1.2 + Math.random() * 0.8;
+      const bottomRadius = 0.1 + Math.random() * 0.12;
       const coneGeo = new THREE.CylinderGeometry(0, bottomRadius, GOD_RAY_HEIGHT, 16, 1, true);
       const cone = new THREE.Mesh(coneGeo, coneMat);
       // apex sits at SURFACE_HEIGHT; center of geometry is at SURFACE_HEIGHT - GOD_RAY_HEIGHT/2
@@ -193,14 +193,14 @@ export class Lighting {
       }
     `;
 
-    this.nearRayGeo = new THREE.PlaneGeometry(0.60, 12);
-    for (let i = 0; i < 6; i++) {
+    this.nearRayGeo = new THREE.PlaneGeometry(0.25, 12);
+    for (let i = 0; i < 16; i++) {
       const mat = new THREE.ShaderMaterial({
         vertexShader,
         fragmentShader: nearRayFragmentShader,
         uniforms: {
           uColor: { value: new THREE.Color(0x88ddff) },
-          uMaxOpacity: { value: 0.16 },
+          uMaxOpacity: { value: 0.14 },
         },
         transparent: true,
         blending: THREE.AdditiveBlending,
@@ -209,7 +209,7 @@ export class Lighting {
       });
       const mesh = new THREE.Mesh(this.nearRayGeo, mat);
       mesh.position.set(
-        (i / 6 * 2 - 1) * 3,
+        (i / 16 * 2 - 1) * 8 + Math.random() * 0.4,
         0,
         Math.random() * 6 - 3,
       );
