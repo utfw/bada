@@ -31,24 +31,21 @@ interface Binding {
 //   <!-- @src: src/utils/constants.ts:FISH_ORBIT_WEIGHT,BOID_SEPARATION_WEIGHT -->
 function extractBindings(text: string): Binding[] {
   const bindings: Binding[] = [];
-  const lines = text.split("\n");
   const tagRe = /<!--\s*@src:\s*([^>]+?)\s*-->/g;
-  lines.forEach((lineText, i) => {
-    let m: RegExpExecArray | null;
-    while ((m = tagRe.exec(lineText)) !== null) {
-      const body = m[1].trim(); // "file:sym1,sym2"
-      const colon = body.indexOf(":");
-      if (colon === -1) continue;
-      const file = body.slice(0, colon).trim();
-      // 문서 내 예시 플레이스홀더("file:symbol", "src/파일.ts:심볼")를 실제 바인딩과 구분.
-      // 진짜 태그는 src/ 또는 agent/ 로 시작하고 .ts로 끝나는 경로만 인정한다.
-      if (!/^(src|agent)\/.+\.ts$/.test(file)) continue;
-      const symbols = body.slice(colon + 1).split(",").map((s) => s.trim()).filter(Boolean);
-      for (const symbol of symbols) {
-        bindings.push({ line: i + 1, file, symbol, raw: m[0] });
-      }
+  for (const m of text.matchAll(tagRe)) {
+    const body = m[1].trim(); // "file:sym1,sym2"
+    const colon = body.indexOf(":");
+    if (colon === -1) continue;
+    const file = body.slice(0, colon).trim();
+    // 문서 내 예시 플레이스홀더("file:symbol", "src/파일.ts:심볼")를 실제 바인딩과 구분.
+    // 진짜 태그는 src/ 또는 agent/ 로 시작하고 .ts로 끝나는 경로만 인정한다.
+    if (!/^(src|agent)\/.+\.ts$/.test(file)) continue;
+    const line = text.slice(0, m.index).split("\n").length;
+    const symbols = body.slice(colon + 1).split(",").map((s) => s.trim()).filter(Boolean);
+    for (const symbol of symbols) {
+      bindings.push({ line, file, symbol, raw: m[0] });
     }
-  });
+  }
   return bindings;
 }
 
@@ -60,10 +57,14 @@ interface Result extends Binding {
 
 // symbol이 file에 존재하는지 확인. 식별자 경계로 감싸 부분일치 오탐 방지
 // (예: FISH_ORBIT_WEIGHT가 FISH_ORBIT_WEIGHTS에 잘못 매칭되지 않도록).
-function checkBinding(b: Binding): Status {
+// 같은 파일을 가리키는 바인딩이 여럿이므로 파일 내용은 cache로 한 번만 읽는다.
+function checkBinding(b: Binding, cache: Map<string, string | null>): Status {
   const filePath = path.join(ROOT, b.file);
-  if (!fs.existsSync(filePath)) return "missing-file";
-  const content = fs.readFileSync(filePath, "utf-8");
+  if (!cache.has(filePath)) {
+    cache.set(filePath, fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf-8") : null);
+  }
+  const content = cache.get(filePath)!;
+  if (content === null) return "missing-file";
   const symRe = new RegExp(`\\b${escapeRegExp(b.symbol)}\\b`);
   return symRe.test(content) ? "ok" : "stale-symbol";
 }
@@ -90,7 +91,8 @@ function main(): void {
     return;
   }
 
-  const results: Result[] = bindings.map((b) => ({ ...b, status: checkBinding(b) }));
+  const fileCache = new Map<string, string | null>();
+  const results: Result[] = bindings.map((b) => ({ ...b, status: checkBinding(b, fileCache) }));
   const stale = results.filter((r) => r.status !== "ok");
 
   for (const r of results) {

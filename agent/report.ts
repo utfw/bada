@@ -92,13 +92,14 @@ function fmtNum(n: number): string {
   return n.toLocaleString();
 }
 
-function pad(s: string, w: number): string {
-  return s.length >= w ? s : s + " ".repeat(w - s.length);
+// 폭 w로 패딩. left=true면 우측 정렬(왼쪽 공백), 아니면 좌측 정렬(오른쪽 공백).
+function padStr(s: string, w: number, left = false): string {
+  if (s.length >= w) return s;
+  const gap = " ".repeat(w - s.length);
+  return left ? gap + s : s + gap;
 }
-
-function padL(s: string, w: number): string {
-  return s.length >= w ? s : " ".repeat(w - s.length) + s;
-}
+const pad = (s: string, w: number): string => padStr(s, w);
+const padL = (s: string, w: number): string => padStr(s, w, true);
 
 function printTable(title: string, rows: [string, Agg][]): void {
   console.log(`\n${title}`);
