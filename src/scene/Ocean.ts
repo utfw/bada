@@ -5,6 +5,8 @@ import {
   SURFACE_HEIGHT,
   PARTICLE_COUNT,
   BUBBLE_COUNT,
+  CAMERA_FOV,
+  CAMERA_NEAR,
 } from '../utils/constants';
 import { WeatherData } from '../weather/WeatherService';
 
@@ -23,13 +25,17 @@ export class Ocean {
   private godRayTime: number = 0;
   private godRaySpots: THREE.SpotLight[] = [];
   private _scene!: THREE.Scene;
+  private _bgQuad!: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  private _camera!: THREE.PerspectiveCamera;
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
     this._scene = scene;
+    this._camera = camera;
     this.createSurface(scene);
     this.createDebris(scene);
     this.createBubbles(scene);
     this.addGodRays(scene);
+    this.createBackgroundQuad(camera);
   }
 
   private createSurface(scene: THREE.Scene): void {
@@ -163,14 +169,14 @@ export class Ocean {
   private addGodRays(scene: THREE.Scene): void {
     // 8 cones with apex at surface, extending downward into the water
     const configs: { x: number; z: number; radius: number; height: number; opacity: number }[] = [
-      { x:  1.2, z: -0.8, radius: 1.2, height: 12, opacity: 0.32 },
-      { x: -1.5, z:  1.0, radius: 1.0, height: 10, opacity: 0.28 },
-      { x:  0.5, z:  1.8, radius: 1.2, height: 13, opacity: 0.30 },
-      { x: -1.0, z: -1.5, radius: 1.2, height: 11, opacity: 0.28 },
-      { x:  1.8, z:  0.3, radius: 1.2, height: 12, opacity: 0.32 },
-      { x: -2.5, z: -0.5, radius: 1.0, height: 10, opacity: 0.29 },
-      { x:  0.0, z: -2.0, radius: 1.2, height: 14, opacity: 0.35 },
-      { x:  2.2, z:  1.5, radius: 1.2, height: 11, opacity: 0.28 },
+      { x:  1.2, z: -0.8, radius: 1.8, height: 20, opacity: 0.24 },
+      { x: -1.5, z:  1.0, radius: 1.5, height: 20, opacity: 0.21 },
+      { x:  0.5, z:  1.8, radius: 1.8, height: 20, opacity: 0.23 },
+      { x: -1.0, z: -1.5, radius: 1.8, height: 20, opacity: 0.21 },
+      { x:  1.8, z:  0.3, radius: 1.8, height: 20, opacity: 0.24 },
+      { x: -2.5, z: -0.5, radius: 1.5, height: 20, opacity: 0.21 },
+      { x:  0.0, z: -2.0, radius: 1.8, height: 20, opacity: 0.27 },
+      { x:  2.2, z:  1.5, radius: 1.8, height: 20, opacity: 0.21 },
     ];
 
     for (const cfg of configs) {
@@ -260,7 +266,7 @@ export class Ocean {
     // Animate god rays — opacity pulsed per-ray with phase offset
     this.godRayTime += delta;
     this.godRays.forEach((ray, idx) => {
-      ray.mesh.material.opacity = 0.28 + 0.06 * Math.sin(this.godRayTime * 0.4 + idx * 0.8);
+      ray.mesh.material.opacity = 0.21 + 0.06 * Math.sin(this.godRayTime * 0.4 + idx * 0.8);
     });
 
     // Animate debris
@@ -335,6 +341,44 @@ export class Ocean {
     }
   }
 
+  private createBackgroundQuad(camera: THREE.PerspectiveCamera): void {
+    const geo = new THREE.PlaneGeometry(2, 2);
+
+    // Determine vertex y-values to assign top/bottom colors correctly.
+    // PlaneGeometry(2,2) vertices in order: top-left, top-right, bottom-left, bottom-right
+    // (Three.js PlaneGeometry starts at top-left and goes row by row)
+    const posAttr = geo.attributes.position as THREE.BufferAttribute;
+    const colors = new Float32Array(posAttr.count * 3);
+    const topColor = new THREE.Color(0x1a6fa8);
+    const bottomColor = new THREE.Color(0x051025);
+    for (let i = 0; i < posAttr.count; i++) {
+      const y = posAttr.getY(i);
+      const c = y >= 0 ? topColor : bottomColor;
+      colors[i * 3]     = c.r;
+      colors[i * 3 + 1] = c.g;
+      colors[i * 3 + 2] = c.b;
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const mat = new THREE.MeshBasicMaterial({
+      vertexColors: true,
+      depthTest: false,
+      depthWrite: false,
+    });
+
+    this._bgQuad = new THREE.Mesh(geo, mat);
+    this._bgQuad.renderOrder = -999;
+
+    // Place quad just in front of near plane, scaled to fill frustum at that distance
+    const zDist = CAMERA_NEAR + 0.01;
+    const nearH = zDist * Math.tan((CAMERA_FOV / 2) * (Math.PI / 180));
+    const aspect = camera.aspect > 0 ? camera.aspect : 1;
+    this._bgQuad.position.set(0, 0, -zDist);
+    this._bgQuad.scale.set(nearH * aspect, nearH, 1);
+
+    camera.add(this._bgQuad);
+  }
+
   applyAqi(aqi: number): void {
     const debrisMat = this.debrisParticles.material as THREE.ShaderMaterial;
     debrisMat.uniforms.uOpacity.value = 0.4 + (aqi - 1) * 0.15;
@@ -346,6 +390,10 @@ export class Ocean {
   }
 
   dispose(): void {
+    this._camera.remove(this._bgQuad);
+    this._bgQuad.geometry.dispose();
+    this._bgQuad.material.dispose();
+
     this.surface.geometry.dispose();
     this.surface.material.dispose();
 

@@ -213,7 +213,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-19) [reviewer] §1 재확인: fish.avgForwardDot = -1.00 이 32/32 샘플 전체에서 관측됨. 탑뷰에서 개체가 너무 작아 육안 확정 불가 → REVIEW_FAIL + 사람 보고. Fish.ts:306 lookTarget 수식 사람 검증 필요.
 - (2026-04-19) [reviewer] §3-2 추가: fish.centroid.y 궤도 이탈 판정 기준 — 마지막 샘플 |centroid.y - FISH_ORBIT_Y| > BOID_BOUNDARY_MARGIN(=8)이면 실패. 이번 실행에서 y=-6.1→-19.4 드리프트 관측(target=-5, margin=8, 이탈량=14.4).
 - (2026-04-20) [reviewer] §3 보강: finWave finZ 정합성 검증 항목 추가 — finWave 연동은 존재하지만 finZ 인자가 실제 fin.position.z와 다르면 위상 불일치로 gap 발생. create*() 코드와 대조 필수 기준 명시.
 - (2026-04-20) [reviewer] §3 보강: 등지느러미 접합 검증 대상을 dorsal + secondDorsal 모두로 명시. secondDorsal Z=SHARK_LENGTH×0.3에서 body가 급격히 테이퍼되어 body Y상단 ≈ 0.24인데 position.y=0.9로 gap=0.66 > 0.5 실패 패턴 발견 — create*() 함수 내 모든 지느러미 파츠를 각자 검증 필수.

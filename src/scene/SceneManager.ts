@@ -69,7 +69,7 @@ export class SceneManager {
     this.clock = new THREE.Clock();
 
     this.skyBox = new SkyBox(this.scene);
-    this.ocean = new Ocean(this.scene);
+    this.ocean = new Ocean(this.scene, this.camera);
     this.lighting = new Lighting(this.scene);
     this.whaleShark = new WhaleShark(this.scene);
     this.fishSchool = new FishSchool(this.scene);
