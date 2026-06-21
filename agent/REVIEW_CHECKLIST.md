@@ -43,8 +43,10 @@
 
 - 고래상어의 지느러미·반점·아가미 슬릿이 몸통 표면에 **시각적으로 붙어** 있어야 한다. 근접샷(`whaleshark-front/side/top/below.png`)에서 파츠가 떠 있거나 분리돼 보이면 **실패**.
 
+<!-- @src: src/entities/WhaleShark.ts:createPectoralFins -->
 - **[코드 수치 검증] 가슴지느러미(pectoral) 접합 위치**: `WhaleShark.ts`의 body는 `scale(1.1, 0.75, 1)` 변환 후 최대 반지름 구간(t=0.2~0.45)에서 X방향 실제 반지름 = `2.1 × 1.1 = 2.31`. 가슴지느러미 root의 `position.x` 절댓값이 이 값보다 작으면 root가 몸통 안에 묻히고, 크면 공중에 뜬다. Reviewer는 `createPectoralFins()`에서 pectoral group(또는 mesh)의 `position.x`와 위 계산값의 차이가 0.3 이상인 경우, **shape의 X extent**(shape 최대 X 정점)도 함께 확인한다. `group.position.x + shape_max_x > body_radius × 1.1 × 2`이면 fin tip이 충분히 바깥으로 나와 있으므로 **root 매립은 의도된 gap-hiding 기법으로 허용**하고 통과로 판정한다. shape_max_x를 고려해도 body 반지름에 미달하거나, 근접샷에서 지느러미가 몸통 바깥으로 전혀 보이지 않으면 실패.
 
+<!-- @src: src/entities/WhaleShark.ts:createDorsalFin -->
 - **[코드 수치 검증] 등지느러미(dorsal) 접합 위치**: 등지느러미 root의 `position.y`가 해당 Z 위치의 body 상단 Y값(`body radius × 0.75 스케일`)보다 낮으면 몸통에 묻히고 높으면 뜬다. Reviewer는 `createDorsalFin()`에서 생성되는 **두 등지느러미 모두**(dorsal, secondDorsal)의 `position.y`와 각 Z에서의 `bodyRadius × 0.75` 계산값을 비교해 차이가 0.5 이상이면 **실패**. secondDorsal Z = `SHARK_LENGTH×0.3`(= t=0.8 구간)에서 body가 급격히 얇아지므로(반지름 ≈ 0.32, Y상단 ≈ 0.24) 특히 주의.
 
 - **[코드 구조 검증] 몸체 웨이브와 지느러미 분리 문제**: `animateBodyUndulation()`이 body 버텍스의 X좌표를 매 프레임 이동시킨다. 지느러미가 `this.group`의 자식으로 고정 위치에 있다면, 웨이브 중 body 표면이 지느러미 root에서 멀어져 gap이 생긴다. Reviewer는 지느러미 파츠가 body 웨이브에 연동되는 구조(별도 그룹 또는 offset 보정)인지 확인. **연동 없이 고정 좌표만 있으면 실패.**
@@ -53,8 +55,10 @@
 
 - **[코드 수치 검증] finWave finZ 정합성**: `animateBodyUndulation()` 내 `finWave(finZ)` 호출 시 각 `finZ` 인자가 `createDorsalFin()` / `createPectoralFins()` 내 해당 fin의 `position.z` 값과 일치해야 한다. 불일치 시 웨이브 위상이 어긋나 body-fin gap이 발생하므로 **실패**. Reviewer는 dorsal(SHARK_LENGTH×0.05), secondDorsal(SHARK_LENGTH×0.3), pectoral(−SHARK_LENGTH×0.25) 세 값을 create*() 코드와 대조한다.
 
+<!-- @src: src/entities/WhaleShark.ts:createSpots -->
 - **고래상어 반점/무늬**: 반점 position 계산 시 `scale(1.1, 0.75, 1)` 이후의 실제 반지름을 사용해야 한다 — X방향은 `radius × 1.1`, Y방향은 `radius × 0.75`. 이 값보다 크게 오프셋되면 반점이 몸통에서 떠 보인다. Reviewer는 `createSpots()`의 `x`, `y` 계산식에 스케일이 반영됐는지 확인.
 
+<!-- @src: src/entities/WhaleShark.ts:createCaudalFin -->
 - **꼬리지느러미(caudal) 접합**: `tailGroup.position.z = SHARK_LENGTH / 2`로 꼬리 끝에 배치되어야 한다. Reviewer는 `createCaudalFin()`에서 tailGroup position이 body 끝점과 일치하는지 확인.
 
 - **[코드 검증] 등지느러미 방향 — rotation.y 부호**: `createDorsalFin()`에서 dorsal·secondDorsal의 `rotation.y`는 반드시 **음수(-π/2)** 여야 한다. 양수(+π/2)이면 shape X축이 머리 방향(-Z)으로 전개되어 지느러미가 앞으로 젖혀진 것처럼 보인다. `animateBodyUndulation()`의 tilt 보정식도 `-Math.PI/2 + atan(...)` 형태인지 함께 확인. **양수 기반이면 실패.**
@@ -80,6 +84,7 @@
 
 - **[코드 검증] 궤도 중심 분산**: orbit path 제어점들의 평균 X, Z가 모두 ±5 이내(사실상 원점 집중)이면 카메라 360° 시야 중 좁은 구역에만 물고기가 몰린다. Reviewer는 `FishSchool` 생성자에서 orbit center(들)의 XZ 좌표를 확인. 모든 경로 중심이 원점(0,0) 반경 5 이내면 **실패**. 이 경우 SUGGESTIONS에 학교별 궤도 중심 분산 목표 추가.
 
+<!-- @src: src/utils/constants.ts:FISH_ORBIT_WEIGHT -->
 - **[코드 수치 검증] FISH_ORBIT_WEIGHT 과다**: `FISH_ORBIT_WEIGHT`가 너무 크면 orbit 인력이 boids separation·alignment를 압도해 모든 물고기가 동일 앵커로 수렴한다. Reviewer는 `constants.ts`에서 `FISH_ORBIT_WEIGHT` 값을 확인. `BOID_SEPARATION_WEIGHT`보다 클 경우 군집이 뭉칠 가능성이 높으므로 **실패** 징후로 기록. `FISH_ORBIT_WEIGHT`는 boids가 자연스럽게 퍼질 수 있도록 `BOID_SEPARATION_WEIGHT`의 절반 이하여야 한다.
 
 - **[Observer 수치 검증] 군집 분산도(spread)**: `latest.json`의 `fish.spread`(centroid 기준 평균 거리)가 `BOID_SEPARATION_DIST`보다 작으면 밀집 anomaly. Reviewer는 anomaly 유무를 확인하고, spread가 `BOID_SEPARATION_DIST × 1.5` 이상이어야 자연스러운 분산으로 판정.
@@ -95,9 +100,9 @@
 이 섹션은 2026-05-24 도입된 predator avoidance(Boids flee force) 기능의 정합성·다양성 검증 기준이다.
 관련 코드: `Fish.ts`의 `setSharkPosition()`/flee force 누적/`schoolInteractions`, `SceneManager.ts`의 매 프레임 주입, `constants.ts`의 `PREDATOR_FLEE_RANGE`/`PREDATOR_FLEE_WEIGHT`/`PREDATOR_FLEE_INTENSITY_NORM`.
 
-- **[코드 검증] setSharkPosition 호출 누락 금지**: `SceneManager.ts`의 `animate()` 루프 안에 `this.fishSchool.setSharkPosition(this._sharkWorldPos)` 호출이 `this.fishSchool.update(...)`보다 앞에 있어야 한다. 누락 시 shark 위치가 초기값(9999,9999,9999)에 머물러 flee force가 영원히 0이 된다. 호출이 없거나 `update()` 뒤에 있으면 **실패**.
+- **[코드 검증] setSharkPosition 호출 누락 금지**: `SceneManager.ts`의 `animate()` 루프 안에 `this.fishSchool.setSharkPosition(this._sharkWorldPos)` 호출이 `this.fishSchool.update(...)`보다 앞에 있어야 한다. 누락 시 shark 위치가 초기값(9999,9999,9999)에 머물러 flee force가 영원히 0이 된다. 호출이 없거나 `update()` 뒤에 있으면 **실패**. <!-- @src: src/entities/Fish.ts:setSharkPosition -->
 
-- **[코드 검증] flee force 가중치 비율**: `PREDATOR_FLEE_WEIGHT`가 `BOID_SEPARATION_WEIGHT`보다 작거나 같으면 separation·cohesion에 묻혀 회피가 시각적으로 드러나지 않는다. `PREDATOR_FLEE_WEIGHT > BOID_SEPARATION_WEIGHT`(현재 14.0 > 8.0)가 유지되어야 한다. 미만이면 **실패**.
+- **[코드 검증] flee force 가중치 비율**: `PREDATOR_FLEE_WEIGHT`가 `BOID_SEPARATION_WEIGHT`보다 작거나 같으면 separation·cohesion에 묻혀 회피가 시각적으로 드러나지 않는다. `PREDATOR_FLEE_WEIGHT > BOID_SEPARATION_WEIGHT`(현재 14.0 > 8.0)가 유지되어야 한다. 미만이면 **실패**. <!-- @src: src/utils/constants.ts:PREDATOR_FLEE_WEIGHT,BOID_SEPARATION_WEIGHT -->
 
 - **[Observer 시계열 검증] 전 학교 미만남 금지**: `latest.json`의 `predatorMetrics`에서 모든 학교의 `encounterRate === 0`이면 shark 경로가 학교 궤도 영역 밖에 있거나 관찰 시간이 부족한 것 — **실패**. 원인 후보: WhaleShark CatmullRomCurve3 제어점이 학교 궤도 중심에서 항상 멀리 떨어짐 / 관찰 8초가 너무 짧음 / shark가 화면 멀리 멈춰 있음. Planner는 `WhaleShark.ts`의 경로 제어점이 `Fish.ts`의 `schoolDefs`와 교차하는지 확인.
 
@@ -121,6 +126,7 @@
 `agent/evolution/history.json`에 dramaScore와 schoolDefs를 누적하고, 정체 감지 시
 `goals.md`의 "## 진화 목표 (Evolver)" 섹션에 변이 목표를 자동 append 한다.
 
+<!-- @src: agent/loop.ts:runEvolutionStep -->
 - **[코드 검증] Evolver 호출 위치**: `agent/loop.ts`의 `runGoal()` 안, Observer 결과를 받은 직후·Planner 호출 전에 `runEvolutionStep()`이 한 번 호출되어야 한다. 호출 위치가 Planner 이후로 밀리면 dramaScore가 Planner 프롬프트에 전달되지 못한다. Reviewer는 loop.ts에서 `runEvolutionStep` 호출이 `runPlanner` 호출보다 앞 줄에 있는지 확인. 어긋나면 **실패**.
 
 - **[코드 검증] currentSchoolDefs 전달**: `agent/observe.ts`가 Observation에 `currentSchoolDefs: number[][]` 필드(각 6원소)를 포함해야 Evolver가 mutation 후보를 생성할 수 있다. 누락 시 Evolver는 조용히 변이 없이 종료된다. Reviewer는 `latest.json`에 `currentSchoolDefs`가 있고 길이가 `FISH_SCHOOL_COUNT`와 일치하는지 확인. 다르면 **실패**.
@@ -172,6 +178,7 @@
 
 ## 10. 조명·수면 시각 품질 (Lighting & Ocean Surface)
 
+<!-- @src: src/scene/Ocean.ts:addGodRays -->
 - **[코드 검증] 갓레이(God Ray) 존재**: `Ocean.ts`의 `addGodRays()` 또는 `Lighting.ts`의 constructor에 6~8개의 볼류메트릭 광선 메시가 생성되고 씬에 add 되어야 한다. 구현 방식은 다음 중 하나: (A) `PlaneGeometry + ShaderMaterial(animated uTime uniform)`, 또는 (B) `ConeGeometry + MeshBasicMaterial(transparent, depthWrite:false, update()에서 opacity pulsed)`. opacity가 0이거나 geometry를 씬에 추가하지 않으면 **실패**. (갓레이 구현 위치는 리팩터링에 따라 Ocean.ts 또는 Lighting.ts 중 하나에 있을 수 있으며, 두 파일 모두 확인할 것.)
 
 - **[시각 검증] 갓레이 가시성**: `screenshot-1~4.png` 중 최소 1장에서 수면에서 내려오는 밝은 쐐기형 광선 줄기가 보여야 한다. 4장 모두에서 광선이 보이지 않으면 opacity·위치·각도 문제이므로 **실패 징후** — SUGGESTIONS에 갓레이 opacity/위치 개선 추가.
@@ -190,6 +197,7 @@
 
 ## 9. 파티클 시각적 균형 (Particle Visual Balance)
 
+<!-- @src: src/scene/Ocean.ts:createBubbles -->
 - **버블 파티클 크기/알파 상한 검증**: `Ocean.ts`의 `createBubbles()`에서 `sizes[i]` 최댓값(`random * range + min`)이 **0.2 이상**이거나, fragment shader의 기저 알파(`float alpha = X + ring * Y`)에서 **X ≥ 0.2**이면 버블이 고래상어·물고기보다 시각적으로 두드러질 수 있다. Reviewer는 이 두 값을 코드에서 직접 확인하고, `sizes 최대값 > 0.2` 또는 `기저 알파 X > 0.15`이면 **실패** 판정.
 
 - **[코드 검증] `getWorldDirection()` 꼬리-머리 방향 및 현재 스폰 의도**: `_sharkFwd` 기본값은 `(0,0,−1)`. 부호 규칙: `sharkPos − sharkFwd * dist`(`−` 부호) = 머리(입) 앞 스폰; `sharkPos + sharkFwd * dist`(`+` 부호) = 꼬리 후방 스폰. *(근거: 기본값 `(0,0,−1)`로 `−` 부호 적용 시 `sharkPos.z + dist`가 되어 양의 Z = 머리 방향 편향; screenshot-1~4, whaleshark-front/side/surface-up 5개 이상에서 `-` 부호 → 머리 앞 집중 시각 확인됨.)* **현재 의도(2026-06-16 목표 변경)**: 버블은 입 앞(`mouthDist=1.5`)에서 스폰되어야 하므로 **`−` 부호가 정상**. Reviewer는 `Ocean.ts`의 `createBubbles()` 및 `update()` 리스폰 두 위치 모두에서 `_sharkFwd` 오프셋 부호가 **`−`** 인지 확인할 것. 어느 한 곳이라도 `+`이면 꼬리 후방 스폰으로 역행하므로 **실패**.
@@ -235,3 +243,4 @@
 - (2026-06-15) [reviewer] §10 수정: 갓레이 존재 항목 파일 참조 "Lighting.ts의 constructor에"→"Ocean.ts의 addGodRays() 또는 Lighting.ts"로 일반화 — 현재 구현이 Ocean.ts에 있어 미래 Reviewer가 Lighting.ts만 보고 오판할 위험 제거.
 - (2026-06-15) [reviewer] §10 갱신: 갓레이 재질 규칙을 PlaneGeometry+ShaderMaterial 단독에서 ConeGeometry+MeshBasicMaterial(opacity pulsed in update()) 방식도 허용하도록 확장 — 목표 명세가 MeshBasicMaterial을 명시 지정했으므로 ShaderMaterial 전용 규칙이 goal과 충돌했던 문제 해소.
 - (2026-06-16) [reviewer] §9 수정: 버블 스폰 의도가 꼬리 후방→입 앞으로 변경됨에 따라 부호 판정 반전 — 이제 `−` 부호가 정상(입 앞), `+` 부호가 실패(꼬리). 미래 Reviewer가 old 규칙으로 올바른 구현을 오탐하지 않도록 본문 갱신.
+- (2026-06-21) [human] 코드 검증 항목 11개에 `<!-- @src: file:symbol -->` 바인딩 태그 추가. `npm run check:checklist`(agent/checkChecklist.ts)가 grep으로 심볼 존재를 결정적 검증 — 코드 이동/삭제 시 STALE 자동 감지. §10 갓레이·§9 부호처럼 코드 드리프트로 반복 수동 정정되던 패턴을 자동화. LLM 미사용.
