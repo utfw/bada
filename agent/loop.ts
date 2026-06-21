@@ -63,7 +63,7 @@ class AgentLog {
 
   // 단계별 토큰·비용·소요시간을 전역 누적 JSONL(metrics.jsonl)에 한 줄 append.
   // 콘솔로만 흘러가던 usage 데이터를 구조화 저장해 사후 회계/재현성 분석을 가능케 한다.
-  metric(goalIndex: number, stage: Stage, attempt: number, success: boolean, m: StageMetrics): void {
+  metric(goalIndex: number, stage: Stage, attempt: number, success: boolean, rateLimited: boolean, m: StageMetrics): void {
     const record = {
       ts: new Date().toISOString(),
       run: this.runId,
@@ -71,6 +71,8 @@ class AgentLog {
       stage,
       attempt,
       success,
+      // 인프라 한도(rate-limit/usage limit) 도달 — 코드 실패와 구분해 회계 신뢰성 확보.
+      rateLimited,
       durationMs: m.durationMs,
       apiDurationMs: m.apiDurationMs,
       costUsd: m.costUsd,
@@ -640,6 +642,12 @@ function parseClaudeJson(raw: string): { output: string; metrics?: StageMetrics;
   }
 }
 
+// API 사용량 한도 도달 메시지 감지. CLI는 이를 일반 텍스트 응답으로 흘리기도 하므로
+// ("You've hit your limit · resets …") HTTP 코드 외에 실제 메시지 문구도 포함한다.
+function isRateLimitMessage(text: string): boolean {
+  return /rate.?limit|too many requests|429|usage.?limit|quota|hit your limit|reset(s)?\s+\d{1,2}:\d{2}\s?(am|pm)/i.test(text);
+}
+
 type EffortLevel = "low" | "medium" | "high" | "xhigh" | "max";
 
 interface ClaudeOptions {
@@ -681,14 +689,15 @@ function runClaude(
       }
     );
     const { output, metrics, isError } = parseClaudeJson(raw);
-    return { output, success: !isError, rateLimited: false, metrics };
+    // 정상 반환에도 한도 메시지가 본문에 실려 올 수 있음 (CLI가 non-error로 처리하는 경우).
+    return { output, success: !isError && !isRateLimitMessage(output), rateLimited: isRateLimitMessage(output), metrics };
   } catch (e: unknown) {
     const err = e as { stdout?: string; stderr?: string; status?: number };
     const rawOut = `${err.stdout ?? ""}\n${err.stderr ?? ""}`.trim();
     // JSON 응답이 stdout에 일부 있을 수 있음 — 우선 파싱 시도
     const { output, metrics } = parseClaudeJson(rawOut);
     const finalOutput = output || rawOut;
-    const rateLimited = /rate.?limit|too many requests|429|usage.?limit|quota/i.test(finalOutput);
+    const rateLimited = isRateLimitMessage(finalOutput);
     return { output: finalOutput, success: false, rateLimited, metrics };
   }
 }
@@ -1209,7 +1218,7 @@ function logAndCheck(
   console.log(result.output.slice(-1200));
   if (result.metrics) {
     console.log(`\n📊 ${label}: ${formatMetrics(result.metrics)}`);
-    log.metric(goalIndex, stage, attempt, result.success, result.metrics);
+    log.metric(goalIndex, stage, attempt, result.success, result.rateLimited, result.metrics);
   }
   if (result.rateLimited) {
     console.log(`\n⏸  ${label}: API 사용량 한도 도달`);

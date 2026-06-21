@@ -23,6 +23,7 @@ interface MetricRecord {
   stage: string;
   attempt: number;
   success: boolean;
+  rateLimited?: boolean; // 구버전 기록엔 없음 → undefined는 false로 취급
   durationMs: number;
   apiDurationMs: number;
   costUsd: number;
@@ -55,6 +56,7 @@ function loadRecords(runFilter?: string): MetricRecord[] {
 interface Agg {
   count: number;
   fails: number;
+  rateLimits: number; // 한도 도달(인프라) — 코드 실패와 구분
   costUsd: number;
   durationMs: number;
   in: number;
@@ -65,12 +67,14 @@ interface Agg {
 }
 
 function emptyAgg(): Agg {
-  return { count: 0, fails: 0, costUsd: 0, durationMs: 0, in: 0, out: 0, cacheRead: 0, cacheCreate: 0, turns: 0 };
+  return { count: 0, fails: 0, rateLimits: 0, costUsd: 0, durationMs: 0, in: 0, out: 0, cacheRead: 0, cacheCreate: 0, turns: 0 };
 }
 
 function add(a: Agg, r: MetricRecord): void {
   a.count++;
-  if (!r.success) a.fails++;
+  // 한도 도달은 코드 실패와 별도 집계 — fails는 순수 코드/리뷰 실패만 센다.
+  if (r.rateLimited) a.rateLimits++;
+  else if (!r.success) a.fails++;
   a.costUsd += r.costUsd;
   a.durationMs += r.durationMs;
   a.in += r.in;
@@ -103,6 +107,7 @@ function printTable(title: string, rows: [string, Agg][]): void {
     pad("stage", 10),
     padL("n", 5),
     padL("fail", 5),
+    padL("rl", 4),
     padL("fail%", 6),
     padL("cost", 11),
     padL("cost/n", 10),
@@ -122,6 +127,7 @@ function printTable(title: string, rows: [string, Agg][]): void {
         pad(name, 10),
         padL(String(a.count), 5),
         padL(String(a.fails), 5),
+        padL(String(a.rateLimits), 4),
         padL(failPct, 6),
         padL(fmtUsd(a.costUsd), 11),
         padL(fmtUsd(costPer), 10),
@@ -182,7 +188,11 @@ function main(): void {
     console.log(`  캐시 적중률          ${cacheHitPct}%  (cacheRead / (in + cacheRead))`);
   }
   const failPct = ((total.fails / total.count) * 100).toFixed(1);
-  console.log(`  단계 실패율          ${failPct}%  (${total.fails}/${total.count})`);
+  console.log(`  코드 실패율          ${failPct}%  (${total.fails}/${total.count}, 리뷰 FAIL 등 — 한도 도달 제외)`);
+  if (total.rateLimits > 0) {
+    const rlPct = ((total.rateLimits / total.count) * 100).toFixed(1);
+    console.log(`  한도 도달(인프라)    ${total.rateLimits}건 (${rlPct}%) — 코드 문제 아님, 재실행 필요`);
+  }
   if (retries.count > 0) {
     const retryWastePct = ((retries.costUsd / total.costUsd) * 100).toFixed(1);
     console.log(`  재시도 비용          ${fmtUsd(retries.costUsd)}  (전체의 ${retryWastePct}%, 재시도 ${retries.count}회)`);
