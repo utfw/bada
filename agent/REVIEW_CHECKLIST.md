@@ -26,6 +26,7 @@
   - 머리·이동 일치 여부: <일치 / 불일치>
   ```
 - **⛔ lookAt 수식 수정 절대 금지**: `Fish.ts`의 `lookTarget` 계산식(`add`/`sub` 부호)과 `inner.rotation.y` 값, `WhaleShark.ts`의 `lookAt` 타겟 수식은 **Implementer와 Reviewer 모두 절대 수정하지 않는다.** 이론적 분석으로 "부호가 틀렸다"고 판단해도 수정 금지. 방향이 실제로 틀렸다면 탑뷰 스냅샷을 근거로 사람(human)에게 보고하는 것으로 끝낸다. 이 규칙을 어기고 수식을 수정하면 Reviewer가 즉시 **REVIEW_FAIL** 처리한다.
+- **⛔ 버블/파티클 위치로 진행 방향(fwd/lookAt)을 의심하지 말 것**: 버블이 고래상어 등/머리 위에 보인다고 해서 `getWorldDirection`(로컬 +Z)이나 lookAt 부호가 반대라고 결론내지 말 것. **이동 방향은 이미 올바르다 — 정적 스크린샷만 보고 부호를 뒤집으면 멀쩡한 방향이 반대로 망가진다**(2026-06 실측: `_sharkFwd` 오프셋 부호를 `-`→`+`로 뒤집자 버블이 더 심하게 등을 덮음). 버블이 표면을 덮는 문제는 방향 버그가 아니라 **스폰 거리(`mouthDist`)·높이(`y` offset)가 몸통 표면과 겹치는 별개 문제**다. 단, 거리만 키워도(1.5→12 실측) 완전 해결되지 않으며 — 근본은 fwd가 머리 끝을 정확히 가리키는지의 정합성으로 §1 lookAt 금지 영역. **버블 위치 조정은 거리·높이 수치로만, lookAt/fwd는 손대지 말고, 미해결 시 사람 보고로 종료.**
 - **Fish forwardDot 역방향 이슈 — HUMAN_VERIFICATION_REQUIRED**: `latest.json`의 `fish.avgForwardDot < 0`(특히 -1.00)이 관측되더라도, 이 수치 단독으로는 **REVIEW_FAIL 사유가 되지 않는다.** 판정 규칙:
   1. Reviewer는 해당 anomaly를 `HUMAN_VERIFICATION_REQUIRED`로 분류하고, "실기기 또는 topview 스크린샷으로 직접 확인 필요" 메시지를 출력하는 것으로 보고를 종료한다.
   2. 탑뷰 이미지에서 명백히 역방향(꼬리 쪽으로 이동)이 육안 확인되면 **사람(human)에게만 보고**하고, 에이전트는 코드를 수정하지 않는다.
@@ -242,4 +243,5 @@
 - (2026-06-15) [reviewer] §10 수정: 갓레이 존재 항목 파일 참조 "Lighting.ts의 constructor에"→"Ocean.ts의 addGodRays() 또는 Lighting.ts"로 일반화 — 현재 구현이 Ocean.ts에 있어 미래 Reviewer가 Lighting.ts만 보고 오판할 위험 제거.
 - (2026-06-15) [reviewer] §10 갱신: 갓레이 재질 규칙을 PlaneGeometry+ShaderMaterial 단독에서 ConeGeometry+MeshBasicMaterial(opacity pulsed in update()) 방식도 허용하도록 확장 — 목표 명세가 MeshBasicMaterial을 명시 지정했으므로 ShaderMaterial 전용 규칙이 goal과 충돌했던 문제 해소.
 - (2026-06-16) [reviewer] §9 수정: 버블 스폰 의도가 꼬리 후방→입 앞으로 변경됨에 따라 부호 판정 반전 — 이제 `−` 부호가 정상(입 앞), `+` 부호가 실패(꼬리). 미래 Reviewer가 old 규칙으로 올바른 구현을 오탐하지 않도록 본문 갱신.
+- (2026-06-23) [human] §1 추가: 버블/파티클이 고래상어 표면을 덮는다고 진행 방향(fwd/lookAt) 부호를 의심·반전하지 말 것. 실측에서 부호 반전이 오히려 악화, 거리(1.5→12) 상향도 완전 해결 못 함 — 방향은 §1 lookAt 금지 영역이고, 버블 가림은 거리·높이 수치로만 조정하거나 미해결 시 사람 보고. Vision judge(`npm run vision:judge`)가 이 가림 회귀를 일관 감지함.
 - (2026-06-21) [human] 코드 검증 항목 11개에 `<!-- @src: file:symbol -->` 바인딩 태그 추가. `npm run check:checklist`(agent/checkChecklist.ts)가 grep으로 심볼 존재를 결정적 검증 — 코드 이동/삭제 시 STALE 자동 감지. §10 갓레이·§9 부호처럼 코드 드리프트로 반복 수동 정정되던 패턴을 자동화. LLM 미사용.
