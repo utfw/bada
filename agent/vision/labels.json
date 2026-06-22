@@ -7,8 +7,8 @@
     {
       "archive": "agent/observations/history/2026-06-09T11-35-16_01d34bf",
       "shot": "screenshot-1.png",
-      "label": "natural",
-      "criterion": "갓레이 자연스럽고 버블이 적당량, 고래상어 몸통·머리 윤곽이 또렷하게 분리됨. 주체 인식 방해 없음."
+      "label": "borderline",
+      "criterion": "갓레이·배경·구도는 좋으나 버블이 머리~앞몸통 위에 뭉쳐 반점과 일부 섞임. 전체 인상은 양호하나 버블 가림은 경계 수준 — 재검토 결과 natural→borderline 정정(원 라벨이 전체 인상에 치우쳐 관대했음)."
     },
     {
       "archive": "agent/observations/history/2026-06-12T10-44-02_be9114d",
@@ -33,6 +33,18 @@
       "shot": "surface-up.png",
       "label": "awkward",
       "criterion": "고래상어가 화면에서 잘려 보이고 흰 버블이 몸통 위에 얹힘. 머리 윤곽이 들쭉날쭉해 주체 인식 저하."
+    },
+    {
+      "archive": "agent/observations/history/2026-06-10T10-43-38_185a992",
+      "shot": "screenshot-1.png",
+      "label": "natural",
+      "criterion": "버블이 머리 앞부분에만 작게 모여 입 앞 스폰 의도대로 분포. 몸통·꼬리·구도 또렷하고 갓레이 자연스러움. 주체 인식 완벽 — 깨끗한 natural 기준 케이스."
+    },
+    {
+      "archive": "agent/observations/history/2026-06-11T15-47-08_f167fa4",
+      "shot": "screenshot-1.png",
+      "label": "awkward",
+      "criterion": "버블이 머리~앞몸통 위에 크게 번져 반점과 섞이고 머리 형태가 뭉개짐. 06-12 케이스와 유사한 버블 과다 가림."
     }
   ]
 }

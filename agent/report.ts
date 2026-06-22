@@ -64,10 +64,11 @@ interface Agg {
   cacheRead: number;
   cacheCreate: number;
   turns: number;
+  costs: number[]; // 개별 비용 — 변동계수(CV) 계산용. 재현성 = 실행마다 얼마나 일관된가.
 }
 
 function emptyAgg(): Agg {
-  return { count: 0, fails: 0, rateLimits: 0, costUsd: 0, durationMs: 0, in: 0, out: 0, cacheRead: 0, cacheCreate: 0, turns: 0 };
+  return { count: 0, fails: 0, rateLimits: 0, costUsd: 0, durationMs: 0, in: 0, out: 0, cacheRead: 0, cacheCreate: 0, turns: 0, costs: [] };
 }
 
 function add(a: Agg, r: MetricRecord): void {
@@ -82,6 +83,17 @@ function add(a: Agg, r: MetricRecord): void {
   a.cacheRead += r.cacheRead;
   a.cacheCreate += r.cacheCreate;
   a.turns += r.turns;
+  a.costs.push(r.costUsd);
+}
+
+// 변동계수 CV = 표준편차/평균 (%). 낮을수록 실행마다 일관 = 재현성 높음.
+// 표본 1개 이하면 분산 의미 없음 → 빈 문자열.
+function cvPercent(xs: number[]): string {
+  if (xs.length < 2) return "—";
+  const mean = xs.reduce((s, x) => s + x, 0) / xs.length;
+  if (mean === 0) return "—";
+  const variance = xs.reduce((s, x) => s + (x - mean) ** 2, 0) / xs.length;
+  return (Math.sqrt(variance) / mean * 100).toFixed(1) + "%";
 }
 
 function fmtUsd(n: number): string {
@@ -103,7 +115,7 @@ const padL = (s: string, w: number): string => padStr(s, w, true);
 
 function printTable(title: string, rows: [string, Agg][]): void {
   console.log(`\n${title}`);
-  console.log("─".repeat(96));
+  console.log("─".repeat(104));
   const head = [
     pad("stage", 10),
     padL("n", 5),
@@ -112,13 +124,14 @@ function printTable(title: string, rows: [string, Agg][]): void {
     padL("fail%", 6),
     padL("cost", 11),
     padL("cost/n", 10),
+    padL("costCV", 7),
     padL("in", 9),
     padL("out", 8),
     padL("cacheRd", 11),
     padL("avg s", 7),
   ].join("  ");
   console.log(head);
-  console.log("─".repeat(96));
+  console.log("─".repeat(104));
   for (const [name, a] of rows) {
     const failPct = a.count ? ((a.fails / a.count) * 100).toFixed(1) + "%" : "—";
     const costPer = a.count ? a.costUsd / a.count : 0;
@@ -132,6 +145,8 @@ function printTable(title: string, rows: [string, Agg][]): void {
         padL(failPct, 6),
         padL(fmtUsd(a.costUsd), 11),
         padL(fmtUsd(costPer), 10),
+        // TOTAL은 단계가 섞여 CV가 "재현성"이 아니라 "단계 간 차이"를 재므로 생략.
+        padL(name === "TOTAL" ? "—" : cvPercent(a.costs), 7),
         padL(fmtNum(a.in), 9),
         padL(fmtNum(a.out), 8),
         padL(fmtNum(a.cacheRead), 11),
