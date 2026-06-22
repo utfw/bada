@@ -349,8 +349,8 @@ export class Ocean {
     // (Three.js PlaneGeometry starts at top-left and goes row by row)
     const posAttr = geo.attributes.position as THREE.BufferAttribute;
     const colors = new Float32Array(posAttr.count * 3);
-    const topColor = new THREE.Color(0x1a6080);
-    const bottomColor = new THREE.Color(0x050d1a);
+    const topColor = new THREE.Color(0x0d3a6e);
+    const bottomColor = new THREE.Color(0x020d1a);
     for (let i = 0; i < posAttr.count; i++) {
       const y = posAttr.getY(i);
       const c = y >= 0 ? topColor : bottomColor;

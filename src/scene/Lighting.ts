@@ -20,13 +20,13 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x1ec0e0,
-    ambientIntensity: 0.95,
+    ambientColor: 0x0a78aa,
+    ambientIntensity: 0.7,
     sunColor: 0x1ec0e0,
     sunIntensity: 3.2,
     godRayIntensity: 5.0,
     fogColor: 0x0d3a6e,
-    fogDensity: 0.015,
+    fogDensity: 0.035,
   },
   cloudy: {
     ambientColor: 0x2a6b9a,
@@ -82,13 +82,13 @@ export class Lighting {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    scene.fog = new THREE.FogExp2(0x0d3a6e, 0.018);
+    scene.fog = new THREE.FogExp2(0x0d3a6e, 0.035);
     scene.background = new THREE.Color(0x0d3a6e);
 
-    this.ambientLight = new THREE.AmbientLight(0x1ec0e0, 0.95);
+    this.ambientLight = new THREE.AmbientLight(0x0a78aa, 0.7);
     scene.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x00aacc, 0x0a6a9a, 1.0);
+    this.hemisphereLight = new THREE.HemisphereLight(0x0a78aa, 0x0a6a9a, 1.3);
     scene.add(this.hemisphereLight);
 
     this.sunLight = new THREE.DirectionalLight(0x1ec0e0, 2.8);
@@ -141,7 +141,7 @@ export class Lighting {
       varying vec2 vUv;
       void main() {
         const float PI = 3.14159;
-        float alpha = (1.0 - vUv.y) * uMaxOpacity * (0.9 + sin(uTime * 0.3 + uPhase) * 0.1);
+        float alpha = pow(1.0 - vUv.y, 1.4) * uMaxOpacity * (0.9 + sin(uTime * 0.3 + uPhase) * 0.18);
         alpha *= sin(vUv.x * PI);
         gl_FragColor = vec4(uColor, alpha);
       }
@@ -172,7 +172,7 @@ export class Lighting {
       });
 
       // CylinderGeometry(radiusTop=0, radiusBottom, height) — apex at top (surface), opens downward
-      const bottomRadius = 0.1 + Math.random() * 0.12;
+      const bottomRadius = (0.1 + Math.random() * 0.12) * 1.5;
       const coneGeo = new THREE.CylinderGeometry(0, bottomRadius, GOD_RAY_HEIGHT, 16, 1, true);
       const cone = new THREE.Mesh(coneGeo, coneMat);
       // apex sits at SURFACE_HEIGHT; center of geometry is at SURFACE_HEIGHT - GOD_RAY_HEIGHT/2
@@ -188,7 +188,7 @@ export class Lighting {
       uniform float uMaxOpacity;
       varying vec2 vUv;
       void main() {
-        float fade = smoothstep(0.0, 1.0, 1.0 - abs(vUv.x - 0.5) * 2.0) * 0.09;
+        float fade = smoothstep(0.0, 1.0, 1.0 - abs(vUv.x - 0.5) * 2.0) * 0.07;
         gl_FragColor = vec4(uColor, fade * uMaxOpacity);
       }
     `;
@@ -200,7 +200,7 @@ export class Lighting {
         fragmentShader: nearRayFragmentShader,
         uniforms: {
           uColor: { value: new THREE.Color(0x88ddff) },
-          uMaxOpacity: { value: 0.14 },
+          uMaxOpacity: { value: 0.09 },
         },
         transparent: true,
         blending: THREE.AdditiveBlending,
