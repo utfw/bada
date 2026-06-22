@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "description": "Type C(수치는 정상인데 시각적으로 어색) 케이스를 사람이 라벨링한 ground-truth 데이터셋. Vision judge의 recall/precision 측정 기준. label: 'awkward'(어색, Vision이 잡아내야 함) | 'natural'(정상) | 'borderline'(경계, 측정에서 제외 가능). criterion은 사람이 어색하다고 본 구체적 근거.",
+  "labeledBy": "human",
+  "labeledAt": "2026-06-21",
+  "samples": [
+    {
+      "archive": "agent/observations/history/2026-06-09T11-35-16_01d34bf",
+      "shot": "screenshot-1.png",
+      "label": "natural",
+      "criterion": "갓레이 자연스럽고 버블이 적당량, 고래상어 몸통·머리 윤곽이 또렷하게 분리됨. 주체 인식 방해 없음."
+    },
+    {
+      "archive": "agent/observations/history/2026-06-12T10-44-02_be9114d",
+      "shot": "screenshot-1.png",
+      "label": "awkward",
+      "criterion": "버블 흰 점들이 입 앞이 아니라 머리~등 위에 뭉쳐 흰 덩어리를 이룸. 반점과 버블이 뒤섞여 머리 형태가 뭉개짐."
+    },
+    {
+      "archive": "agent/observations/history/2026-06-15T17-39-37_bf1907f",
+      "shot": "screenshot-1.png",
+      "label": "borderline",
+      "criterion": "버블이 머리 주변에 분포하나 여전히 몸통 위로 번짐. 06-12보다는 덜 심해 경계선 — recall 측정에서 제외 가능."
+    },
+    {
+      "archive": "agent/observations/history/2026-06-16T13-58-47_f9882ab",
+      "shot": "screenshot-1.png",
+      "label": "awkward",
+      "criterion": "버블(흰 점)이 고래상어 머리·등 전체를 뒤덮어 반점인지 버블인지 구분 불가. 입 앞이 아닌 몸통 위에 쏟아진 모양."
+    },
+    {
+      "archive": "agent/observations/history/2026-06-16T13-58-47_f9882ab",
+      "shot": "surface-up.png",
+      "label": "awkward",
+      "criterion": "고래상어가 화면에서 잘려 보이고 흰 버블이 몸통 위에 얹힘. 머리 윤곽이 들쭉날쭉해 주체 인식 저하."
+    }
+  ]
+}

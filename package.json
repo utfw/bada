@@ -16,6 +16,7 @@
     "agent:observe": "tsx --tsconfig tsconfig.agent.json agent/observe.ts",
     "report": "tsx --tsconfig tsconfig.agent.json agent/report.ts",
     "check:checklist": "tsx --tsconfig tsconfig.agent.json agent/checkChecklist.ts",
+    "vision:judge": "tsx --tsconfig tsconfig.agent.json agent/vision/judge.ts",
     "agent:review": "tsx --tsconfig tsconfig.agent.json agent/loop.ts --review"
   },
   "dependencies": {
