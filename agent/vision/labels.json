@@ -7,8 +7,8 @@
     {
       "archive": "agent/observations/history/2026-06-09T11-35-16_01d34bf",
       "shot": "screenshot-1.png",
-      "label": "borderline",
-      "criterion": "갓레이·배경·구도는 좋으나 버블이 머리~앞몸통 위에 뭉쳐 반점과 일부 섞임. 전체 인상은 양호하나 버블 가림은 경계 수준 — 재검토 결과 natural→borderline 정정(원 라벨이 전체 인상에 치우쳐 관대했음)."
+      "label": "awkward",
+      "criterion": "[단일 축: 버블이 표면을 덮는가] 흰 버블이 머리~앞몸통 표면 위에 모여 등 반점과 섞임 → awkward. (정렬 전 natural→borderline→awkward로 정정. 갓레이·구도는 무시하고 버블 가림만 본 결과.)"
     },
     {
       "archive": "agent/observations/history/2026-06-12T10-44-02_be9114d",
@@ -37,14 +37,26 @@
     {
       "archive": "agent/observations/history/2026-06-10T10-43-38_185a992",
       "shot": "screenshot-1.png",
-      "label": "natural",
-      "criterion": "버블이 머리 앞부분에만 작게 모여 입 앞 스폰 의도대로 분포. 몸통·꼬리·구도 또렷하고 갓레이 자연스러움. 주체 인식 완벽 — 깨끗한 natural 기준 케이스."
+      "label": "awkward",
+      "criterion": "[단일 축: 버블이 표면을 덮는가] 버블이 머리 앞쪽이지만 일부가 등 표면에 걸쳐 반점과 섞임 → awkward. (정렬 전 natural→awkward 정정. Vision 판정이 옳았고 사람 라벨이 전체 인상에 치우쳐 관대했던 케이스 — rubric alignment의 직접 증거.)"
     },
     {
       "archive": "agent/observations/history/2026-06-11T15-47-08_f167fa4",
       "shot": "screenshot-1.png",
       "label": "awkward",
-      "criterion": "버블이 머리~앞몸통 위에 크게 번져 반점과 섞이고 머리 형태가 뭉개짐. 06-12 케이스와 유사한 버블 과다 가림."
+      "criterion": "[단일 축] 버블이 머리~앞몸통 표면 위에 크게 번져 반점과 섞이고 머리 형태가 뭉개짐."
+    },
+    {
+      "archive": "agent/observations/history/2026-06-11T11-28-40_28e6318",
+      "shot": "screenshot-1.png",
+      "label": "natural",
+      "criterion": "[단일 축] 버블이 머리 끝에 적게 모여 있고 몸통 대부분이 깨끗해 등 반점과 버블이 구분됨 → natural. 이 데이터셋에서 표면 가림이 가장 적은 케이스(이 씬은 버블이 항상 머리 근처 스폰이라 완전 무가림 프레임은 드묾)."
+    },
+    {
+      "archive": "agent/observations/history/2026-06-16T03-50-20_f9882ab",
+      "shot": "screenshot-1.png",
+      "label": "awkward",
+      "criterion": "[단일 축] 버블이 머리~등 표면 위를 크게 덮어 반점과 섞임 → awkward."
     }
   ]
 }
