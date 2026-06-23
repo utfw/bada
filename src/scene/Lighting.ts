@@ -20,13 +20,13 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x1ec0e0,
-    ambientIntensity: 0.7,
+    ambientColor: 0x0a6090,
+    ambientIntensity: 0.5,
     sunColor: 0x1ec0e0,
     sunIntensity: 3.2,
     godRayIntensity: 2.8,
-    fogColor: 0x0a78aa,
-    fogDensity: 0.045,
+    fogColor: 0x0a4a7a,
+    fogDensity: 0.050,
   },
   cloudy: {
     ambientColor: 0x2a6b9a,
@@ -82,13 +82,13 @@ export class Lighting {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    scene.fog = new THREE.FogExp2(0x0a78aa, 0.045);
-    scene.background = new THREE.Color(0x0d8fc0);
+    scene.fog = new THREE.FogExp2(0x0a4a7a, 0.050);
+    scene.background = new THREE.Color(0x063d6a);
 
-    this.ambientLight = new THREE.AmbientLight(0x1ec0e0, 0.7);
+    this.ambientLight = new THREE.AmbientLight(0x0a6090, 0.5);
     scene.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x0a78aa, 1.3);
+    this.hemisphereLight = new THREE.HemisphereLight(0x0a6090, 0x0a4a7a, 1.0);
     scene.add(this.hemisphereLight);
 
     this.sunLight = new THREE.DirectionalLight(0x1ec0e0, 2.8);

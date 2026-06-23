@@ -280,11 +280,13 @@
 - [x] `src/scene/Ocean.ts`의 버블 파티클 스폰 위치 오프셋을 고래상어 snout 정면(현재 offset X=0)에서 측면(offset X=±1.5)으로 분산시키고, 카메라 방향 기준 버블 최대 개수를 동시 30개→15개로 제한해 주체 가림 비율 감소
 - [x] `src/scene/Lighting.ts`의 god ray 스프라이트/볼류메트릭 광선 opacity·강도를 현재값에서 약 40~50% 감소시키고, 광선 색상을 `#ffffff` → `#a8d8f0`(연한 청색)으로 교체하여 과노출 흰색 기둥 제거
 - [x] `src/scene/Ocean.ts`의 배경 안개(fog) 또는 수중 ambientLight 색상을 `#0a78aa`~`#1ec0e0` 범위의 채도 높은 청록으로 조정해, 갓레이가 없는 영역(화면 좌측 배경)이 흰색이 아닌 채도 있는 색으로 보이도록 보정
-- [ ] `src/scene/Ocean.ts` 또는 배경 fog/gradient 설정부에서 수직 방향 fog 색상을 상단 `#1ec0e0`→하단 `#022b5a`로 선형 보간되도록 설정하여, 과노출 광선에 가려진 깊이 그라디언트를 배경 자체에서 확보할 것
-- [ ] `src/scene/Ocean.ts` god ray 생성 함수에서 광선 메시의 `opacity` 값을 현재 대비 0.4~0.55 수준으로 낮추고, `MeshBasicMaterial` 또는 `MeshStandardMaterial`의 `color`를 순백(#ffffff) 대신 `#b8e8ff`(연한 하늘색)로 교체해 과노출 기둥 제거
-- [ ] `src/scene/Ocean.ts`의 배경 fog 또는 ambient 색상을 `#0a4a7a` 계열로 낮춰 수직 깊이감(상단 밝음→하단 어두움) 그라디언트를 screenshot 1~4에서도 유지되도록 강화; 현재 수면 가까울 때 배경 전체가 밝은 하늘색 단색으로 뭉개짐
+- [x] `src/scene/Ocean.ts` 또는 배경 fog/gradient 설정부에서 수직 방향 fog 색상을 상단 `#1ec0e0`→하단 `#022b5a`로 선형 보간되도록 설정하여, 과노출 광선에 가려진 깊이 그라디언트를 배경 자체에서 확보할 것
+- [x] `src/scene/Ocean.ts` god ray 생성 함수에서 광선 메시의 `opacity` 값을 현재 대비 0.4~0.55 수준으로 낮추고, `MeshBasicMaterial` 또는 `MeshStandardMaterial`의 `color`를 순백(#ffffff) 대신 `#b8e8ff`(연한 하늘색)로 교체해 과노출 기둥 제거
+- [x] `src/scene/Ocean.ts`의 배경 fog 또는 ambient 색상을 `#0a4a7a` 계열로 낮춰 수직 깊이감(상단 밝음→하단 어두움) 그라디언트를 screenshot 1~4에서도 유지되도록 강화; 현재 수면 가까울 때 배경 전체가 밝은 하늘색 단색으로 뭉개짐
 - [ ] `src/entities/WhaleShark.ts` 의 카메라 추적 또는 경로 로직에서 고래상어와 카메라 간 최소 거리(lookAt offset)를 늘려 고래상어 전신이 화면의 30~50% 내에 들어오도록 조정할 것 (예: `cameraDistance` 상수를 현재 값 × 1.4~1.6 배)
 - [ ] `src/scene/Ocean.ts` god ray 생성 부분에서 각 ray mesh의 `material.opacity`를 현재값 대비 0.10~0.15 수준으로 낮추고, ray 폭(geometry width)을 절반으로 줄여 과노출 기둥 제거; 동시에 `material.color`를 `#a8dfff` 계열로 설정해 백색이 아닌 채도 있는 청색 광선으로 변경
 - [ ] `src/scene/Lighting.ts` ambient light intensity를 현재보다 10~15% 낮추고(`ambientLight.intensity *= 0.85`), directional light의 `color`를 `#cceeff`→`#6ab8e8`로 조정해 수중 전반의 채도를 끌어올림
 - [ ] `src/scene/Lighting.ts`의 god ray ShaderMaterial `opacity` 또는 `uniforms.intensity` 값을 현재 대비 약 40~50% 감소 (예: `0.6→0.3`, `1.0→0.5`)시키고, ray 폭을 제어하는 `rayWidth` 또는 plane geometry scaleX를 0.5 이하로 줄여 과노출 기둥을 가느다란 광선 줄기로 교체
 - [ ] `src/scene/Ocean.ts` 또는 `Lighting.ts`의 fog/ambient 설정에서 배경 fog color를 `#0a78aa`~`#1565c0` 범위로 올리고 fogNear를 더 멀리 밀어 수중 전체 채도를 높임 (현재 fog가 너무 밝은 흰색 계열로 설정되어 채도를 낮추는 것으로 보임)
+- [ ] `src/scene/Lighting.ts`의 god ray 생성 함수에서 광선 `opacity`를 현재 값의 40~50%로 낮추고(`material.opacity: 0.08~0.12`), 광선 메시 `scaleX`를 0.4~0.6배로 줄여 기둥 폭을 화면 너비의 5~10% 이내로 제한할 것
+- [ ] **[3] 광선 효과 개선** — `src/scene/Lighting.ts`의 god ray 플레인 재질에서 `opacity`를 현재 값 대비 0.5배로 줄이고, `PlaneGeometry` 폭을 현재 대비 0.6배로 좁힌 뒤 `MeshBasicMaterial.blending = THREE.AdditiveBlending`으로 변경해 부드러운 발광 띠로 전환

@@ -169,14 +169,14 @@ export class Ocean {
   private addGodRays(scene: THREE.Scene): void {
     // 8 cones with apex at surface, extending downward into the water
     const configs: { x: number; z: number; radius: number; height: number; opacity: number }[] = [
-      { x:  1.2, z: -0.8, radius: 1.8, height: 20, opacity: 0.24 },
-      { x: -1.5, z:  1.0, radius: 1.5, height: 20, opacity: 0.21 },
-      { x:  0.5, z:  1.8, radius: 1.8, height: 20, opacity: 0.23 },
-      { x: -1.0, z: -1.5, radius: 1.8, height: 20, opacity: 0.21 },
-      { x:  1.8, z:  0.3, radius: 1.8, height: 20, opacity: 0.24 },
-      { x: -2.5, z: -0.5, radius: 1.5, height: 20, opacity: 0.21 },
-      { x:  0.0, z: -2.0, radius: 1.8, height: 20, opacity: 0.27 },
-      { x:  2.2, z:  1.5, radius: 1.8, height: 20, opacity: 0.21 },
+      { x:  1.2, z: -0.8, radius: 0.8, height: 20, opacity: 0.045 },
+      { x: -1.5, z:  1.0, radius: 0.6, height: 20, opacity: 0.040 },
+      { x:  0.5, z:  1.8, radius: 0.8, height: 20, opacity: 0.045 },
+      { x: -1.0, z: -1.5, radius: 0.8, height: 20, opacity: 0.040 },
+      { x:  1.8, z:  0.3, radius: 0.8, height: 20, opacity: 0.045 },
+      { x: -2.5, z: -0.5, radius: 0.6, height: 20, opacity: 0.040 },
+      { x:  0.0, z: -2.0, radius: 0.8, height: 20, opacity: 0.054 },
+      { x:  2.2, z:  1.5, radius: 0.8, height: 20, opacity: 0.040 },
     ];
 
     for (const cfg of configs) {
@@ -184,7 +184,7 @@ export class Ocean {
       // so apex sits at SURFACE_HEIGHT (water surface) and cone extends downward.
       const geometry = new THREE.ConeGeometry(cfg.radius, cfg.height, 6);
       const material = new THREE.MeshBasicMaterial({
-        color: 0x88ddff,
+        color: 0xb8e8ff,
         transparent: true,
         opacity: cfg.opacity,
         depthWrite: false,
@@ -359,8 +359,8 @@ export class Ocean {
     // (Three.js PlaneGeometry starts at top-left and goes row by row)
     const posAttr = geo.attributes.position as THREE.BufferAttribute;
     const colors = new Float32Array(posAttr.count * 3);
-    const topColor = new THREE.Color(0x0d8fc0);
-    const bottomColor = new THREE.Color(0x0a78aa);
+    const topColor = new THREE.Color(0x0a4a7a);
+    const bottomColor = new THREE.Color(0x022b5a);
     for (let i = 0; i < posAttr.count; i++) {
       const y = posAttr.getY(i);
       const c = y >= 0 ? topColor : bottomColor;
