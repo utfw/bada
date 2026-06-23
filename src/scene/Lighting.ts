@@ -20,13 +20,13 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x0a78aa,
+    ambientColor: 0x1ec0e0,
     ambientIntensity: 0.7,
     sunColor: 0x1ec0e0,
     sunIntensity: 3.2,
-    godRayIntensity: 5.0,
-    fogColor: 0x0d3a6e,
-    fogDensity: 0.035,
+    godRayIntensity: 2.8,
+    fogColor: 0x0a78aa,
+    fogDensity: 0.045,
   },
   cloudy: {
     ambientColor: 0x2a6b9a,
@@ -82,13 +82,13 @@ export class Lighting {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    scene.fog = new THREE.FogExp2(0x0d3a6e, 0.035);
-    scene.background = new THREE.Color(0x0d3a6e);
+    scene.fog = new THREE.FogExp2(0x0a78aa, 0.045);
+    scene.background = new THREE.Color(0x0d8fc0);
 
-    this.ambientLight = new THREE.AmbientLight(0x0a78aa, 0.7);
+    this.ambientLight = new THREE.AmbientLight(0x1ec0e0, 0.7);
     scene.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x0a78aa, 0x0a6a9a, 1.3);
+    this.hemisphereLight = new THREE.HemisphereLight(0x1ec0e0, 0x0a78aa, 1.3);
     scene.add(this.hemisphereLight);
 
     this.sunLight = new THREE.DirectionalLight(0x1ec0e0, 2.8);
@@ -199,8 +199,8 @@ export class Lighting {
         vertexShader,
         fragmentShader: nearRayFragmentShader,
         uniforms: {
-          uColor: { value: new THREE.Color(0x88ddff) },
-          uMaxOpacity: { value: 0.09 },
+          uColor: { value: new THREE.Color(0xa8d8f0) },
+          uMaxOpacity: { value: 0.05 },
         },
         transparent: true,
         blending: THREE.AdditiveBlending,

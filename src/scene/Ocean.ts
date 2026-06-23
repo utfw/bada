@@ -220,9 +220,15 @@ export class Ocean {
 
     const mouthDist = 1.5;
     for (let i = 0; i < BUBBLE_COUNT; i++) {
-      positions[i * 3]     = this._sharkPos.x - this._sharkFwd.x * mouthDist + (Math.random() - 0.5) * 0.4;
+      // right vector perpendicular to shark forward in XZ plane
+      const rightX = -this._sharkFwd.z;
+      const rightZ =  this._sharkFwd.x;
+      const sideSign = Math.random() < 0.5 ? -1.5 : 1.5;
+      const sideJitter = (Math.random() - 0.5) * 0.4;
+      const sideOffset = sideSign + sideJitter;
+      positions[i * 3]     = this._sharkPos.x - this._sharkFwd.x * mouthDist + rightX * sideOffset;
       positions[i * 3 + 1] = this._sharkPos.y - 0.3 + Math.random() * 0.6;
-      positions[i * 3 + 2] = this._sharkPos.z - this._sharkFwd.z * mouthDist + (Math.random() - 0.5) * 0.4;
+      positions[i * 3 + 2] = this._sharkPos.z - this._sharkFwd.z * mouthDist + rightZ * sideOffset;
       sizes[i] = Math.random() * 0.025 + 0.01;
     }
 
@@ -300,9 +306,13 @@ export class Ocean {
 
       if (y > SURFACE_HEIGHT) {
         const mouthDist = 1.5;
-        x = this._sharkPos.x - this._sharkFwd.x * mouthDist + (Math.random() - 0.5) * 0.4;
+        const rightX = -this._sharkFwd.z;
+        const rightZ =  this._sharkFwd.x;
+        const sideSign = Math.random() < 0.5 ? -1.5 : 1.5;
+        const sideOffset = sideSign + (Math.random() - 0.5) * 0.4;
+        x = this._sharkPos.x - this._sharkFwd.x * mouthDist + rightX * sideOffset;
         y = this._sharkPos.y - 0.3 + Math.random() * 0.6;
-        z = this._sharkPos.z - this._sharkFwd.z * mouthDist + (Math.random() - 0.5) * 0.4;
+        z = this._sharkPos.z - this._sharkFwd.z * mouthDist + rightZ * sideOffset;
       }
 
       bubblePos.setXYZ(i, x, y, z);
@@ -349,8 +359,8 @@ export class Ocean {
     // (Three.js PlaneGeometry starts at top-left and goes row by row)
     const posAttr = geo.attributes.position as THREE.BufferAttribute;
     const colors = new Float32Array(posAttr.count * 3);
-    const topColor = new THREE.Color(0x0d3a6e);
-    const bottomColor = new THREE.Color(0x020d1a);
+    const topColor = new THREE.Color(0x0d8fc0);
+    const bottomColor = new THREE.Color(0x0a78aa);
     for (let i = 0; i < posAttr.count; i++) {
       const y = posAttr.getY(i);
       const c = y >= 0 ? topColor : bottomColor;
