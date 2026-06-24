@@ -21,8 +21,8 @@ interface LightingPreset {
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
     ambientColor: 0x0a6090,
-    ambientIntensity: 0.5,
-    sunColor: 0x1ec0e0,
+    ambientIntensity: 0.425,
+    sunColor: 0x6ab8e8,
     sunIntensity: 3.2,
     godRayIntensity: 2.8,
     fogColor: 0x0a4a7a,
@@ -85,13 +85,13 @@ export class Lighting {
     scene.fog = new THREE.FogExp2(0x0a4a7a, 0.050);
     scene.background = new THREE.Color(0x063d6a);
 
-    this.ambientLight = new THREE.AmbientLight(0x0a6090, 0.5);
+    this.ambientLight = new THREE.AmbientLight(0x0a6090, 0.425);
     scene.add(this.ambientLight);
 
     this.hemisphereLight = new THREE.HemisphereLight(0x0a6090, 0x0a4a7a, 1.0);
     scene.add(this.hemisphereLight);
 
-    this.sunLight = new THREE.DirectionalLight(0x1ec0e0, 2.8);
+    this.sunLight = new THREE.DirectionalLight(0x6ab8e8, 2.8);
     this.sunLight.position.set(0, SURFACE_HEIGHT + 10, 0);
     this.sunLight.target.position.set(0, -1, 0);
     scene.add(this.sunLight);

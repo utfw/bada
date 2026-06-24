@@ -476,25 +476,26 @@ export class WhaleShark {
     //   - FOV 75° vertical, 모바일 portrait aspect ≈ 0.56
     //   - horizontal half-FOV ≈ 23.3° → z=-8 에서 |x|≤3.4 이면 시야 중심권
     // 경로를 z=-9~+4 로 압축하고 front arc(z<-4)에서 |x|≤3.5 유지.
+    const XZ_SCALE = 1.45;
     const basePoints = [
-      new THREE.Vector3(0, -2.25, -9),
-      new THREE.Vector3(1.5, -2.55, -8.5),
-      new THREE.Vector3(3.0, -3.05, -7),
-      new THREE.Vector3(4.5, -3.45, -3),
-      new THREE.Vector3(5.5, -3.75, 1),
-      new THREE.Vector3(3.5, -3.25, 3.5),
-      new THREE.Vector3(0, -2.75, 4.5),
-      new THREE.Vector3(-3.5, -3.25, 3.5),
-      new THREE.Vector3(-5.5, -3.75, 1),
-      new THREE.Vector3(-4.5, -3.45, -3),
-      new THREE.Vector3(-3.0, -3.05, -7),
-      new THREE.Vector3(-1.5, -2.55, -8.5),
+      new THREE.Vector3(0 * XZ_SCALE, -2.25, -13.5 * XZ_SCALE),
+      new THREE.Vector3(2.25 * XZ_SCALE, -2.55, -12.75 * XZ_SCALE),
+      new THREE.Vector3(4.5 * XZ_SCALE, -3.05, -10.5 * XZ_SCALE),
+      new THREE.Vector3(6.75 * XZ_SCALE, -3.45, -4.5 * XZ_SCALE),
+      new THREE.Vector3(8.25 * XZ_SCALE, -3.75, 1.5 * XZ_SCALE),
+      new THREE.Vector3(5.25 * XZ_SCALE, -3.25, 5.25 * XZ_SCALE),
+      new THREE.Vector3(0 * XZ_SCALE, -2.75, 6.75 * XZ_SCALE),
+      new THREE.Vector3(-5.25 * XZ_SCALE, -3.25, 5.25 * XZ_SCALE),
+      new THREE.Vector3(-8.25 * XZ_SCALE, -3.75, 1.5 * XZ_SCALE),
+      new THREE.Vector3(-6.75 * XZ_SCALE, -3.45, -4.5 * XZ_SCALE),
+      new THREE.Vector3(-4.5 * XZ_SCALE, -3.05, -10.5 * XZ_SCALE),
+      new THREE.Vector3(-2.25 * XZ_SCALE, -2.55, -12.75 * XZ_SCALE),
     ];
 
     this.swimPath = new THREE.CatmullRomCurve3(basePoints, true, 'catmullrom', 0.5);
 
     const expandedPoints = basePoints.map(
-      (p) => new THREE.Vector3(p.x * 1.5, p.y, p.z * 1.5),
+      (p) => new THREE.Vector3(p.x * 1.3, p.y, p.z * 1.3),
     );
     this.expandedSwimPath = new THREE.CatmullRomCurve3(expandedPoints, true, 'catmullrom', 0.5);
 
