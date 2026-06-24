@@ -20,13 +20,13 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x0a6090,
-    ambientIntensity: 0.425,
+    ambientColor: 0x1a80b0,
+    ambientIntensity: 0.55,
     sunColor: 0x6ab8e8,
     sunIntensity: 3.2,
     godRayIntensity: 2.8,
-    fogColor: 0x0a4a7a,
-    fogDensity: 0.050,
+    fogColor: 0x0a78aa,
+    fogDensity: 0.030,
   },
   cloudy: {
     ambientColor: 0x2a6b9a,
@@ -82,13 +82,13 @@ export class Lighting {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    scene.fog = new THREE.FogExp2(0x0a4a7a, 0.050);
-    scene.background = new THREE.Color(0x063d6a);
+    scene.fog = new THREE.FogExp2(0x0a78aa, 0.030);
+    scene.background = new THREE.Color(0x0a78aa);
 
-    this.ambientLight = new THREE.AmbientLight(0x0a6090, 0.425);
+    this.ambientLight = new THREE.AmbientLight(0x1a80b0, 0.55);
     scene.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x0a6090, 0x0a4a7a, 1.0);
+    this.hemisphereLight = new THREE.HemisphereLight(0x1a80b0, 0x0a78aa, 1.0);
     scene.add(this.hemisphereLight);
 
     this.sunLight = new THREE.DirectionalLight(0x6ab8e8, 2.8);
@@ -153,7 +153,7 @@ export class Lighting {
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
 
-      const baseOpacity = GOD_RAY_MAX_OPACITY * (1.0 + Math.random() * 0.2);
+      const baseOpacity = GOD_RAY_MAX_OPACITY * (0.9 + Math.random() * 0.2);
       this.godRayConeBaseOpacity.push(baseOpacity);
 
       const coneMat = new THREE.ShaderMaterial({
@@ -172,7 +172,7 @@ export class Lighting {
       });
 
       // CylinderGeometry(radiusTop=0, radiusBottom, height) — apex at top (surface), opens downward
-      const bottomRadius = (0.1 + Math.random() * 0.12) * 1.5;
+      const bottomRadius = 0.02 + Math.random() * 0.03;
       const coneGeo = new THREE.CylinderGeometry(0, bottomRadius, GOD_RAY_HEIGHT, 16, 1, true);
       const cone = new THREE.Mesh(coneGeo, coneMat);
       // apex sits at SURFACE_HEIGHT; center of geometry is at SURFACE_HEIGHT - GOD_RAY_HEIGHT/2
@@ -200,7 +200,7 @@ export class Lighting {
         fragmentShader: nearRayFragmentShader,
         uniforms: {
           uColor: { value: new THREE.Color(0xa8d8f0) },
-          uMaxOpacity: { value: 0.05 },
+          uMaxOpacity: { value: 0.03 },
         },
         transparent: true,
         blending: THREE.AdditiveBlending,
