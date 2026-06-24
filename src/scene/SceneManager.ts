@@ -13,6 +13,7 @@ import {
   MAX_PIXEL_RATIO,
   DEFAULT_FOG_DENSITY,
   DEFAULT_FOG_COLOR,
+  DEFAULT_BG_COLOR,
   TONE_MAPPING_EXPOSURE,
 } from '../utils/constants';
 
@@ -63,7 +64,7 @@ export class SceneManager {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = TONE_MAPPING_EXPOSURE;
-    this.renderer.setClearColor(DEFAULT_FOG_COLOR, 1);
+    this.renderer.setClearColor(DEFAULT_BG_COLOR, 1);
     this.container.appendChild(this.renderer.domElement);
 
     this.clock = new THREE.Clock();

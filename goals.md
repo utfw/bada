@@ -289,12 +289,12 @@
 - [x] `src/scene/Lighting.ts`의 god ray ShaderMaterial `opacity` 또는 `uniforms.intensity` 값을 현재 대비 약 40~50% 감소 (예: `0.6→0.3`, `1.0→0.5`)시키고, ray 폭을 제어하는 `rayWidth` 또는 plane geometry scaleX를 0.5 이하로 줄여 과노출 기둥을 가느다란 광선 줄기로 교체
 - [x] `src/scene/Ocean.ts` 또는 `Lighting.ts`의 fog/ambient 설정에서 배경 fog color를 `#0a78aa`~`#1565c0` 범위로 올리고 fogNear를 더 멀리 밀어 수중 전체 채도를 높임 (현재 fog가 너무 밝은 흰색 계열로 설정되어 채도를 낮추는 것으로 보임)
 - [x] `src/scene/Lighting.ts`의 god ray 생성 함수에서 광선 `opacity`를 현재 값의 40~50%로 낮추고(`material.opacity: 0.08~0.12`), 광선 메시 `scaleX`를 0.4~0.6배로 줄여 기둥 폭을 화면 너비의 5~10% 이내로 제한할 것
-- [ ] **[3] 광선 효과 개선** — `src/scene/Lighting.ts`의 god ray 플레인 재질에서 `opacity`를 현재 값 대비 0.5배로 줄이고, `PlaneGeometry` 폭을 현재 대비 0.6배로 좁힌 뒤 `MeshBasicMaterial.blending = THREE.AdditiveBlending`으로 변경해 부드러운 발광 띠로 전환
-- [ ] **[1] 채도 개선** — `src/scene/Lighting.ts`의 ambient light color와 `src/scene/Ocean.ts`의 배경 fog color를 `#0d3a6e` → `#0a5fa0` 수준으로 명도 올리고, `SceneManager.ts`의 renderer `setClearColor`를 `0x062040` → `0x0a4070`으로 변경해 배경 네이비 채도를 높일 것
-- [ ] **[3] God Ray 개선** — `src/scene/Lighting.ts`(또는 god ray 담당 함수)에서 광선 메시의 `opacity`를 현재값 대비 0.4→0.15 수준으로 낮추고, 광선 geometry 폭(`planeWidth`)을 30~40% 줄여 부드러운 가우시안 falloff 효과를 내도록 수정할 것; surface-up의 수면 패턴은 `SkyBox.ts` 또는 Ocean 수면 메시의 `envMap` intensity를 0.3 이하로 제한할 것
+- [x] **[3] 광선 효과 개선** — `src/scene/Lighting.ts`의 god ray 플레인 재질에서 `opacity`를 현재 값 대비 0.5배로 줄이고, `PlaneGeometry` 폭을 현재 대비 0.6배로 좁힌 뒤 `MeshBasicMaterial.blending = THREE.AdditiveBlending`으로 변경해 부드러운 발광 띠로 전환
+- [x] **[1] 채도 개선** — `src/scene/Lighting.ts`의 ambient light color와 `src/scene/Ocean.ts`의 배경 fog color를 `#0d3a6e` → `#0a5fa0` 수준으로 명도 올리고, `SceneManager.ts`의 renderer `setClearColor`를 `0x062040` → `0x0a4070`으로 변경해 배경 네이비 채도를 높일 것
+- [x] **[3] God Ray 개선** — `src/scene/Lighting.ts`(또는 god ray 담당 함수)에서 광선 메시의 `opacity`를 현재값 대비 0.4→0.15 수준으로 낮추고, 광선 geometry 폭(`planeWidth`)을 30~40% 줄여 부드러운 가우시안 falloff 효과를 내도록 수정할 것; surface-up의 수면 패턴은 `SkyBox.ts` 또는 Ocean 수면 메시의 `envMap` intensity를 0.3 이하로 제한할 것
 - [ ] **채도 향상** — `src/scene/Lighting.ts`의 ambient/directional light 컬러를 `0x0a2a4a` → `0x0a5c8a`(ambient) 및 `0x40c8f0`(directional)로 높여 수중 청록 채도를 끌어올릴 것
 - [ ] **God Ray 윤곽 개선** — `src/scene/Ocean.ts`의 god ray 스프라이트/메시 폭 파라미터를 현재값의 0.4~0.5배로 줄이고, opacity gradient를 center=0.6 → edge=0.0 으로 설정해 날카로운 밴드 대신 부드러운 광선 줄기로 교체할 것
-- [ ] **근접 클리핑 방지** — `src/entities/WhaleShark.ts`의 경로 반경(CatmullRomCurve3 제어점 XZ 범위)을 최소 8~10 유닛 이상 확보하여 screenshot-2와 같이 카메라에 과도하게 근접하는 구간을 제거할 것
 - [ ] `src/scene/Ocean.ts` 또는 `SceneManager.ts`의 배경 그라디언트 상단색을 `#0a1a3e` → `#0a4a8a`(코발트)로, fog near color를 `#0d2a5a` → `#0a6aaa`로 올려 채도 부족 해소
-- [ ] `src/scene/Lighting.ts` 또는 god ray 셰이더 — ray의 `opacity`/`strength` 파라미터를 현재 대비 1.4× 증가시키고, 줄기 폭(width)을 20~30% 감소시켜 빛 기둥의 대비를 강화할 것. surface-up 카메라 각도에서도 ray가 보이도록 spawn 방향 벡터를 수직(-Y) 고정으로 변경.
-- [ ] `src/scene/Ocean.ts` — screenshot-2에서 나타나는 하단 수면 dome(밝은 하늘색 mesh)의 `opacity`를 0.4 이하로 낮추거나 카메라가 수면 하방을 바라볼 때만 렌더링되도록 조건 처리해 하단 시각 균형 방해 요소 제거.
+- [ ] `src/scene/Ocean.ts` 또는 `src/scene/SkyBox.ts`의 배경 베이스 색상을 현재 `#0d2040` 수준에서 `#0a4a7a`~`#0d6090` 수준으로 밝히고, fog 색상도 동일 방향으로 채도를 올려 전체 화면의 청록 비율을 높일 것
+- [ ] `src/scene/Lighting.ts`의 god ray 파라미터에서 opacity/intensity를 현재 값 대비 1.5~2배 높이고(예: `rayOpacity: 0.18 → 0.32`), `rayCount`를 6→8로 늘려 줄기 가시성 확보; surface-up 카메라 각도에서도 광선이 유지되도록 ray Y-origin을 수면 위(y > waveHeight)로 고정
+- [ ] `src/entities/WhaleShark.ts`의 꼬리(heterocercal tail) 메시 attach 지점을 몸통 LatheGeometry 후미 vertex에 정확히 용접(position offset 재조정)하고, 꼬리 재질 color를 몸통 등 색(dark blue-grey)과 동일하게 맞춰 시각적 분리감을 제거할 것

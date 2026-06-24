@@ -38,12 +38,12 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     fogDensity: 0.022,
   },
   rain: {
-    ambientColor: 0x0d3a6b,
+    ambientColor: 0x1a5080,
     ambientIntensity: 0.95,
     sunColor: 0x9abccc,
     sunIntensity: 0.8,
     godRayIntensity: 0.85,
-    fogColor: 0x041e38,
+    fogColor: 0x082a50,
     fogDensity: 0.028,
   },
   snow: {
@@ -77,7 +77,7 @@ export class Lighting {
   private hemisphereLight: THREE.HemisphereLight;
   private godRayCones: THREE.Mesh<THREE.CylinderGeometry, THREE.ShaderMaterial>[] = [];
   private godRayConeBaseOpacity: number[] = [];
-  private nearRayMeshes: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
+  private nearRayMeshes: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] = [];
   private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
@@ -141,7 +141,7 @@ export class Lighting {
       varying vec2 vUv;
       void main() {
         const float PI = 3.14159;
-        float alpha = pow(1.0 - vUv.y, 1.4) * uMaxOpacity * (0.9 + sin(uTime * 0.3 + uPhase) * 0.18);
+        float alpha = pow(1.0 - vUv.y, 2.2) * uMaxOpacity * (0.9 + sin(uTime * 0.3 + uPhase) * 0.18);
         alpha *= sin(vUv.x * PI);
         gl_FragColor = vec4(uColor, alpha);
       }
@@ -172,7 +172,7 @@ export class Lighting {
       });
 
       // CylinderGeometry(radiusTop=0, radiusBottom, height) — apex at top (surface), opens downward
-      const bottomRadius = 0.02 + Math.random() * 0.03;
+      const bottomRadius = 0.012 + Math.random() * 0.018;
       const coneGeo = new THREE.CylinderGeometry(0, bottomRadius, GOD_RAY_HEIGHT, 16, 1, true);
       const cone = new THREE.Mesh(coneGeo, coneMat);
       // apex sits at SURFACE_HEIGHT; center of geometry is at SURFACE_HEIGHT - GOD_RAY_HEIGHT/2
@@ -183,31 +183,17 @@ export class Lighting {
     }
 
     // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
-    const nearRayFragmentShader = `
-      uniform vec3 uColor;
-      uniform float uMaxOpacity;
-      varying vec2 vUv;
-      void main() {
-        float fade = smoothstep(0.0, 1.0, 1.0 - abs(vUv.x - 0.5) * 2.0) * 0.07;
-        gl_FragColor = vec4(uColor, fade * uMaxOpacity);
-      }
-    `;
-
-    this.nearRayGeo = new THREE.PlaneGeometry(0.25, 12);
+    this.nearRayGeo = new THREE.PlaneGeometry(0.15, 12);
+    const nearRayMat = new THREE.MeshBasicMaterial({
+      color: 0xa8d8f0,
+      opacity: 0.015,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
     for (let i = 0; i < 16; i++) {
-      const mat = new THREE.ShaderMaterial({
-        vertexShader,
-        fragmentShader: nearRayFragmentShader,
-        uniforms: {
-          uColor: { value: new THREE.Color(0xa8d8f0) },
-          uMaxOpacity: { value: 0.03 },
-        },
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      });
-      const mesh = new THREE.Mesh(this.nearRayGeo, mat);
+      const mesh = new THREE.Mesh(this.nearRayGeo, nearRayMat);
       mesh.position.set(
         (i / 16 * 2 - 1) * 8 + Math.random() * 0.4,
         0,
@@ -270,8 +256,8 @@ export class Lighting {
       cone.material.dispose();
     });
     this.nearRayGeo.dispose();
-    this.nearRayMeshes.forEach((m) => {
-      m.material.dispose();
-    });
+    if (this.nearRayMeshes.length > 0) {
+      this.nearRayMeshes[0].material.dispose();
+    }
   }
 }
