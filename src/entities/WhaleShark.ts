@@ -175,7 +175,7 @@ export class WhaleShark {
    */
   private createCaudalFin(): void {
     this.tailGroup = new THREE.Group();
-    this.tailGroup.position.set(0, 0, SHARK_LENGTH / 2);
+    this.tailGroup.position.set(0, 0, SHARK_LENGTH / 2 - 0.15);
 
     const finGradientData = new Uint8Array([64, 128, 255]);
     const finGradientMap = new THREE.DataTexture(finGradientData, 3, 1);
@@ -184,7 +184,7 @@ export class WhaleShark {
     finGradientMap.magFilter = THREE.NearestFilter;
     finGradientMap.needsUpdate = true;
     const finMat = new THREE.MeshToonMaterial({
-      color: 0x3a5068,
+      color: 0x3a4e63,
       side: THREE.DoubleSide,
       gradientMap: finGradientMap,
     });
@@ -591,7 +591,7 @@ export class WhaleShark {
     const pelvicWave = finWave(this.pelvicZ);
     this.leftPelvic.position.x = this.leftPelvicBaseX + pelvicWave;
     this.rightPelvic.position.x = this.rightPelvicBaseX + pelvicWave;
-    this.tailGroup.position.x = finWave(SHARK_LENGTH * 0.5);
+    this.tailGroup.position.x = finWave(SHARK_LENGTH / 2 - 0.15);
 
     // 흰 반점들도 같은 wave에 묶어 몸통과 함께 흔들리게 한다
     for (let i = 0; i < this.spots.length; i++) {

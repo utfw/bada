@@ -9,8 +9,8 @@ export const CAMERA_NEAR = 0.1;
 export const CAMERA_FAR = 200;
 export const MAX_PIXEL_RATIO = 2;
 export const DEFAULT_FOG_DENSITY = 0.030;
-export const DEFAULT_FOG_COLOR = 0x0a78aa;
-export const DEFAULT_BG_COLOR = 0x0a4070;
+export const DEFAULT_FOG_COLOR = 0x0d6090;
+export const DEFAULT_BG_COLOR = 0x0d5888;
 export const TONE_MAPPING_EXPOSURE = 1.4;
 
 // ── Weather API ────────────────────────────────────
@@ -76,10 +76,10 @@ export const PREDATOR_FLEE_WEIGHT = 14.0;
 export const PREDATOR_FLEE_INTENSITY_NORM = 4.0;
 
 // ── God Rays (volumetric planes) ─────────────────
-export const GOD_RAY_COUNT = 7;
+export const GOD_RAY_COUNT = 8;
 export const GOD_RAY_HEIGHT = 40;
 export const GOD_RAY_PLANE_WIDTH = 0.022;
-export const GOD_RAY_MAX_OPACITY = 0.15;
+export const GOD_RAY_MAX_OPACITY = 0.30;
 export const GOD_RAY_COLOR = 0xa8d8f0;
 
 // ── Controls ───────────────────────────────────────

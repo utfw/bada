@@ -295,11 +295,13 @@
 - [x] **채도 향상** — `src/scene/Lighting.ts`의 ambient/directional light 컬러를 `0x0a2a4a` → `0x0a5c8a`(ambient) 및 `0x40c8f0`(directional)로 높여 수중 청록 채도를 끌어올릴 것
 - [x] **God Ray 윤곽 개선** — `src/scene/Ocean.ts`의 god ray 스프라이트/메시 폭 파라미터를 현재값의 0.4~0.5배로 줄이고, opacity gradient를 center=0.6 → edge=0.0 으로 설정해 날카로운 밴드 대신 부드러운 광선 줄기로 교체할 것
 - [x] `src/scene/Ocean.ts` 또는 `SceneManager.ts`의 배경 그라디언트 상단색을 `#0a1a3e` → `#0a4a8a`(코발트)로, fog near color를 `#0d2a5a` → `#0a6aaa`로 올려 채도 부족 해소
-- [ ] `src/scene/Ocean.ts` 또는 `src/scene/SkyBox.ts`의 배경 베이스 색상을 현재 `#0d2040` 수준에서 `#0a4a7a`~`#0d6090` 수준으로 밝히고, fog 색상도 동일 방향으로 채도를 올려 전체 화면의 청록 비율을 높일 것
-- [ ] `src/scene/Lighting.ts`의 god ray 파라미터에서 opacity/intensity를 현재 값 대비 1.5~2배 높이고(예: `rayOpacity: 0.18 → 0.32`), `rayCount`를 6→8로 늘려 줄기 가시성 확보; surface-up 카메라 각도에서도 광선이 유지되도록 ray Y-origin을 수면 위(y > waveHeight)로 고정
-- [ ] `src/entities/WhaleShark.ts`의 꼬리(heterocercal tail) 메시 attach 지점을 몸통 LatheGeometry 후미 vertex에 정확히 용접(position offset 재조정)하고, 꼬리 재질 color를 몸통 등 색(dark blue-grey)과 동일하게 맞춰 시각적 분리감을 제거할 것
+- [x] `src/scene/Ocean.ts` 또는 `src/scene/SkyBox.ts`의 배경 베이스 색상을 현재 `#0d2040` 수준에서 `#0a4a7a`~`#0d6090` 수준으로 밝히고, fog 색상도 동일 방향으로 채도를 올려 전체 화면의 청록 비율을 높일 것
+- [x] `src/scene/Lighting.ts`의 god ray 파라미터에서 opacity/intensity를 현재 값 대비 1.5~2배 높이고(예: `rayOpacity: 0.18 → 0.32`), `rayCount`를 6→8로 늘려 줄기 가시성 확보; surface-up 카메라 각도에서도 광선이 유지되도록 ray Y-origin을 수면 위(y > waveHeight)로 고정
+- [x] `src/entities/WhaleShark.ts`의 꼬리(heterocercal tail) 메시 attach 지점을 몸통 LatheGeometry 후미 vertex에 정확히 용접(position offset 재조정)하고, 꼬리 재질 color를 몸통 등 색(dark blue-grey)과 동일하게 맞춰 시각적 분리감을 제거할 것
 - [ ] `src/scene/SceneManager.ts` (또는 god ray 셰이더) — god ray quad의 opacity를 거리에 따라 `pow(t, 2.0)` 기반 exponential falloff 적용하고, 줄기 폭을 현재 대비 0.6배로 축소(`rayWidth * 0.6`)하여 과노출 기둥 해소
 - [ ] `src/scene/SceneManager.ts` fish spawn 범위 — 하단 물고기 군집 y 오프셋을 `-2`→`-4`로 내려 카메라 정면 시야에서 군집이 차지하는 면적을 줄여 시각 균형 개선
 - [ ] `src/scene/Lighting.ts` — god ray 패스에서 `godRayOpacity`(또는 동등 uniform) 값을 현재 대비 0.55→0.30으로, 개별 광선 폭 파라미터를 0.08→0.04로 줄여 줄기를 가늘고 선명하게 만들 것
 - [ ] `src/entities/WhaleShark.ts` — 꼬리(heterocercal tail) 메시의 `side` 속성이 `THREE.FrontSide`인지 확인하고, 역방향 폴리곤이 노출되는 각도에서 검은 삼각형이 생기면 `THREE.DoubleSide`로 변경하거나 꼬리 지오메트리의 normal을 뒤집을 것
 - [ ] `src/scene/Lighting.ts` 또는 `src/scene/Ocean.ts` — 배경 ambient color를 `#0a1628`→`#063d6e`로 밝히고, `ambientLightIntensity`를 0.3→0.5로 올려 배경 채도를 청록 방향으로 끌어올릴 것
+- [ ] `src/scene/Lighting.ts`의 god ray 렌더링 파라미터에서 `opacity`(또는 `rayIntensity`) 값을 현재 대비 1.8~2.5배 상향하고, 광선 폭(`rayWidth`)을 0.03→0.06 수준으로 넓혀 어두운 배경에서도 줄기가 식별되게 할 것
+- [ ] `src/scene/Lighting.ts` 또는 `src/scene/SkyBox.ts` — 배경 ambient/fog 색상을 `#0a1e3d`→`#0d3a6e`으로 상향, 또는 배경 그라디언트 Mesh의 상단 색을 `#1060a8` 수준으로 밝혀 청색 채도를 배경 면적으로 확장.
