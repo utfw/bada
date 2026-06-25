@@ -169,14 +169,14 @@ export class Ocean {
   private addGodRays(scene: THREE.Scene): void {
     // 8 cones with apex at surface, extending downward into the water
     const configs: { x: number; z: number; radius: number; height: number; opacity: number; phase: number }[] = [
-      { x:  1.2, z: -0.8, radius: 0.18, height: 20, opacity: 0.006, phase: 0.0 },
-      { x: -1.5, z:  1.0, radius: 0.14, height: 20, opacity: 0.005, phase: 0.8 },
-      { x:  0.5, z:  1.8, radius: 0.18, height: 20, opacity: 0.006, phase: 1.6 },
-      { x: -1.0, z: -1.5, radius: 0.18, height: 20, opacity: 0.005, phase: 2.4 },
-      { x:  1.8, z:  0.3, radius: 0.18, height: 20, opacity: 0.006, phase: 3.2 },
-      { x: -2.5, z: -0.5, radius: 0.14, height: 20, opacity: 0.005, phase: 4.0 },
-      { x:  0.0, z: -2.0, radius: 0.18, height: 20, opacity: 0.007, phase: 4.8 },
-      { x:  2.2, z:  1.5, radius: 0.18, height: 20, opacity: 0.005, phase: 5.6 },
+      { x:  1.2, z: -0.8, radius: 0.11, height: 20, opacity: 0.006, phase: 0.0 },
+      { x: -1.5, z:  1.0, radius: 0.08, height: 20, opacity: 0.005, phase: 0.8 },
+      { x:  0.5, z:  1.8, radius: 0.11, height: 20, opacity: 0.006, phase: 1.6 },
+      { x: -1.0, z: -1.5, radius: 0.11, height: 20, opacity: 0.005, phase: 2.4 },
+      { x:  1.8, z:  0.3, radius: 0.11, height: 20, opacity: 0.006, phase: 3.2 },
+      { x: -2.5, z: -0.5, radius: 0.08, height: 20, opacity: 0.005, phase: 4.0 },
+      { x:  0.0, z: -2.0, radius: 0.11, height: 20, opacity: 0.007, phase: 4.8 },
+      { x:  2.2, z:  1.5, radius: 0.11, height: 20, opacity: 0.005, phase: 5.6 },
     ];
 
     const godRayVertexShader = `
@@ -195,7 +195,9 @@ export class Ocean {
       void main() {
         float edge = abs(vUv.x - 0.5) * 2.0;
         float radialFade = 1.0 - smoothstep(0.0, 1.0, edge);
-        float alpha = uBaseOpacity * 0.6 * radialFade * (0.85 + 0.25 * sin(uTime * 0.4 + uPhase));
+        float t = vUv.y;
+        float depthFade = pow(t, 2.0);
+        float alpha = uBaseOpacity * 0.6 * radialFade * depthFade * (0.85 + 0.25 * sin(uTime * 0.4 + uPhase));
         gl_FragColor = vec4(0.659, 0.875, 1.0, alpha);
       }
     `;

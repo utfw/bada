@@ -172,7 +172,7 @@ export class Lighting {
       });
 
       // CylinderGeometry(radiusTop=0, radiusBottom, height) — apex at top (surface), opens downward
-      const bottomRadius = 0.025 + Math.random() * 0.035;
+      const bottomRadius = 0.0125 + Math.random() * 0.0175;
       const coneGeo = new THREE.CylinderGeometry(0, bottomRadius, GOD_RAY_HEIGHT, 16, 1, true);
       const cone = new THREE.Mesh(coneGeo, coneMat);
       // apex sits at SURFACE_HEIGHT; center of geometry is at SURFACE_HEIGHT - GOD_RAY_HEIGHT/2
