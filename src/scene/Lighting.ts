@@ -20,48 +20,48 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x1a80b0,
+    ambientColor: 0x1a90c0,
     ambientIntensity: 0.55,
-    sunColor: 0x6ab8e8,
+    sunColor: 0x40c8f0,
     sunIntensity: 3.2,
     godRayIntensity: 2.8,
-    fogColor: 0x0a78aa,
+    fogColor: 0x0a88bc,
     fogDensity: 0.030,
   },
   cloudy: {
-    ambientColor: 0x2a6b9a,
+    ambientColor: 0x2a7aaa,
     ambientIntensity: 1.05,
-    sunColor: 0xc0d8e8,
+    sunColor: 0x40c8f0,
     sunIntensity: 1.2,
     godRayIntensity: 1.8,
-    fogColor: 0x0a3a5e,
+    fogColor: 0x0a6aaa,
     fogDensity: 0.022,
   },
   rain: {
-    ambientColor: 0x1a5080,
+    ambientColor: 0x1a5c8a,
     ambientIntensity: 0.95,
-    sunColor: 0x9abccc,
+    sunColor: 0x40c8f0,
     sunIntensity: 0.8,
     godRayIntensity: 0.85,
-    fogColor: 0x082a50,
+    fogColor: 0x0a4a80,
     fogDensity: 0.028,
   },
   snow: {
-    ambientColor: 0x5d7fa8,
+    ambientColor: 0x5d8fb8,
     ambientIntensity: 1.20,
-    sunColor: 0xd8ecff,
+    sunColor: 0x40c8f0,
     sunIntensity: 1.4,
     godRayIntensity: 2.5,
-    fogColor: 0x2a4a6b,
+    fogColor: 0x2a5278,
     fogDensity: 0.018,
   },
   fog: {
-    ambientColor: 0x3d6880,
+    ambientColor: 0x3d7890,
     ambientIntensity: 0.85,
-    sunColor: 0x88a0b0,
+    sunColor: 0x40c8f0,
     sunIntensity: 0.5,
     godRayIntensity: 0.35,
-    fogColor: 0x2a3a4a,
+    fogColor: 0x2a4a60,
     fogDensity: 0.035,
   },
 };
@@ -82,16 +82,16 @@ export class Lighting {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    scene.fog = new THREE.FogExp2(0x0a78aa, 0.030);
-    scene.background = new THREE.Color(0x0a78aa);
+    scene.fog = new THREE.FogExp2(0x0a88bc, 0.030);
+    scene.background = new THREE.Color(0x0a88bc);
 
-    this.ambientLight = new THREE.AmbientLight(0x1a80b0, 0.55);
+    this.ambientLight = new THREE.AmbientLight(0x1a90c0, 0.55);
     scene.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x1a80b0, 0x0a78aa, 1.0);
+    this.hemisphereLight = new THREE.HemisphereLight(0x1a90c0, 0x0a88bc, 1.0);
     scene.add(this.hemisphereLight);
 
-    this.sunLight = new THREE.DirectionalLight(0x6ab8e8, 2.8);
+    this.sunLight = new THREE.DirectionalLight(0x40c8f0, 2.8);
     this.sunLight.position.set(0, SURFACE_HEIGHT + 10, 0);
     this.sunLight.target.position.set(0, -1, 0);
     scene.add(this.sunLight);

@@ -11,7 +11,7 @@ import {
 import { WeatherData } from '../weather/WeatherService';
 
 interface GodRay {
-  mesh: THREE.Mesh<THREE.ConeGeometry, THREE.MeshBasicMaterial>;
+  mesh: THREE.Mesh<THREE.ConeGeometry, THREE.ShaderMaterial>;
   baseOpacity: number;
 }
 
@@ -168,25 +168,51 @@ export class Ocean {
 
   private addGodRays(scene: THREE.Scene): void {
     // 8 cones with apex at surface, extending downward into the water
-    const configs: { x: number; z: number; radius: number; height: number; opacity: number }[] = [
-      { x:  1.2, z: -0.8, radius: 0.4, height: 20, opacity: 0.006 },
-      { x: -1.5, z:  1.0, radius: 0.3, height: 20, opacity: 0.005 },
-      { x:  0.5, z:  1.8, radius: 0.4, height: 20, opacity: 0.006 },
-      { x: -1.0, z: -1.5, radius: 0.4, height: 20, opacity: 0.005 },
-      { x:  1.8, z:  0.3, radius: 0.4, height: 20, opacity: 0.006 },
-      { x: -2.5, z: -0.5, radius: 0.3, height: 20, opacity: 0.005 },
-      { x:  0.0, z: -2.0, radius: 0.4, height: 20, opacity: 0.007 },
-      { x:  2.2, z:  1.5, radius: 0.4, height: 20, opacity: 0.005 },
+    const configs: { x: number; z: number; radius: number; height: number; opacity: number; phase: number }[] = [
+      { x:  1.2, z: -0.8, radius: 0.18, height: 20, opacity: 0.006, phase: 0.0 },
+      { x: -1.5, z:  1.0, radius: 0.14, height: 20, opacity: 0.005, phase: 0.8 },
+      { x:  0.5, z:  1.8, radius: 0.18, height: 20, opacity: 0.006, phase: 1.6 },
+      { x: -1.0, z: -1.5, radius: 0.18, height: 20, opacity: 0.005, phase: 2.4 },
+      { x:  1.8, z:  0.3, radius: 0.18, height: 20, opacity: 0.006, phase: 3.2 },
+      { x: -2.5, z: -0.5, radius: 0.14, height: 20, opacity: 0.005, phase: 4.0 },
+      { x:  0.0, z: -2.0, radius: 0.18, height: 20, opacity: 0.007, phase: 4.8 },
+      { x:  2.2, z:  1.5, radius: 0.18, height: 20, opacity: 0.005, phase: 5.6 },
     ];
+
+    const godRayVertexShader = `
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `;
+
+    const godRayFragmentShader = `
+      uniform float uTime;
+      uniform float uPhase;
+      uniform float uBaseOpacity;
+      varying vec2 vUv;
+      void main() {
+        float edge = abs(vUv.x - 0.5) * 2.0;
+        float radialFade = 1.0 - smoothstep(0.0, 1.0, edge);
+        float alpha = uBaseOpacity * 0.6 * radialFade * (0.85 + 0.25 * sin(uTime * 0.4 + uPhase));
+        gl_FragColor = vec4(0.659, 0.875, 1.0, alpha);
+      }
+    `;
 
     for (const cfg of configs) {
       // ConeGeometry: apex at +Y, base at -Y. Place center at SURFACE_HEIGHT - height/2
       // so apex sits at SURFACE_HEIGHT (water surface) and cone extends downward.
       const geometry = new THREE.ConeGeometry(cfg.radius, cfg.height, 6);
-      const material = new THREE.MeshBasicMaterial({
-        color: 0xa8dfff,
+      const material = new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: { value: 0 },
+          uPhase: { value: cfg.phase },
+          uBaseOpacity: { value: cfg.opacity },
+        },
+        vertexShader: godRayVertexShader,
+        fragmentShader: godRayFragmentShader,
         transparent: true,
-        opacity: cfg.opacity,
         depthWrite: false,
         side: THREE.DoubleSide,
         blending: THREE.AdditiveBlending,
@@ -269,10 +295,10 @@ export class Ocean {
   update(elapsed: number, delta: number): void {
     this.surface.material.uniforms.uTime.value = elapsed;
 
-    // Animate god rays — opacity pulsed per-ray with phase offset
+    // Animate god rays — time uniform drives per-ray pulse via shader
     this.godRayTime += delta;
-    this.godRays.forEach((ray, idx) => {
-      ray.mesh.material.opacity = ray.baseOpacity * (1 + 0.25 * Math.sin(this.godRayTime * 0.4 + idx * 0.8));
+    this.godRays.forEach((ray) => {
+      ray.mesh.material.uniforms['uTime'].value = this.godRayTime;
     });
 
     // Animate debris
@@ -359,7 +385,7 @@ export class Ocean {
     // (Three.js PlaneGeometry starts at top-left and goes row by row)
     const posAttr = geo.attributes.position as THREE.BufferAttribute;
     const colors = new Float32Array(posAttr.count * 3);
-    const topColor = new THREE.Color(0x0a4a7a);
+    const topColor = new THREE.Color(0x0a4a8a);
     const bottomColor = new THREE.Color(0x022b5a);
     for (let i = 0; i < posAttr.count; i++) {
       const y = posAttr.getY(i);

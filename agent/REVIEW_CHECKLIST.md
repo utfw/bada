@@ -180,7 +180,7 @@
 ## 10. 조명·수면 시각 품질 (Lighting & Ocean Surface)
 
 <!-- @src: src/scene/Ocean.ts:addGodRays -->
-- **[코드 검증] 갓레이(God Ray) 존재**: `Ocean.ts`의 `addGodRays()` 또는 `Lighting.ts`의 constructor에 6~8개의 볼류메트릭 광선 메시가 생성되고 씬에 add 되어야 한다. 구현 방식은 다음 중 하나: (A) `PlaneGeometry + ShaderMaterial(animated uTime uniform)`, 또는 (B) `ConeGeometry + MeshBasicMaterial(transparent, depthWrite:false, update()에서 opacity pulsed)`. opacity가 0이거나 geometry를 씬에 추가하지 않으면 **실패**. (갓레이 구현 위치는 리팩터링에 따라 Ocean.ts 또는 Lighting.ts 중 하나에 있을 수 있으며, 두 파일 모두 확인할 것.)
+- **[코드 검증] 갓레이(God Ray) 존재**: `Ocean.ts`의 `addGodRays()` 또는 `Lighting.ts`의 constructor에 6~8개의 볼류메트릭 광선 메시가 생성되고 씬에 add 되어야 한다. 구현 방식은 다음 중 하나: (A) `PlaneGeometry + ShaderMaterial(animated uTime uniform)`, (B) `ConeGeometry + MeshBasicMaterial(transparent, depthWrite:false, update()에서 opacity pulsed)`, 또는 (C) `ConeGeometry + ShaderMaterial(animated uTime uniform, radial gradient fragment shader)`. opacity가 0이거나 geometry를 씬에 추가하지 않으면 **실패**. (갓레이 구현 위치는 리팩터링에 따라 Ocean.ts 또는 Lighting.ts 중 하나에 있을 수 있으며, 두 파일 모두 확인할 것.)
 
 - **[시각 검증] 갓레이 가시성**: `screenshot-1~4.png` 중 최소 1장에서 수면에서 내려오는 밝은 쐐기형 광선 줄기가 보여야 한다. 4장 모두에서 광선이 보이지 않으면 opacity·위치·각도 문제이므로 **실패 징후** — SUGGESTIONS에 갓레이 opacity/위치 개선 추가.
 
@@ -214,7 +214,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-20) [reviewer] §3 보강: finWave finZ 정합성 검증 항목 추가 — finWave 연동은 존재하지만 finZ 인자가 실제 fin.position.z와 다르면 위상 불일치로 gap 발생. create*() 코드와 대조 필수 기준 명시.
 - (2026-04-20) [reviewer] §3 보강: 등지느러미 접합 검증 대상을 dorsal + secondDorsal 모두로 명시. secondDorsal Z=SHARK_LENGTH×0.3에서 body가 급격히 테이퍼되어 body Y상단 ≈ 0.24인데 position.y=0.9로 gap=0.66 > 0.5 실패 패턴 발견 — create*() 함수 내 모든 지느러미 파츠를 각자 검증 필수.
 - (2026-04-24) [human] §1 보강: Reviewer가 탑뷰 관찰 섹션을 출력하지 않고 REVIEW_PASS를 선언하는 것을 명시적으로 금지. 탑뷰 관찰 섹션 없는 REVIEW_PASS는 무효/REVIEW_FAIL로 처리. loop.ts Reviewer 프롬프트에도 동일 규칙 추가.
 - (2026-04-25) [reviewer] §6 추가: tsconfig references 추가 시 대상 파일에 composite:true 미설정 → TS6306으로 tsc 실패하는 패턴 명시. tsconfig.agent.json에 composite 없이 tsconfig.json references에 추가된 경우 발생.
@@ -244,3 +243,4 @@
 - (2026-06-16) [reviewer] §9 수정: 버블 스폰 의도가 꼬리 후방→입 앞으로 변경됨에 따라 부호 판정 반전 — 이제 `−` 부호가 정상(입 앞), `+` 부호가 실패(꼬리). 미래 Reviewer가 old 규칙으로 올바른 구현을 오탐하지 않도록 본문 갱신.
 - (2026-06-23) [human] §1 추가: 버블/파티클이 고래상어 표면을 덮는다고 진행 방향(fwd/lookAt) 부호를 의심·반전하지 말 것. 실측에서 부호 반전이 오히려 악화, 거리(1.5→12) 상향도 완전 해결 못 함 — 방향은 §1 lookAt 금지 영역이고, 버블 가림은 거리·높이 수치로만 조정하거나 미해결 시 사람 보고. Vision judge(`npm run vision:judge`)가 이 가림 회귀를 일관 감지함.
 - (2026-06-21) [human] 코드 검증 항목 11개에 `<!-- @src: file:symbol -->` 바인딩 태그 추가. `npm run check:checklist`(agent/checkChecklist.ts)가 grep으로 심볼 존재를 결정적 검증 — 코드 이동/삭제 시 STALE 자동 감지. §10 갓레이·§9 부호처럼 코드 드리프트로 반복 수동 정정되던 패턴을 자동화. LLM 미사용.
+- (2026-06-25) [reviewer] §10 갱신: 갓레이 존재 허용 구현 방식에 (C) ConeGeometry+ShaderMaterial(animated uTime, radial gradient) 추가 — 이번 목표가 Ocean.ts god ray를 MeshBasicMaterial→ShaderMaterial로 교체했는데 기존 (A)/(B) 규칙에 해당 패턴이 없어 미래 Reviewer 오탐 방지.
