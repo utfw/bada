@@ -301,12 +301,15 @@
 - [x] `src/scene/SceneManager.ts` (또는 god ray 셰이더) — god ray quad의 opacity를 거리에 따라 `pow(t, 2.0)` 기반 exponential falloff 적용하고, 줄기 폭을 현재 대비 0.6배로 축소(`rayWidth * 0.6`)하여 과노출 기둥 해소
 - [x] `src/scene/SceneManager.ts` fish spawn 범위 — 하단 물고기 군집 y 오프셋을 `-2`→`-4`로 내려 카메라 정면 시야에서 군집이 차지하는 면적을 줄여 시각 균형 개선
 - [x] `src/scene/Lighting.ts` — god ray 패스에서 `godRayOpacity`(또는 동등 uniform) 값을 현재 대비 0.55→0.30으로, 개별 광선 폭 파라미터를 0.08→0.04로 줄여 줄기를 가늘고 선명하게 만들 것
-- [ ] `src/entities/WhaleShark.ts` — 꼬리(heterocercal tail) 메시의 `side` 속성이 `THREE.FrontSide`인지 확인하고, 역방향 폴리곤이 노출되는 각도에서 검은 삼각형이 생기면 `THREE.DoubleSide`로 변경하거나 꼬리 지오메트리의 normal을 뒤집을 것
-- [ ] `src/scene/Lighting.ts` 또는 `src/scene/Ocean.ts` — 배경 ambient color를 `#0a1628`→`#063d6e`로 밝히고, `ambientLightIntensity`를 0.3→0.5로 올려 배경 채도를 청록 방향으로 끌어올릴 것
-- [ ] `src/scene/Lighting.ts`의 god ray 렌더링 파라미터에서 `opacity`(또는 `rayIntensity`) 값을 현재 대비 1.8~2.5배 상향하고, 광선 폭(`rayWidth`)을 0.03→0.06 수준으로 넓혀 어두운 배경에서도 줄기가 식별되게 할 것
+- [x] `src/entities/WhaleShark.ts` — 꼬리(heterocercal tail) 메시의 `side` 속성이 `THREE.FrontSide`인지 확인하고, 역방향 폴리곤이 노출되는 각도에서 검은 삼각형이 생기면 `THREE.DoubleSide`로 변경하거나 꼬리 지오메트리의 normal을 뒤집을 것
+- [x] `src/scene/Lighting.ts` 또는 `src/scene/Ocean.ts` — 배경 ambient color를 `#0a1628`→`#063d6e`로 밝히고, `ambientLightIntensity`를 0.3→0.5로 올려 배경 채도를 청록 방향으로 끌어올릴 것
+- [x] `src/scene/Lighting.ts`의 god ray 렌더링 파라미터에서 `opacity`(또는 `rayIntensity`) 값을 현재 대비 1.8~2.5배 상향하고, 광선 폭(`rayWidth`)을 0.03→0.06 수준으로 넓혀 어두운 배경에서도 줄기가 식별되게 할 것
 - [ ] `src/scene/Lighting.ts` 또는 `src/scene/SkyBox.ts` — 배경 ambient/fog 색상을 `#0a1e3d`→`#0d3a6e`으로 상향, 또는 배경 그라디언트 Mesh의 상단 색을 `#1060a8` 수준으로 밝혀 청색 채도를 배경 면적으로 확장.
-- [ ] `src/entities/WhaleShark.ts` — MeshToonMaterial로 교체하고 `gradientMap`에 3단계 계단형 텍스처(THREE.DataTexture, width=3, R값 64/160/255)를 지정해 뚜렷한 셀셰이딩 띠를 구현; `shininess` 제거
 - [ ] `src/scene/SceneManager.ts` 또는 `src/entities/Fish.ts` — 물고기 Boids 군집의 카메라 최소 거리(`minDistance`) 를 현재 값에서 +3~5 unit 증가시키거나, 카메라 근방 반경 내 개체를 `visible=false` 처리해 surface-up 시점의 화면 점유 문제 해소
 - [ ] `src/scene/Lighting.ts` — 앰비언트 색상을 `0x0a3a6a`에서 `0x0a5080`(채도+10%)으로 올리고 포인트라이트 intensity를 1.2→1.6으로 높여 배경 전체 채도 개선
-- [ ] `src/scene/Lighting.ts` — `godRaysPass` 또는 광선 mesh의 `opacity`/`intensity` 수치를 현재 값에서 1.5~2× 올리고, 광선 색상을 `#40d0f0` 수준의 밝은 청록으로 변경해 배경 대비를 높일 것
 - [ ] `src/scene/Ocean.ts` 또는 `src/scene/Lighting.ts` — 배경 `fogColor` / `ambientLight` color를 현재 `#0a1a3a` 계열에서 `#0a4a7a`~`#0d6fa8` 수준으로 올려 배경 자체의 채도를 높일 것
+- [ ] `src/scene/Lighting.ts` — `sunny` 프리셋의 `ambientLight.color`를 `#0a4a7a` → `#0d6ea0`로, `hemisphereLight` sky color를 `#1565c0` → `#1a90d0`로 올려 수면 근처 배경 채도를 높임
+- [ ] `src/scene/SceneManager.ts` (또는 God Ray 셰이더 파일) — god ray 줄기의 `opacity` 값을 현재 대비 1.5~2배 증가(예: 0.08 → 0.15), `rayWidth` 또는 빔 수를 6 → 8로 늘려 광선이 명확히 보이도록 조정
+- [ ] `src/entities/Fish.ts` — Boids 군집이 screenshot-3·4처럼 화면 밖으로 이탈하지 않도록 `cohesionWeight` 또는 `boundaryForce` 강도를 높여 군집이 카메라 정면에 상시 위치하게 함
+- [ ] **구도 균형** — `src/scene/SceneManager.ts`의 카메라 초기 거리(또는 `DeviceControls`의 minDistance)를 현재보다 1.5~2× 멀게 설정해 대형 개체가 화면을 압도하지 않도록 할 것; 고래상어 경로의 최근접 통과 거리(`WhaleShark.ts` CatmullRomCurve3 제어점 Z값)를 카메라로부터 최소 8 unit 이상 유지할 것
+- [ ] `src/scene/SceneManager.ts` — 카메라 근접 거리(near plane 혹은 frustum culling) 조정으로 screenshot-1처럼 초근접 물고기가 화면을 압도하는 경우를 방지 (near: 0.1→1.0 또는 boids separation radius 증가)

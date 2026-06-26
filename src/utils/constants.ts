@@ -78,8 +78,8 @@ export const PREDATOR_FLEE_INTENSITY_NORM = 4.0;
 // ── God Rays (volumetric planes) ─────────────────
 export const GOD_RAY_COUNT = 8;
 export const GOD_RAY_HEIGHT = 40;
-export const GOD_RAY_PLANE_WIDTH = 0.022;
-export const GOD_RAY_MAX_OPACITY = 0.30;
+export const GOD_RAY_PLANE_WIDTH = 0.044;
+export const GOD_RAY_MAX_OPACITY = 0.62;
 export const GOD_RAY_COLOR = 0xa8d8f0;
 
 // ── Controls ───────────────────────────────────────

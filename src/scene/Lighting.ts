@@ -82,8 +82,8 @@ export class Lighting {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    scene.fog = new THREE.FogExp2(0x0d6090, 0.030);
-    scene.background = new THREE.Color(0x0d6090);
+    scene.fog = new THREE.FogExp2(0x063d6e, 0.030);
+    scene.background = new THREE.Color(0x063d6e);
 
     this.ambientLight = new THREE.AmbientLight(0x1a90c0, 0.55);
     scene.add(this.ambientLight);
@@ -172,7 +172,7 @@ export class Lighting {
       });
 
       // CylinderGeometry(radiusTop=0, radiusBottom, height) — apex at top (surface), opens downward
-      const bottomRadius = 0.0125 + Math.random() * 0.0175;
+      const bottomRadius = 0.03 + Math.random() * 0.03;
       const coneGeo = new THREE.CylinderGeometry(0, bottomRadius, GOD_RAY_HEIGHT, 16, 1, true);
       const cone = new THREE.Mesh(coneGeo, coneMat);
       // apex sits at SURFACE_HEIGHT; center of geometry is at SURFACE_HEIGHT - GOD_RAY_HEIGHT/2
@@ -183,10 +183,10 @@ export class Lighting {
     }
 
     // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
-    this.nearRayGeo = new THREE.PlaneGeometry(0.15, 12);
+    this.nearRayGeo = new THREE.PlaneGeometry(0.30, 12);
     const nearRayMat = new THREE.MeshBasicMaterial({
       color: 0xa8d8f0,
-      opacity: 0.035,
+      opacity: 0.08,
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
