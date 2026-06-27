@@ -476,7 +476,7 @@ export class WhaleShark {
     //   - FOV 75° vertical, 모바일 portrait aspect ≈ 0.56
     //   - horizontal half-FOV ≈ 23.3° → z=-8 에서 |x|≤3.4 이면 시야 중심권
     // 경로를 z=-9~+4 로 압축하고 front arc(z<-4)에서 |x|≤3.5 유지.
-    const XZ_SCALE = 1.45;
+    const XZ_SCALE = 1.65;
     const basePoints = [
       new THREE.Vector3(0 * XZ_SCALE, -2.25, -13.5 * XZ_SCALE),
       new THREE.Vector3(2.25 * XZ_SCALE, -2.55, -12.75 * XZ_SCALE),

@@ -4,13 +4,13 @@ export const OCEAN_WIDTH = 60;
 export const SURFACE_HEIGHT = 15;
 
 // ── Rendering ──────────────────────────────────────
-export const CAMERA_FOV = 75;
+export const CAMERA_FOV = 55;
 export const CAMERA_NEAR = 0.1;
 export const CAMERA_FAR = 200;
 export const MAX_PIXEL_RATIO = 2;
-export const DEFAULT_FOG_DENSITY = 0.030;
-export const DEFAULT_FOG_COLOR = 0x0d6090;
-export const DEFAULT_BG_COLOR = 0x0d5888;
+export const DEFAULT_FOG_DENSITY = 0.026;
+export const DEFAULT_FOG_COLOR = 0x0b3060;
+export const DEFAULT_BG_COLOR = 0x072a52;
 export const TONE_MAPPING_EXPOSURE = 1.4;
 
 // ── Weather API ────────────────────────────────────
@@ -77,9 +77,9 @@ export const PREDATOR_FLEE_INTENSITY_NORM = 4.0;
 
 // ── God Rays (volumetric planes) ─────────────────
 export const GOD_RAY_COUNT = 8;
-export const GOD_RAY_HEIGHT = 40;
+export const GOD_RAY_HEIGHT = 60;
 export const GOD_RAY_PLANE_WIDTH = 0.044;
-export const GOD_RAY_MAX_OPACITY = 0.93;
+export const GOD_RAY_MAX_OPACITY = 1.6;
 export const GOD_RAY_COLOR = 0xa8d8f0;
 
 // ── Controls ───────────────────────────────────────

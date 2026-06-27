@@ -310,11 +310,16 @@
 - [x] `src/scene/Ocean.ts` 또는 `src/scene/Lighting.ts` — 배경 `fogColor` / `ambientLight` color를 현재 `#0a1a3a` 계열에서 `#0a4a7a`~`#0d6fa8` 수준으로 올려 배경 자체의 채도를 높일 것
 - [x] `src/scene/Lighting.ts` — `sunny` 프리셋의 `ambientLight.color`를 `#0a4a7a` → `#0d6ea0`로, `hemisphereLight` sky color를 `#1565c0` → `#1a90d0`로 올려 수면 근처 배경 채도를 높임
 - [x] `src/scene/SceneManager.ts` (또는 God Ray 셰이더 파일) — god ray 줄기의 `opacity` 값을 현재 대비 1.5~2배 증가(예: 0.08 → 0.15), `rayWidth` 또는 빔 수를 6 → 8로 늘려 광선이 명확히 보이도록 조정
-- [ ] **구도 균형** — `src/scene/SceneManager.ts`의 카메라 초기 거리(또는 `DeviceControls`의 minDistance)를 현재보다 1.5~2× 멀게 설정해 대형 개체가 화면을 압도하지 않도록 할 것; 고래상어 경로의 최근접 통과 거리(`WhaleShark.ts` CatmullRomCurve3 제어점 Z값)를 카메라로부터 최소 8 unit 이상 유지할 것
-- [ ] **[1] 배경 채도 상향** — `src/scene/SceneManager.ts` 또는 `Lighting.ts`의 `setClearColor` 호출에서 배경색을 `#0d1f3c` → `#072a52` 또는 fog color를 `#0a1e40` → `#0b3060`으로 올려 청색 채도를 높이고, `Ocean.ts`의 수중 안개(`FogExp2`) density를 현재 값에서 10~15% 낮춰 심해 공간에 청색이 더 드러나게 조정
-- [ ] `src/scene/Lighting.ts`의 god ray 메시(PlaneGeometry 또는 CylinderGeometry) opacity를 현재 값보다 1.5~2× 높이고, ray 길이를 뷰포트 전체 높이로 연장하며 상단 UV alpha가 1→0으로 페이드되도록 ShaderMaterial `alphaMap` 그라디언트를 추가할 것
+- [x] **구도 균형** — `src/scene/SceneManager.ts`의 카메라 초기 거리(또는 `DeviceControls`의 minDistance)를 현재보다 1.5~2× 멀게 설정해 대형 개체가 화면을 압도하지 않도록 할 것; 고래상어 경로의 최근접 통과 거리(`WhaleShark.ts` CatmullRomCurve3 제어점 Z값)를 카메라로부터 최소 8 unit 이상 유지할 것
+- [x] **[1] 배경 채도 상향** — `src/scene/SceneManager.ts` 또는 `Lighting.ts`의 `setClearColor` 호출에서 배경색을 `#0d1f3c` → `#072a52` 또는 fog color를 `#0a1e40` → `#0b3060`으로 올려 청색 채도를 높이고, `Ocean.ts`의 수중 안개(`FogExp2`) density를 현재 값에서 10~15% 낮춰 심해 공간에 청색이 더 드러나게 조정
+- [x] `src/scene/Lighting.ts`의 god ray 메시(PlaneGeometry 또는 CylinderGeometry) opacity를 현재 값보다 1.5~2× 높이고, ray 길이를 뷰포트 전체 높이로 연장하며 상단 UV alpha가 1→0으로 페이드되도록 ShaderMaterial `alphaMap` 그라디언트를 추가할 것
 - [ ] `src/scene/SceneManager.ts`에서 카메라 초기 오프셋이나 고래상어 경로 중심점을 씬 중앙(x=0)으로 고정하여 surface-up 시점에서 좌우 여백 불균형을 해소할 것
 - [ ] `src/scene/Ocean.ts` 또는 `SceneManager.ts`의 배경 fog/gradient 설정에서 `fogNear`를 현재보다 30% 줄이고, 하단 ambient 색상을 `#010d1f`~`#020e22`로 어둡게 조정해 상하 명도 대비를 강화
 - [ ] `src/scene/Lighting.ts`의 fog 또는 ambient 색상을 `#0a4a8a` → `#0a6fc0`으로 올려 배경 채도를 높이고, `Ocean.ts`의 underwater background color를 `0x07203a` → `0x083a6e`로 변경해 중간 심도 블루 채도를 강화
 - [ ] `src/entities/Fish.ts` Boids 군집의 초기 spawn 반경을 카메라 기준 ±X/Y 45° 이내로 제한해 화면 구석 몰림을 방지하고, 고래상어와 물고기가 같은 프레임에 함께 보이는 확률을 높임
 - [ ] `src/scene/Lighting.ts` god ray 생성부에서 각 광선 PlaneGeometry 폭을 현재 값의 0.4배로 줄이고(`width * 0.4`), ShaderMaterial opacity를 `0.06~0.10` 범위로 낮추며 `blending: AdditiveBlending` + 가우시안 폴오프 UV 그라디언트를 적용해 슬래브→볼류메트릭 느낌으로 전환
+- [ ] `src/scene/SceneManager.ts`(또는 Fish.ts)에서 우하단에 반복 출현하는 어두운 패널/평면 오브젝트를 확인해 카메라 시야각 밖으로 초기 위치를 옮기거나 opacity를 0.3 이하로 낮출 것
+- [ ] `src/scene/Lighting.ts`의 god-ray 줄기 `width` 파라미터를 현재값 대비 1.5~2배 확대하고 `opacity`를 0.12→0.22로 높여 광선을 더 부드럽고 자연스럽게 만들 것
+- [ ] `src/entities/WhaleShark.ts`에서 고래상어 기본 scale을 현재 대비 1.3~1.5배로 키워 원거리 카메라 앵글에서도 주체가 화면 중앙을 충분히 점유하도록 구성 균형 개선
+- [ ] `src/scene/Lighting.ts`의 god ray 메시(ShaderMaterial 또는 PlaneGeometry 기반) — 각 광선의 불투명도를 상단 0.18 → 하단 0.0으로 수직 감쇠하는 vertexAlpha 또는 uv.y 기반 `opacity = mix(0.18, 0.0, uv.y)` 적용하고, 광선 폭을 현재 대비 40% 축소해 자연스러운 산란 형태로 수정
+- [ ] `src/scene/Lighting.ts` 또는 `src/utils/constants.ts`의 ambient/fog 색상 — `scene.fog` 색을 `#0a3a6e` → `#0a6ea0`으로, `ambientLight` intensity를 0.4 → 0.65로 상향해 중간 수심 배경의 채도를 높임

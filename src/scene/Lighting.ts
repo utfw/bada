@@ -26,7 +26,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunIntensity: 3.2,
     godRayIntensity: 2.8,
     fogColor: 0x1472d8,
-    fogDensity: 0.026,
+    fogDensity: 0.022,
   },
   cloudy: {
     ambientColor: 0x2a7aaa,
@@ -35,7 +35,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunIntensity: 1.2,
     godRayIntensity: 1.8,
     fogColor: 0x1268c8,
-    fogDensity: 0.022,
+    fogDensity: 0.019,
   },
   rain: {
     ambientColor: 0x1a6ea0,
@@ -44,7 +44,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunIntensity: 0.8,
     godRayIntensity: 0.85,
     fogColor: 0x0d6fa8,
-    fogDensity: 0.028,
+    fogDensity: 0.024,
   },
   snow: {
     ambientColor: 0x5d8fb8,
@@ -53,7 +53,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunIntensity: 1.4,
     godRayIntensity: 2.5,
     fogColor: 0x2a72a8,
-    fogDensity: 0.018,
+    fogDensity: 0.016,
   },
   fog: {
     ambientColor: 0x3d88a8,
@@ -62,7 +62,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunIntensity: 0.5,
     godRayIntensity: 0.35,
     fogColor: 0x2a6888,
-    fogDensity: 0.035,
+    fogDensity: 0.030,
   },
 };
 
@@ -82,8 +82,8 @@ export class Lighting {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    scene.fog = new THREE.FogExp2(0x0d6090, 0.026);
-    scene.background = new THREE.Color(0x0d6090);
+    scene.fog = new THREE.FogExp2(0x0b3060, 0.022);
+    scene.background = new THREE.Color(0x0b3060);
 
     this.ambientLight = new THREE.AmbientLight(0x0d6ea0, 0.55);
     scene.add(this.ambientLight);
@@ -141,7 +141,9 @@ export class Lighting {
       varying vec2 vUv;
       void main() {
         const float PI = 3.14159;
-        float alpha = pow(1.0 - vUv.y, 2.2) * uMaxOpacity * (0.9 + sin(uTime * 0.3 + uPhase) * 0.18);
+        float fade = smoothstep(1.0, 0.0, vUv.y);
+        float pulse = 0.9 + sin(uTime * 0.3 + uPhase) * 0.18;
+        float alpha = fade * uMaxOpacity * pulse;
         alpha *= sin(vUv.x * PI);
         gl_FragColor = vec4(uColor, alpha);
       }
@@ -173,7 +175,7 @@ export class Lighting {
 
       // CylinderGeometry(radiusTop=0, radiusBottom, height) — apex at top (surface), opens downward
       const bottomRadius = 0.03 + Math.random() * 0.03;
-      const coneGeo = new THREE.CylinderGeometry(0, bottomRadius, GOD_RAY_HEIGHT, 16, 1, true);
+      const coneGeo = new THREE.CylinderGeometry(0, bottomRadius, GOD_RAY_HEIGHT, 16, 4, true);
       const cone = new THREE.Mesh(coneGeo, coneMat);
       // apex sits at SURFACE_HEIGHT; center of geometry is at SURFACE_HEIGHT - GOD_RAY_HEIGHT/2
       cone.position.set(x, SURFACE_HEIGHT - GOD_RAY_HEIGHT / 2, z);
@@ -183,10 +185,10 @@ export class Lighting {
     }
 
     // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
-    this.nearRayGeo = new THREE.PlaneGeometry(0.30, 12);
+    this.nearRayGeo = new THREE.PlaneGeometry(0.30, 20);
     const nearRayMat = new THREE.MeshBasicMaterial({
       color: 0xa8d8f0,
-      opacity: 0.15,
+      opacity: 0.25,
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
