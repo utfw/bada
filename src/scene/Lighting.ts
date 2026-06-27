@@ -26,7 +26,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunIntensity: 3.2,
     godRayIntensity: 2.8,
     fogColor: 0x1482e8,
-    fogDensity: 0.015,
+    fogDensity: 0.0135,
   },
   cloudy: {
     ambientColor: 0x2a7aaa,
@@ -35,7 +35,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunIntensity: 1.2,
     godRayIntensity: 1.8,
     fogColor: 0x1268c8,
-    fogDensity: 0.013,
+    fogDensity: 0.0117,
   },
   rain: {
     ambientColor: 0x1a6ea0,
@@ -44,7 +44,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunIntensity: 0.8,
     godRayIntensity: 0.85,
     fogColor: 0x0d6fa8,
-    fogDensity: 0.017,
+    fogDensity: 0.0153,
   },
   snow: {
     ambientColor: 0x5d8fb8,
@@ -53,7 +53,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunIntensity: 1.4,
     godRayIntensity: 2.5,
     fogColor: 0x2a72a8,
-    fogDensity: 0.011,
+    fogDensity: 0.0099,
   },
   fog: {
     ambientColor: 0x3d88a8,
@@ -62,7 +62,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunIntensity: 0.5,
     godRayIntensity: 0.35,
     fogColor: 0x2a6888,
-    fogDensity: 0.021,
+    fogDensity: 0.0189,
   },
 };
 
@@ -82,10 +82,10 @@ export class Lighting {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    scene.fog = new THREE.FogExp2(0x0a6ea0, 0.012);
+    scene.fog = new THREE.FogExp2(0x0a6ea0, 0.0108);
     scene.background = new THREE.Color(0x0a6ea0);
 
-    this.ambientLight = new THREE.AmbientLight(0x020e22, 0.65);
+    this.ambientLight = new THREE.AmbientLight(0x061e3a, 0.65);
     scene.add(this.ambientLight);
 
     this.hemisphereLight = new THREE.HemisphereLight(0x1a90d0, 0x0a88bc, 1.0);
@@ -177,7 +177,7 @@ export class Lighting {
       });
 
       // CylinderGeometry(radiusTop=0, radiusBottom, height) — apex at top (surface), opens downward
-      const bottomRadius = 0.018 + Math.random() * 0.018;
+      const bottomRadius = 0.06 + Math.random() * 0.03;
       const coneGeo = new THREE.CylinderGeometry(0, bottomRadius, GOD_RAY_HEIGHT, 16, 4, true);
       const cone = new THREE.Mesh(coneGeo, coneMat);
       // apex sits at SURFACE_HEIGHT; center of geometry is at SURFACE_HEIGHT - GOD_RAY_HEIGHT/2
@@ -188,10 +188,10 @@ export class Lighting {
     }
 
     // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
-    this.nearRayGeo = new THREE.PlaneGeometry(0.18, 10);
+    this.nearRayGeo = new THREE.PlaneGeometry(0.72, 6);
     const nearRayMat = new THREE.MeshBasicMaterial({
       color: 0xa8d8f0,
-      opacity: 0.12,
+      opacity: 0.15,
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
@@ -199,8 +199,10 @@ export class Lighting {
     });
     for (let i = 0; i < 16; i++) {
       const mesh = new THREE.Mesh(this.nearRayGeo, nearRayMat);
+      const rawX = (i / 16 * 2 - 1) * 8 + Math.random() * 0.4;
+      const x = Math.abs(rawX) < 2.0 ? (rawX < 0 ? rawX - 2.5 : rawX + 2.5) : rawX;
       mesh.position.set(
-        (i / 16 * 2 - 1) * 8 + Math.random() * 0.4,
+        x,
         0,
         Math.random() * 6 - 3,
       );
@@ -218,6 +220,12 @@ export class Lighting {
     this.sunLight.target.updateMatrixWorld();
     this.godRayCones.forEach((cone) => {
       cone.material.uniforms.uTime.value = elapsed;
+      if (aboveSurface) {
+        cone.material.uniforms.uMaxOpacity.value = Math.min(
+          cone.material.uniforms.uMaxOpacity.value,
+          0.25,
+        );
+      }
     });
     // nearRayMeshes visibility: hide when camera is above surface (rays come from above)
     const nearRayVisible = !aboveSurface;
