@@ -52,6 +52,8 @@ export class FishSchool {
   private readonly orbitPaths: THREE.CatmullRomCurve3[];
   // Shark 위치 — SceneManager가 매 프레임 setSharkPosition()으로 주입. 미주입 시 멀리 두어 영향 없음.
   private readonly _sharkPos = new THREE.Vector3(9999, 9999, 9999);
+  // 카메라 위치 — SceneManager가 매 프레임 setCameraPosition()으로 주입. 미주입 시 원점.
+  private readonly _cameraPos = new THREE.Vector3();
   // 학교별 prefetch buffer: this frame에 누적된 flee force 합과 학교 인구
   private readonly _fleeForceFrameSum: Float32Array;
   private readonly _schoolPopulation: Int32Array;
@@ -178,6 +180,10 @@ export class FishSchool {
   /** SceneManager가 매 프레임 호출 — flee force 계산용 shark 위치 주입 */
   setSharkPosition(pos: THREE.Vector3): void {
     this._sharkPos.copy(pos);
+  }
+
+  setCameraPosition(pos: THREE.Vector3): void {
+    this._cameraPos.copy(pos);
   }
 
   private createFishMesh(scale: number): { mesh: THREE.Group; disposables: Array<THREE.BufferGeometry | THREE.Material | THREE.Texture> } {
@@ -448,6 +454,9 @@ export class FishSchool {
         const speedRatio = fi.velocity.length() / BOID_MAX_SPEED;
         tail.rotation.y = Math.sin(elapsed * 8 + i) * 0.2 * (0.5 + speedRatio);
       }
+
+      // 카메라 근접 컬링: 5 unit 이내 물고기를 숨겨 surface-up 시점 화면 점유 해소
+      fi.mesh.visible = pos.distanceTo(this._cameraPos) >= 5.0;
     }
 
     // ── 학교별 후처리: centroid, 거리, dispersion, smoothed flee intensity ──

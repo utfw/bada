@@ -189,6 +189,7 @@ export class SceneManager {
     this.ocean.setSharkPosition(this._sharkWorldPos);
     this.ocean.setSharkForward(this._sharkWorldFwd);
     this.fishSchool.setSharkPosition(this._sharkWorldPos);
+    this.fishSchool.setCameraPosition(this.camera.position);
     this.fishSchool.update(elapsed, delta);
     this.lighting.update(elapsed, this.camera);
     this.skyBox.update(elapsed);

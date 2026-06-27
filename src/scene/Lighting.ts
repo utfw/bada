@@ -25,8 +25,8 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x40c8f0,
     sunIntensity: 3.2,
     godRayIntensity: 2.8,
-    fogColor: 0x1090cc,
-    fogDensity: 0.030,
+    fogColor: 0x1265c8,
+    fogDensity: 0.026,
   },
   cloudy: {
     ambientColor: 0x2a7aaa,
@@ -34,7 +34,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x40c8f0,
     sunIntensity: 1.2,
     godRayIntensity: 1.8,
-    fogColor: 0x0d7ab8,
+    fogColor: 0x0f5fb8,
     fogDensity: 0.022,
   },
   rain: {
@@ -82,8 +82,8 @@ export class Lighting {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    scene.fog = new THREE.FogExp2(0x063d6e, 0.030);
-    scene.background = new THREE.Color(0x063d6e);
+    scene.fog = new THREE.FogExp2(0x0a5080, 0.026);
+    scene.background = new THREE.Color(0x0a5080);
 
     this.ambientLight = new THREE.AmbientLight(0x1a90c0, 0.55);
     scene.add(this.ambientLight);
@@ -113,7 +113,7 @@ export class Lighting {
 
     // Under-fill point light — mitigates PBR under-belly darkening on WhaleShark
     // decay=1.5 (less than physical 2.0) for even coverage across belly at y≈-3~-5
-    this.underFillPoint = new THREE.PointLight(0x5588bb, 0.6, 40, 1.5);
+    this.underFillPoint = new THREE.PointLight(0x5588bb, 1.6, 40, 1.5);
     this.underFillPoint.position.set(0, -8, 0);
     scene.add(this.underFillPoint);
 
