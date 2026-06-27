@@ -138,12 +138,14 @@ export class Lighting {
       uniform float uPhase;
       uniform vec3 uColor;
       uniform float uMaxOpacity;
+      uniform float uBaseMaxOpacity;
       varying vec2 vUv;
       void main() {
         const float PI = 3.14159;
-        float fade = smoothstep(1.0, 0.0, vUv.y);
+        float fade = 0.18 * (1.0 - vUv.y);
         float pulse = 0.9 + sin(uTime * 0.3 + uPhase) * 0.18;
-        float alpha = fade * uMaxOpacity * pulse;
+        float weatherScale = uBaseMaxOpacity > 0.0 ? uMaxOpacity / uBaseMaxOpacity : 1.0;
+        float alpha = fade * weatherScale * pulse;
         alpha *= sin(vUv.x * PI);
         gl_FragColor = vec4(uColor, alpha);
       }
@@ -166,6 +168,7 @@ export class Lighting {
           uPhase: { value: (i / GOD_RAY_COUNT) * Math.PI * 2 },
           uColor: { value: rayColor },
           uMaxOpacity: { value: baseOpacity },
+          uBaseMaxOpacity: { value: baseOpacity },
         },
         transparent: true,
         blending: THREE.AdditiveBlending,
@@ -174,7 +177,7 @@ export class Lighting {
       });
 
       // CylinderGeometry(radiusTop=0, radiusBottom, height) — apex at top (surface), opens downward
-      const bottomRadius = 0.03 + Math.random() * 0.03;
+      const bottomRadius = 0.018 + Math.random() * 0.018;
       const coneGeo = new THREE.CylinderGeometry(0, bottomRadius, GOD_RAY_HEIGHT, 16, 4, true);
       const cone = new THREE.Mesh(coneGeo, coneMat);
       // apex sits at SURFACE_HEIGHT; center of geometry is at SURFACE_HEIGHT - GOD_RAY_HEIGHT/2
@@ -185,10 +188,10 @@ export class Lighting {
     }
 
     // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
-    this.nearRayGeo = new THREE.PlaneGeometry(0.30, 20);
+    this.nearRayGeo = new THREE.PlaneGeometry(0.18, 10);
     const nearRayMat = new THREE.MeshBasicMaterial({
       color: 0xa8d8f0,
-      opacity: 0.25,
+      opacity: 0.12,
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
@@ -201,7 +204,7 @@ export class Lighting {
         0,
         Math.random() * 6 - 3,
       );
-      mesh.rotation.x = 0.3 + Math.random() * 0.15;
+      mesh.rotation.x = 0.06 + Math.random() * 0.04;
       mesh.renderOrder = 998;
       scene.add(mesh);
       this.nearRayMeshes.push(mesh);

@@ -190,7 +190,9 @@
 
 - **[시각 검증] surface-up.png 수면 투시**: Observer가 아래에서 위를 바라보는 `surface-up.png`를 촬영한다(카메라 y=-10, target y=15). 이 이미지에서 수면이 단일 불투명 면이거나 빛의 변화가 전혀 없으면 투명도·굴절 미구현을 의미한다 — SUGGESTIONS에 수면 투명도 또는 굴절 효과 개선 추가.
 
-- **[코드 검증] nearRay update() opacity 일관성**: `Lighting.ts`의 `update()` 내 `nearRayMeshes.forEach`에서 `m.material.opacity` 재설정 값이 constructor의 `MeshBasicMaterial` opacity 초기값과 **반드시 일치**해야 한다. update()가 constructor 설정값을 매 프레임 덮어쓰면 런타임 opacity는 항상 update() 값으로 고정되어 constructor 변경이 무효화된다. 두 값이 다르면 **실패**.
+- **[코드 검증] nearRay update() opacity 일관성**: `Lighting.ts`의 `update()` 내 `nearRayMeshes.forEach`에서 `m.material.opacity` 재설정 값이 constructor의 `MeshBasicMaterial` opacity 초기값과 **반드시 일치**해야 한다. update()가 constructor 설정값을 매 프레임 덮어쓰면 런타임 opacity는 항상 update() 값으로 고정되어 constructor 변경이 무효화된다. 두 값이 다르면 **실패**. update()가 opacity를 아예 건드리지 않으면 이 체크는 적용하지 않는다(constructor 값이 그대로 유지되므로 무결).
+
+- **[시각 검증] nearRayMesh 프리셋 앵글 스트라이프 커버리지**: `whaleshark-front.png` 또는 `whaleshark-side.png`에서 nearRayMesh의 연한 청색 대각 스트라이프가 뷰포트 면적의 **40% 이상**을 점유하면, 현재 PlaneGeometry 높이·opacity·z-offset 분포가 해당 preset 카메라 앵글과 충돌한다는 신호다. Reviewer는 해당 파일을 직접 열어(Read) 스트라이프 면적 비율을 시각 판단한다. 40% 이상이면 SUGGESTIONS에 "nearRayMeshes `PlaneGeometry` height 추가 감소(현재값 절반 이하) 또는 z-offset 범위 확장(현재 ±3 → ±8 이상)으로 preset 카메라 시야에서 스트라이프 분산" 목표를 추가한다. 이 항목은 REVIEW_FAIL 사유가 아닌 SUGGESTIONS 트리거다.
 
 - **[코드 검증] AmbientLight vs DirectionalLight 비율**: `Lighting.ts`의 맑은 날씨(clear) 기준 AmbientLight intensity가 DirectionalLight intensity의 60% 초과이면 수중 depth감이 없어진다. Reviewer는 두 값을 코드에서 확인. `ambient.intensity > directional.intensity × 0.6`이면 **경고** (치명 실패 아님).
 
@@ -214,7 +216,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-20) [reviewer] §3 보강: 등지느러미 접합 검증 대상을 dorsal + secondDorsal 모두로 명시. secondDorsal Z=SHARK_LENGTH×0.3에서 body가 급격히 테이퍼되어 body Y상단 ≈ 0.24인데 position.y=0.9로 gap=0.66 > 0.5 실패 패턴 발견 — create*() 함수 내 모든 지느러미 파츠를 각자 검증 필수.
 - (2026-04-24) [human] §1 보강: Reviewer가 탑뷰 관찰 섹션을 출력하지 않고 REVIEW_PASS를 선언하는 것을 명시적으로 금지. 탑뷰 관찰 섹션 없는 REVIEW_PASS는 무효/REVIEW_FAIL로 처리. loop.ts Reviewer 프롬프트에도 동일 규칙 추가.
 - (2026-04-25) [reviewer] §6 추가: tsconfig references 추가 시 대상 파일에 composite:true 미설정 → TS6306으로 tsc 실패하는 패턴 명시. tsconfig.agent.json에 composite 없이 tsconfig.json references에 추가된 경우 발생.
 - (2026-04-26) [human] §3 보강: dorsal/secondDorsal rotation.y를 animateBodyUndulation에서 body tilt 각도로 동기화하지 않으면 position.x 추적만으로는 fin이 기울어진 body 표면에서 수직으로 떠 있어 시각 분리 발생 — 실패 기준 및 SUGGESTIONS 트리거 명시. §3-2 보강: FishSchool 단일 orbitPath 공유 시 씬 단조로움 실패 기준 및 궤도 중심 분산 기준 추가 — 수치 검증 통과해도 이 구조 문제는 별도 코드 확인 필요.
@@ -244,3 +245,4 @@
 - (2026-06-23) [human] §1 추가: 버블/파티클이 고래상어 표면을 덮는다고 진행 방향(fwd/lookAt) 부호를 의심·반전하지 말 것. 실측에서 부호 반전이 오히려 악화, 거리(1.5→12) 상향도 완전 해결 못 함 — 방향은 §1 lookAt 금지 영역이고, 버블 가림은 거리·높이 수치로만 조정하거나 미해결 시 사람 보고. Vision judge(`npm run vision:judge`)가 이 가림 회귀를 일관 감지함.
 - (2026-06-21) [human] 코드 검증 항목 11개에 `<!-- @src: file:symbol -->` 바인딩 태그 추가. `npm run check:checklist`(agent/checkChecklist.ts)가 grep으로 심볼 존재를 결정적 검증 — 코드 이동/삭제 시 STALE 자동 감지. §10 갓레이·§9 부호처럼 코드 드리프트로 반복 수동 정정되던 패턴을 자동화. LLM 미사용.
 - (2026-06-25) [reviewer] §10 갱신: 갓레이 존재 허용 구현 방식에 (C) ConeGeometry+ShaderMaterial(animated uTime, radial gradient) 추가 — 이번 목표가 Ocean.ts god ray를 MeshBasicMaterial→ShaderMaterial로 교체했는데 기존 (A)/(B) 규칙에 해당 패턴이 없어 미래 Reviewer 오탐 방지.
+- (2026-06-27) [reviewer] §10 추가: nearRayMesh opacity≤0.3·height=10에서도 whaleshark-front/side/surface-up 프리셋 앵글에서 30~70% 스트라이프 점유 패턴 확인 — 프리셋 카메라가 PlaneGeometry 면 방향을 정면 투영하는 각도와 겹칠 때 발생. 40%이상이면 SUGGESTIONS 트리거(REVIEW_FAIL 아님) 항목 신설. nearRay update() opacity 일관성 항목에 "update()가 opacity를 건드리지 않는 경우 체크 불필요" 명시 추가.

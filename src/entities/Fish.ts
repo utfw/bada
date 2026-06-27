@@ -73,11 +73,11 @@ export class FishSchool {
     // Centers spread across all 4 quadrants at varied depths for a rich 360° scene.
     // [cx, cz, yBase, semi_a, semi_b, yWave]
     this.schoolDefs = [
-      [ -7,  -7,  -4,  5,  5, 2.5],  // 0: Q3(-,-) shallow  max_xz: 12×12 ✓
-      [  6,   6,  -8,  6,  5, 2.0],  // 1: Q1(+,+) mid      max_xz: 12×11 ✓
-      [ -6,   8,  -4,  6,  5, 1.5],  // 2: Q2(-,+) mid      max_xz: 12×13 ✓
-      [  7,  -7,  -7,  6,  6, 2.5],  // 3: Q4(+,-) deep     max_xz: 13×13 ✓
-      [  5,  -5,  -3,  7,  6, 3.0],  // 4: Q4(+,-) surface  max_xz: 12×11 ✓
+      [ -7,  -9,  -4,  5,  5, 2.5],  // 0: Q3(-,-) shallow  Z음방향 편중
+      [  6,   6,  -8,  6,  5, 2.0],  // 1: Q1(+,+) mid
+      [ -6,   8,  -4,  6,  5, 1.5],  // 2: Q2(-,+) mid
+      [  7, -10,  -7,  6,  6, 2.5],  // 3: Q4(+,-) deep     whale 궤적 Z:-21~-13 근접
+      [  3,  -8,  -3,  7,  6, 3.0],  // 4: Q4(+,-) surface  whale 궤적과 동시 가시 범위
     ];
     this.orbitPaths = this.schoolDefs.map((def) => this.buildOrbitPath(def));
 
@@ -110,19 +110,19 @@ export class FishSchool {
       const groupPhase = schoolIndex / FISH_SCHOOL_COUNT;
       const anchor = this.orbitPaths[schoolIndex].getPointAt(groupPhase);
       let spawnX = THREE.MathUtils.clamp(
-        anchor.x + (Math.random() - 0.5) * 10,
+        anchor.x + (Math.random() - 0.5) * 5,
         -OCEAN_WIDTH / 2 + 2,
         OCEAN_WIDTH / 2 - 2,
       );
       let spawnZ = THREE.MathUtils.clamp(
-        anchor.z + (Math.random() - 0.5) * 10,
+        anchor.z + (Math.random() - 0.5) * 5,
         -OCEAN_WIDTH / 2 + 2,
         OCEAN_WIDTH / 2 - 2,
       );
       const xzLen = Math.sqrt(spawnX * spawnX + spawnZ * spawnZ);
-      if (xzLen > 15) {
-        spawnX *= 15 / xzLen;
-        spawnZ *= 15 / xzLen;
+      if (xzLen > 12) {
+        spawnX *= 12 / xzLen;
+        spawnZ *= 12 / xzLen;
       }
       mesh.position.set(
         spawnX,
