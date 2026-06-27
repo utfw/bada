@@ -91,11 +91,11 @@ export class SkyBox {
 
   applyWeather(condition: WeatherCondition): void {
     const colorMap: Record<WeatherCondition, { top: number; bottom: number; sunIntensity: number }> = {
-      clear: { top: 0x33bbff, bottom: 0x004488, sunIntensity: 1.0 },
-      cloudy: { top: 0x6699bb, bottom: 0x223344, sunIntensity: 0.4 },
-      rain: { top: 0x557799, bottom: 0x112233, sunIntensity: 0.2 },
-      snow: { top: 0x88bbdd, bottom: 0x224466, sunIntensity: 0.5 },
-      fog: { top: 0x667788, bottom: 0x222d33, sunIntensity: 0.15 },
+      clear: { top: 0x33bbff, bottom: 0x010d1f, sunIntensity: 1.0 },
+      cloudy: { top: 0x6699bb, bottom: 0x010d1f, sunIntensity: 0.4 },
+      rain: { top: 0x557799, bottom: 0x010d1f, sunIntensity: 0.2 },
+      snow: { top: 0x88bbdd, bottom: 0x020e22, sunIntensity: 0.5 },
+      fog: { top: 0x667788, bottom: 0x010d1f, sunIntensity: 0.15 },
     };
     const preset = colorMap[condition];
     this.material.uniforms.uTopColor.value.set(preset.top);
@@ -105,11 +105,11 @@ export class SkyBox {
 
   applyAqi(aqi: number): void {
     const aqiColors: { top: number; bottom: number }[] = [
-      { top: 0x33bbff, bottom: 0x004488 },
-      { top: 0x2299cc, bottom: 0x003366 },
-      { top: 0x448899, bottom: 0x1a3344 },
-      { top: 0x557766, bottom: 0x1a2a22 },
-      { top: 0x665544, bottom: 0x1a1a11 },
+      { top: 0x33bbff, bottom: 0x010d1f },
+      { top: 0x2299cc, bottom: 0x010d1c },
+      { top: 0x448899, bottom: 0x010c18 },
+      { top: 0x557766, bottom: 0x010c14 },
+      { top: 0x665544, bottom: 0x010d1f },
     ];
     const idx = Math.min(Math.max(aqi - 1, 0), 4);
     const colors = aqiColors[idx];
