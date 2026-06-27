@@ -106,28 +106,33 @@ export class FishSchool {
       const scale = 0.30 + Math.random() * 0.45;
       const { mesh, disposables } = this.createFishMesh(scale);
 
-      // Spawn near this group's initial orbit anchor ±5 units (tight spread keeps fish in camera view)
+      // Spawn near this group's initial orbit anchor ±7.5 units (wider spread for visual balance)
       const groupPhase = schoolIndex / FISH_SCHOOL_COUNT;
       const anchor = this.orbitPaths[schoolIndex].getPointAt(groupPhase);
       let spawnX = THREE.MathUtils.clamp(
-        anchor.x + (Math.random() - 0.5) * 5,
+        anchor.x + (Math.random() - 0.5) * 7.5,
         -OCEAN_WIDTH / 2 + 2,
         OCEAN_WIDTH / 2 - 2,
       );
       let spawnZ = THREE.MathUtils.clamp(
-        anchor.z + (Math.random() - 0.5) * 5,
+        anchor.z + (Math.random() - 0.5) * 7.5,
         -OCEAN_WIDTH / 2 + 2,
         OCEAN_WIDTH / 2 - 2,
       );
       const xzLen = Math.sqrt(spawnX * spawnX + spawnZ * spawnZ);
-      if (xzLen > 12) {
-        spawnX *= 12 / xzLen;
-        spawnZ *= 12 / xzLen;
+      if (xzLen > 18) {
+        spawnX *= 18 / xzLen;
+        spawnZ *= 18 / xzLen;
+      }
+      // Push spawns that land within ±30° of camera forward (-Z axis) sideways
+      const angleFromForward = Math.abs(Math.atan2(spawnX, -spawnZ));
+      if (angleFromForward < Math.PI / 6) {
+        spawnZ += anchor.z < 0 ? -3 : 3;
       }
       mesh.position.set(
         spawnX,
         THREE.MathUtils.clamp(
-          anchor.y + (Math.random() - 0.5) * 5,
+          anchor.y + (Math.random() - 0.5) * 7.5,
           -OCEAN_DEPTH + 2,
           SURFACE_HEIGHT - 3,
         ),

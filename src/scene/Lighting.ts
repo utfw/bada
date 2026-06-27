@@ -82,10 +82,10 @@ export class Lighting {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    scene.fog = new THREE.FogExp2(0x0a6fc0, 0.015);
-    scene.background = new THREE.Color(0x0a6fc0);
+    scene.fog = new THREE.FogExp2(0x0a6ea0, 0.012);
+    scene.background = new THREE.Color(0x0a6ea0);
 
-    this.ambientLight = new THREE.AmbientLight(0x020e22, 0.55);
+    this.ambientLight = new THREE.AmbientLight(0x020e22, 0.65);
     scene.add(this.ambientLight);
 
     this.hemisphereLight = new THREE.HemisphereLight(0x1a90d0, 0x0a88bc, 1.0);
@@ -247,7 +247,7 @@ export class Lighting {
   applyAqi(aqi: number): void {
     const factor = Math.max(0.3, 1 - (aqi - 1) * 0.15);
     this.ambientLight.intensity *= factor;
-    this.ambientLight.intensity = Math.max(0.4, this.ambientLight.intensity);
+    this.ambientLight.intensity = Math.max(0.65, this.ambientLight.intensity);
     this.sunLight.intensity *= factor;
   }
 
