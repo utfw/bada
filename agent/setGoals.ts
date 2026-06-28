@@ -11,10 +11,11 @@
  * 실행: npx tsx agent/setGoals.ts
  */
 
-import { execSync, execFileSync } from "child_process";
+import { execFileSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { findClaude } from "./pipeline/runner.js";
 
 const ROOT = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 const GOALS_FILE = path.join(ROOT, "goals.md");
@@ -27,19 +28,7 @@ const OBSERVE_SCRIPT = path.join(ROOT, "agent", "observe.ts");
 const REFERENCE_MAX_DIM = 1280;
 const REFERENCE_JPEG_QUALITY = 70;
 
-// ── Claude CLI 경로 ───────────────────────────────────────────────────────────
-
-function findClaude(): string {
-  try {
-    return execSync("which claude", {
-      encoding: "utf-8",
-      shell: process.env.SHELL ?? "/bin/zsh",
-      env: process.env,
-    }).trim();
-  } catch {
-    throw new Error("claude CLI를 찾을 수 없습니다.");
-  }
-}
+// Claude CLI 경로 탐색은 pipeline/runner.ts의 findClaude를 공용으로 사용한다.
 
 // ── Observer 실행 ─────────────────────────────────────────────────────────────
 

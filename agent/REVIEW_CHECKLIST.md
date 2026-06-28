@@ -127,7 +127,7 @@
 `agent/evolution/history.json`에 dramaScore와 schoolDefs를 누적하고, 정체 감지 시
 `goals.md`의 "## 진화 목표 (Evolver)" 섹션에 변이 목표를 자동 append 한다.
 
-<!-- @src: agent/loop.ts:runEvolutionStep -->
+<!-- @src: agent/evolve.ts:runEvolutionStep -->
 - **[코드 검증] Evolver 호출 위치**: `agent/loop.ts`의 `runGoal()` 안, Observer 결과를 받은 직후·Planner 호출 전에 `runEvolutionStep()`이 한 번 호출되어야 한다. 호출 위치가 Planner 이후로 밀리면 dramaScore가 Planner 프롬프트에 전달되지 못한다. Reviewer는 loop.ts에서 `runEvolutionStep` 호출이 `runPlanner` 호출보다 앞 줄에 있는지 확인. 어긋나면 **실패**.
 
 - **[코드 검증] currentSchoolDefs 전달**: `agent/observe.ts`가 Observation에 `currentSchoolDefs: number[][]` 필드(각 6원소)를 포함해야 Evolver가 mutation 후보를 생성할 수 있다. 누락 시 Evolver는 조용히 변이 없이 종료된다. Reviewer는 `latest.json`에 `currentSchoolDefs`가 있고 길이가 `FISH_SCHOOL_COUNT`와 일치하는지 확인. 다르면 **실패**.
@@ -219,7 +219,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-24) [human] §1 보강: Reviewer가 탑뷰 관찰 섹션을 출력하지 않고 REVIEW_PASS를 선언하는 것을 명시적으로 금지. 탑뷰 관찰 섹션 없는 REVIEW_PASS는 무효/REVIEW_FAIL로 처리. loop.ts Reviewer 프롬프트에도 동일 규칙 추가.
 - (2026-04-25) [reviewer] §6 추가: tsconfig references 추가 시 대상 파일에 composite:true 미설정 → TS6306으로 tsc 실패하는 패턴 명시. tsconfig.agent.json에 composite 없이 tsconfig.json references에 추가된 경우 발생.
 - (2026-04-26) [human] §3 보강: dorsal/secondDorsal rotation.y를 animateBodyUndulation에서 body tilt 각도로 동기화하지 않으면 position.x 추적만으로는 fin이 기울어진 body 표면에서 수직으로 떠 있어 시각 분리 발생 — 실패 기준 및 SUGGESTIONS 트리거 명시. §3-2 보강: FishSchool 단일 orbitPath 공유 시 씬 단조로움 실패 기준 및 궤도 중심 분산 기준 추가 — 수치 검증 통과해도 이 구조 문제는 별도 코드 확인 필요.
 - (2026-04-27) [human] §1 추가: Fish forwardDot 역방향 이슈를 HUMAN_VERIFICATION_REQUIRED로 분류 — Reviewer가 이 항목을 REVIEW_FAIL로 반복 보고하지 않도록 명시.

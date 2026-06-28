@@ -13,10 +13,10 @@
  * 실행: npm run vision:judge
  */
 
-import { execFileSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
+import { runClaude } from "../pipeline/runner.js";
 
 const ROOT = path.resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const LABELS_FILE = path.join(ROOT, "agent", "vision", "labels.json");
@@ -58,18 +58,9 @@ const AXIS_RUBRICS: Record<Axis, string> = {
 판정 절차: (1) 빛줄기가 화면에서 **인지되는가**(전혀 안 보이면 awkward)? (2) 보인다면 부피감 있는 광선인가, 아니면 가는 실선/납작한 띠인가? 비가시이거나 실선·납작한 띠면 awkward, 또렷하고 부피감 있으면 natural.`.trim(),
 };
 
-// loop.ts의 findClaude와 동일 취지 — PATH에서 claude 바이너리를 찾는다.
-function findClaude(): string {
-  try {
-    return execFileSync("which", ["claude"], { encoding: "utf-8" }).trim();
-  } catch {
-    return "claude";
-  }
-}
-const CLAUDE_BIN = findClaude();
-
 // Aesthetic Evaluator(loop.ts)와 동일 패턴: 프롬프트에 이미지 경로를 주고
 // "Read 도구로 열어 분석"하게 한다. natural/awkward 단일 판정만 받는다.
+// 공용 runner(runClaude)를 사용해 일시 과부하(overload/5xx)에 자동 재시도된다.
 function judgeImage(imagePath: string, axis: Axis): { verdict: Label | "error"; reason: string } {
   const prompt = `
 당신은 3D 수중 씬 스크린샷의 시각적 자연스러움을 판정하는 심사자입니다.
@@ -84,23 +75,18 @@ VISION_VERDICT: <natural|awkward>
 VISION_REASON: <이미지에서 본 근거 한 줄>
 `.trim();
 
-  try {
-    const raw = execFileSync(
-      CLAUDE_BIN,
-      ["-p", prompt, "--allowedTools", "Read", "--max-turns", "5",
-        "--output-format", "json", "--model", "claude-sonnet-4-6", "--max-budget-usd", "0.20"],
-      { cwd: ROOT, encoding: "utf-8", timeout: 180_000, env: process.env },
-    );
-    const parsed = JSON.parse(raw) as { result?: string };
-    const out = parsed.result ?? "";
-    const v = /VISION_VERDICT:\s*(natural|awkward)/i.exec(out);
-    const r = /VISION_REASON:\s*(.+)/i.exec(out);
-    if (!v) return { verdict: "error", reason: `판정 파싱 실패: ${out.slice(0, 120)}` };
-    return { verdict: v[1].toLowerCase() as Label, reason: r ? r[1].trim() : "" };
-  } catch (e) {
-    const err = e as { stdout?: string; message?: string };
-    return { verdict: "error", reason: `호출 실패: ${err.message ?? err.stdout ?? "unknown"}` };
+  const result = runClaude(prompt, "Read", 5, {
+    model: "claude-sonnet-4-6",
+    budgetUsd: 0.20,
+  });
+  if (!result.success) {
+    return { verdict: "error", reason: `호출 실패: ${result.output.slice(0, 120) || "unknown"}` };
   }
+  const out = result.output;
+  const v = /VISION_VERDICT:\s*(natural|awkward)/i.exec(out);
+  const r = /VISION_REASON:\s*(.+)/i.exec(out);
+  if (!v) return { verdict: "error", reason: `판정 파싱 실패: ${out.slice(0, 120)}` };
+  return { verdict: v[1].toLowerCase() as Label, reason: r ? r[1].trim() : "" };
 }
 
 // 한 축의 샘플 묶음을 판정하고 혼동행렬을 출력한다. recall/precision을 반환.
