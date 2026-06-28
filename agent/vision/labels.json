@@ -1,62 +1,110 @@
 {
-  "schemaVersion": 1,
-  "description": "Type C(수치는 정상인데 시각적으로 어색) 케이스를 사람이 라벨링한 ground-truth 데이터셋. Vision judge의 recall/precision 측정 기준. label: 'awkward'(어색, Vision이 잡아내야 함) | 'natural'(정상) | 'borderline'(경계, 측정에서 제외 가능). criterion은 사람이 어색하다고 본 구체적 근거.",
+  "schemaVersion": 2,
+  "description": "Type C(수치는 정상인데 시각적으로 어색) 케이스를 사람이 라벨링한 ground-truth 데이터셋. Vision judge의 recall/precision 측정 기준. 각 샘플은 'axis'(평가 축: 'bubble' | 'godray')로 분류되며, judge는 축별로 독립 실행되어 축마다 별도의 recall/precision을 낸다. label: 'awkward'(어색, Vision이 잡아내야 함) | 'natural'(정상) | 'borderline'(경계, 측정에서 제외 가능). criterion은 사람이 판정한 구체적 근거.",
   "labeledBy": "human",
   "labeledAt": "2026-06-21",
+  "axes": {
+    "bubble": "흰 버블 파티클이 고래상어 몸통/등 표면을 덮는 정도. 표면을 덮어 등 반점과 섞이면 awkward.",
+    "godray": "수면에서 쏟아지는 갓레이(빛줄기)의 가시성과 자연스러움. 광선이 거의 안 보이거나(과소 opacity) 가는 실선·평면 띠처럼 인공적이면 awkward."
+  },
   "samples": [
     {
       "archive": "agent/observations/history/2026-06-09T11-35-16_01d34bf",
       "shot": "screenshot-1.png",
+      "axis": "bubble",
       "label": "awkward",
       "criterion": "[단일 축: 버블이 표면을 덮는가] 흰 버블이 머리~앞몸통 표면 위에 모여 등 반점과 섞임 → awkward. (정렬 전 natural→borderline→awkward로 정정. 갓레이·구도는 무시하고 버블 가림만 본 결과.)"
     },
     {
       "archive": "agent/observations/history/2026-06-12T10-44-02_be9114d",
       "shot": "screenshot-1.png",
+      "axis": "bubble",
       "label": "awkward",
       "criterion": "버블 흰 점들이 입 앞이 아니라 머리~등 위에 뭉쳐 흰 덩어리를 이룸. 반점과 버블이 뒤섞여 머리 형태가 뭉개짐."
     },
     {
       "archive": "agent/observations/history/2026-06-15T17-39-37_bf1907f",
       "shot": "screenshot-1.png",
+      "axis": "bubble",
       "label": "borderline",
       "criterion": "버블이 머리 주변에 분포하나 여전히 몸통 위로 번짐. 06-12보다는 덜 심해 경계선 — recall 측정에서 제외 가능."
     },
     {
       "archive": "agent/observations/history/2026-06-16T13-58-47_f9882ab",
       "shot": "screenshot-1.png",
+      "axis": "bubble",
       "label": "awkward",
       "criterion": "버블(흰 점)이 고래상어 머리·등 전체를 뒤덮어 반점인지 버블인지 구분 불가. 입 앞이 아닌 몸통 위에 쏟아진 모양."
     },
     {
       "archive": "agent/observations/history/2026-06-16T13-58-47_f9882ab",
       "shot": "surface-up.png",
+      "axis": "bubble",
       "label": "awkward",
       "criterion": "고래상어가 화면에서 잘려 보이고 흰 버블이 몸통 위에 얹힘. 머리 윤곽이 들쭉날쭉해 주체 인식 저하."
     },
     {
       "archive": "agent/observations/history/2026-06-10T10-43-38_185a992",
       "shot": "screenshot-1.png",
+      "axis": "bubble",
       "label": "awkward",
       "criterion": "[단일 축: 버블이 표면을 덮는가] 버블이 머리 앞쪽이지만 일부가 등 표면에 걸쳐 반점과 섞임 → awkward. (정렬 전 natural→awkward 정정. Vision 판정이 옳았고 사람 라벨이 전체 인상에 치우쳐 관대했던 케이스 — rubric alignment의 직접 증거.)"
     },
     {
       "archive": "agent/observations/history/2026-06-11T15-47-08_f167fa4",
       "shot": "screenshot-1.png",
+      "axis": "bubble",
       "label": "awkward",
       "criterion": "[단일 축] 버블이 머리~앞몸통 표면 위에 크게 번져 반점과 섞이고 머리 형태가 뭉개짐."
     },
     {
       "archive": "agent/observations/history/2026-06-11T11-28-40_28e6318",
       "shot": "screenshot-1.png",
+      "axis": "bubble",
       "label": "natural",
       "criterion": "[단일 축] 버블이 머리 끝에 적게 모여 있고 몸통 대부분이 깨끗해 등 반점과 버블이 구분됨 → natural. 이 데이터셋에서 표면 가림이 가장 적은 케이스(이 씬은 버블이 항상 머리 근처 스폰이라 완전 무가림 프레임은 드묾)."
     },
     {
       "archive": "agent/observations/history/2026-06-16T03-50-20_f9882ab",
       "shot": "screenshot-1.png",
+      "axis": "bubble",
       "label": "awkward",
       "criterion": "[단일 축] 버블이 머리~등 표면 위를 크게 덮어 반점과 섞임 → awkward."
+    },
+    {
+      "archive": "agent/observations/history/2026-06-27T07-54-20_7fdf939",
+      "shot": "surface-up.png",
+      "axis": "godray",
+      "label": "borderline",
+      "criterion": "[godray] 빛줄기가 또렷이 보여 가시성은 충분하나, 균일한 너비의 직사각형 띠로 가장자리가 칼같이 잘리고 아래로 갈수록 퍼지거나 옅어지는 농담이 없어 부피감 부재 → borderline. (정렬 전 natural→borderline 정정. Vision이 'flat strip·인공적 사각 밴드'로 awkward 판정했고 그 지적이 옳았으며, 사람 라벨이 '또렷함=좋음'으로 전체 인상에 치우쳐 관대했던 케이스 — rubric alignment의 직접 증거. 이 씬에서 가시성은 최고지만 광선 품질 자체가 평면적이라 무가림 natural 프레임이 드묾.)"
+    },
+    {
+      "archive": "agent/observations/history/2026-06-27T00-51-12_188cac4",
+      "shot": "surface-up.png",
+      "axis": "godray",
+      "label": "borderline",
+      "criterion": "[godray] 여러 광선이 보이긴 하나 일부가 화면 하단까지 가는 실선처럼 직선으로 뻗어 edge-on 인공감이 있음. 07-54보다 약하고 일부 띠가 부자연 — 경계선, recall 측정에서 제외 가능."
+    },
+    {
+      "archive": "agent/observations/history/2026-06-26T13-10-51_1505c51",
+      "shot": "surface-up.png",
+      "axis": "godray",
+      "label": "awkward",
+      "criterion": "[godray] 아래에서 위를 보는 수면 투시 앵글인데도 빛줄기가 거의 비가시 — 희미한 가는 띠 2~3개만 어렴풋이 보임. 갓레이 opacity 과소로 '빛이 안 보임' → awkward."
+    },
+    {
+      "archive": "agent/observations/history/2026-06-27T12-48-46_b193c25",
+      "shot": "surface-up.png",
+      "axis": "godray",
+      "label": "awkward",
+      "criterion": "[godray] surface-up 앵글에서 광선이 사실상 비가시 — 희미한 띠 1개만 간신히 식별. 최신 커밋이 오히려 갓레이를 더 약화시킨 역행 케이스 → awkward."
+    },
+    {
+      "archive": "agent/observations/history/2026-06-27T12-48-46_b193c25",
+      "shot": "screenshot-1.png",
+      "axis": "godray",
+      "label": "awkward",
+      "criterion": "[godray] 측면 정면 앵글, 수면 아래 깊은 곳에 빛줄기가 거의 보이지 않음. 가는 수직선 1~2개만 어렴풋 → awkward (단 측면 앵글은 surface-up보다 갓레이가 덜 드러나는 게 정상임을 감안해도 과소)."
     }
   ]
 }
