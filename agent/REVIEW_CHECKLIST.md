@@ -201,6 +201,8 @@
 
 - **[코드 검증] 수중 안개 색상**: `Lighting.ts` 또는 `SceneManager.ts`에서 fog color가 청록색 계열(예: `0x1188bb`)이고 density가 0보다 크게 설정되어야 한다. fog가 없거나 회색/무채색이면 수중 분위기가 없다 — SUGGESTIONS에 fog 색상 개선 추가.
 
+- **[코드 검증] constants.ts DEFAULT_FOG_DENSITY/DEFAULT_FOG_COLOR와 Lighting.ts fog 동기화**: `SceneManager.ts`의 `init()`에서 `new THREE.FogExp2(DEFAULT_FOG_COLOR, DEFAULT_FOG_DENSITY)`(constants.ts 상수)로 씬 fog를 초기 설정한다. Lighting.ts 프리셋의 fogColor/fogDensity를 수정할 때 constants.ts의 두 상수도 **같은 방향**으로 수정하지 않으면 날씨 로드 전 초기 프레임의 fog가 목표와 달라진다. Reviewer는 fog 관련 목표 후 `DEFAULT_FOG_DENSITY` 변경 방향이 Lighting.ts 프리셋(감소 목표 시 감소, 증가 목표 시 증가)과 일치하는지 확인한다. 방향이 반대이면 **경고** (applyWeather()가 곧 덮어쓰므로 치명 실패 아님).
+
 ## 9. 파티클 시각적 균형 (Particle Visual Balance)
 
 <!-- @src: src/scene/Ocean.ts:createBubbles -->
@@ -219,7 +221,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-25) [reviewer] §6 추가: tsconfig references 추가 시 대상 파일에 composite:true 미설정 → TS6306으로 tsc 실패하는 패턴 명시. tsconfig.agent.json에 composite 없이 tsconfig.json references에 추가된 경우 발생.
 - (2026-04-26) [human] §3 보강: dorsal/secondDorsal rotation.y를 animateBodyUndulation에서 body tilt 각도로 동기화하지 않으면 position.x 추적만으로는 fin이 기울어진 body 표면에서 수직으로 떠 있어 시각 분리 발생 — 실패 기준 및 SUGGESTIONS 트리거 명시. §3-2 보강: FishSchool 단일 orbitPath 공유 시 씬 단조로움 실패 기준 및 궤도 중심 분산 기준 추가 — 수치 검증 통과해도 이 구조 문제는 별도 코드 확인 필요.
 - (2026-04-27) [human] §1 추가: Fish forwardDot 역방향 이슈를 HUMAN_VERIFICATION_REQUIRED로 분류 — Reviewer가 이 항목을 REVIEW_FAIL로 반복 보고하지 않도록 명시.
 - (2026-04-29) [reviewer] §9 신설: 버블 파티클 크기 최대값(sizes max) ≤ 0.2, 기저 알파 X ≤ 0.15 초과 시 고래상어보다 버블이 두드러지는 시각 불균형 발생 — 코드 수치 검증 기준 추가.
@@ -248,4 +249,5 @@
 - (2026-06-21) [human] 코드 검증 항목 11개에 `<!-- @src: file:symbol -->` 바인딩 태그 추가. `npm run check:checklist`(agent/checkChecklist.ts)가 grep으로 심볼 존재를 결정적 검증 — 코드 이동/삭제 시 STALE 자동 감지. §10 갓레이·§9 부호처럼 코드 드리프트로 반복 수동 정정되던 패턴을 자동화. LLM 미사용.
 - (2026-06-25) [reviewer] §10 갱신: 갓레이 존재 허용 구현 방식에 (C) ConeGeometry+ShaderMaterial(animated uTime, radial gradient) 추가 — 이번 목표가 Ocean.ts god ray를 MeshBasicMaterial→ShaderMaterial로 교체했는데 기존 (A)/(B) 규칙에 해당 패턴이 없어 미래 Reviewer 오탐 방지.
 - (2026-06-27) [reviewer] §10 추가: nearRayMesh opacity≤0.3·height=10에서도 whaleshark-front/side/surface-up 프리셋 앵글에서 30~70% 스트라이프 점유 패턴 확인 — 프리셋 카메라가 PlaneGeometry 면 방향을 정면 투영하는 각도와 겹칠 때 발생. 40%이상이면 SUGGESTIONS 트리거(REVIEW_FAIL 아님) 항목 신설. nearRay update() opacity 일관성 항목에 "update()가 opacity를 건드리지 않는 경우 체크 불필요" 명시 추가.
+- (2026-06-30) [reviewer] §10 추가: constants.ts DEFAULT_FOG_DENSITY/DEFAULT_FOG_COLOR가 SceneManager.ts init()에서 실제 초기 fog 설정에 사용됨 — Lighting.ts 프리셋 수정 시 이 두 상수도 같은 방향으로 동기화해야 하며, 반대 방향 변경 시 경고 항목 신설.
 - (2026-06-28) [human] §10 추가: 갓레이 "자연스러움(Vision judge — godray 축)" 품질 항목 신설. 기존 godray 평가(수치 opacity>0 가드레일 + Reviewer 한 줄 가시성 검증)가 부재만 잡고 평면 띠·실선 같은 저품질을 통과시켜 에이전트가 godray를 반복 수정해도 체감 개선이 없던 문제 해소. vision judge(`judge.ts`)를 버블 단일 축에서 축(axis) 파라미터화하여 bubble/godray 두 축을 독립 측정하도록 확장, `labels.json` schemaVersion 2로 axis 필드 추가 + godray ground-truth 5개 라벨링(awkward 3/borderline 2). 라벨링 중 '또렷하지만 평면 사각 띠'인 07-54 프레임을 natural→borderline 정정(Vision이 flat strip 지적, 사람 라벨이 관대했던 rubric-alignment 케이스). `npm run vision:judge -- --axis=godray`로 단일 축 실행 지원.

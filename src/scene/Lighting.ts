@@ -25,8 +25,8 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x40c8f0,
     sunIntensity: 3.2,
     godRayIntensity: 2.8,
-    fogColor: 0x1482e8,
-    fogDensity: 0.0135,
+    fogColor: 0x0a4a6e,
+    fogDensity: 0.00662,
   },
   cloudy: {
     ambientColor: 0x2a7aaa,
@@ -34,8 +34,8 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x40c8f0,
     sunIntensity: 1.2,
     godRayIntensity: 1.8,
-    fogColor: 0x1268c8,
-    fogDensity: 0.0117,
+    fogColor: 0x0a4a6e,
+    fogDensity: 0.00573,
   },
   rain: {
     ambientColor: 0x1a6ea0,
@@ -43,8 +43,8 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x40c8f0,
     sunIntensity: 0.8,
     godRayIntensity: 0.85,
-    fogColor: 0x0d6fa8,
-    fogDensity: 0.0153,
+    fogColor: 0x0a4a6e,
+    fogDensity: 0.00750,
   },
   snow: {
     ambientColor: 0x5d8fb8,
@@ -52,8 +52,8 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x40c8f0,
     sunIntensity: 1.4,
     godRayIntensity: 2.5,
-    fogColor: 0x2a72a8,
-    fogDensity: 0.0099,
+    fogColor: 0x0a4a6e,
+    fogDensity: 0.00485,
   },
   fog: {
     ambientColor: 0x3d88a8,
@@ -61,8 +61,8 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x40c8f0,
     sunIntensity: 0.5,
     godRayIntensity: 0.35,
-    fogColor: 0x2a6888,
-    fogDensity: 0.0189,
+    fogColor: 0x0a4a6e,
+    fogDensity: 0.00926,
   },
 };
 
@@ -82,8 +82,8 @@ export class Lighting {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    scene.fog = new THREE.FogExp2(0x0a6ea0, 0.0108);
-    scene.background = new THREE.Color(0x0a6ea0);
+    scene.fog = new THREE.FogExp2(0x0a4a6e, 0.00529);
+    scene.background = new THREE.Color(0x0a4a6e);
 
     this.ambientLight = new THREE.AmbientLight(0x061e3a, 0.65);
     scene.add(this.ambientLight);
@@ -146,7 +146,9 @@ export class Lighting {
         float pulse = 0.9 + sin(uTime * 0.3 + uPhase) * 0.18;
         float weatherScale = uBaseMaxOpacity > 0.0 ? uMaxOpacity / uBaseMaxOpacity : 1.0;
         float alpha = fade * weatherScale * pulse;
-        alpha *= sin(vUv.x * PI);
+        float radial = sin(vUv.x * PI);
+        float radialFade = smoothstep(0.0, 0.45, radial) * smoothstep(1.0, 0.55, radial);
+        alpha *= radialFade;
         gl_FragColor = vec4(uColor, alpha);
       }
     `;
@@ -176,9 +178,10 @@ export class Lighting {
         side: THREE.DoubleSide,
       });
 
-      // CylinderGeometry(radiusTop=0, radiusBottom, height) — apex at top (surface), opens downward
+      // CylinderGeometry(radiusTop, radiusBottom, height) — wide at surface (top), narrow at depth (bottom)
       const bottomRadius = 0.06 + Math.random() * 0.03;
-      const coneGeo = new THREE.CylinderGeometry(0, bottomRadius, GOD_RAY_HEIGHT, 16, 4, true);
+      const topRadius = bottomRadius * 1.8;
+      const coneGeo = new THREE.CylinderGeometry(topRadius, bottomRadius * 0.4, GOD_RAY_HEIGHT, 16, 4, true);
       const cone = new THREE.Mesh(coneGeo, coneMat);
       // apex sits at SURFACE_HEIGHT; center of geometry is at SURFACE_HEIGHT - GOD_RAY_HEIGHT/2
       cone.position.set(x, SURFACE_HEIGHT - GOD_RAY_HEIGHT / 2, z);

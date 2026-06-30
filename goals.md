@@ -328,11 +328,18 @@
 - [x] `src/scene/Lighting.ts` god ray 생성 함수에서 `PlaneGeometry` 폭을 현재 값의 3~5배(예: `width: 0.05 → 0.25`)로 늘리고, `MeshBasicMaterial.opacity`를 `0.08~0.12`로 낮춰 반투명 볼륨 빔으로 변경; 불투명 직사각형 패널이 보이면 동일 함수에서 해당 메시의 `opacity`가 `> 0.4`인지 확인 후 `0.1` 이하로 수정
 - [x] `src/scene/Lighting.ts` (또는 god ray 오브젝트 생성 위치)에서 수직 패널 메시의 `renderOrder` 또는 `depthWrite`를 점검해 불투명 패널이 씬 전면을 덮지 않도록 수정; `depthWrite: false`, `transparent: true` 설정을 강제하고 `opacity: 0.08`로 고정
 - [x] **God Ray 추가** — `src/scene/Lighting.ts`의 `update()` 또는 `src/scene/SceneManager.ts`에서 `THREE.SpotLight` 또는 커스텀 ShaderMaterial 기반 볼류메트릭 광선을 추가. 광선 색상 `#a8e8ff`, opacity `0.08~0.12`, 수면 위 Y=30 위치에서 아래 방향(-Y)으로 3~5개 분산 배치.
-- [ ] **심해 배경 채도 상향** — `src/scene/SceneManager.ts`의 `renderer.setClearColor()` 또는 fog 색상을 현재 `#000d1a` 계열에서 `#051a3a`(채도 높은 네이비)로 올리고, `scene.fog = new THREE.FogExp2(0x051a3a, 0.018)`로 농도를 낮춰 하단 암부를 코발트 계열로 유지.
-- [ ] `src/scene/Lighting.ts` god ray 생성부에서 각 ray의 상단 반지름을 하단보다 1.5~2× 넓게 설정(`CylinderGeometry(topR*1.8, topR*0.4, height)`)하고, opacity를 중심 0.18→가장자리 0으로 감쇠하는 custom ShaderMaterial로 교체해 산란 느낌을 부여
-- [ ] `src/scene/SceneManager.ts` 또는 `Lighting.ts`의 fog 설정에서 `scene.fog = new THREE.FogExp2(color, density)`의 density를 현재보다 30% 줄이고(예: 0.035→0.024), fog color를 `#0a4a6e`(채도 높은 코발트)로 변경해 화면 하반부가 완전 암흑이 아닌 채도 있는 심해색을 유지하도록 수정
+- [x] **심해 배경 채도 상향** — `src/scene/SceneManager.ts`의 `renderer.setClearColor()` 또는 fog 색상을 현재 `#000d1a` 계열에서 `#051a3a`(채도 높은 네이비)로 올리고, `scene.fog = new THREE.FogExp2(0x051a3a, 0.018)`로 농도를 낮춰 하단 암부를 코발트 계열로 유지.
+- [x] `src/scene/Lighting.ts` god ray 생성부에서 각 ray의 상단 반지름을 하단보다 1.5~2× 넓게 설정(`CylinderGeometry(topR*1.8, topR*0.4, height)`)하고, opacity를 중심 0.18→가장자리 0으로 감쇠하는 custom ShaderMaterial로 교체해 산란 느낌을 부여
+- [x] `src/scene/SceneManager.ts` 또는 `Lighting.ts`의 fog 설정에서 `scene.fog = new THREE.FogExp2(color, density)`의 density를 현재보다 30% 줄이고(예: 0.035→0.024), fog color를 `#0a4a6e`(채도 높은 코발트)로 변경해 화면 하반부가 완전 암흑이 아닌 채도 있는 심해색을 유지하도록 수정
 - [ ] `src/scene/Lighting.ts` 또는 `SceneManager.ts`의 `fog` 설정에서 `near`를 현재보다 1.5~2× 늘리고 `far`를 80→120으로 올려 하단 암부 면적을 줄이고 중경 채도 유지
 - [ ] `src/scene/Lighting.ts` 또는 `SceneManager.ts`의 fog/ambient 설정에서 `ambientLight.intensity`를 0.15→0.35 수준으로 올리고, `scene.fog`의 near 거리를 줄여 심해 하단이 완전 검정으로 떨어지지 않도록 최저 밝기 확보
 - [ ] `src/scene/Ocean.ts` 배경 그라디언트 또는 `src/scene/SceneManager.ts` `renderer.setClearColor()`의 심해 색을 `#000a14` → `#002244` 수준으로 올려 하단 영역 채도를 높이고, `Lighting.ts`의 ambient light intensity를 0.05→0.15로 상향해 하단 흑색 영역을 청색 계열로 끌어올림
 
 - [ ] Fish.ts:78 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.06 — yBase 조정으로 수심 변경
+- [ ] Fish.ts:78 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.03 — yBase 조정으로 수심 변경
+- [ ] 반복적인 문제 지적을 확인하여 개선할 수 있는 표준화된 루틴 개발
+- [ ] 코드 성능 향상: 리소스 할당 및 속도 최적화 (max_budget_usd 제한을 벗어날 수 있도록)
+- [ ] 코드 에러 처리 로직 재구성: API 오버로드 등 유연하고 확장 가능 한 오류 관리
+- [ ] 관련된 표준과 동기를 맞춘 표기법 및 표현 사용으로 방향 문제 최소화
+
+- [ ] Fish.ts:78 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.04 — yBase 조정으로 수심 변경
