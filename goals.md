@@ -331,15 +331,10 @@
 - [x] **심해 배경 채도 상향** — `src/scene/SceneManager.ts`의 `renderer.setClearColor()` 또는 fog 색상을 현재 `#000d1a` 계열에서 `#051a3a`(채도 높은 네이비)로 올리고, `scene.fog = new THREE.FogExp2(0x051a3a, 0.018)`로 농도를 낮춰 하단 암부를 코발트 계열로 유지.
 - [x] `src/scene/Lighting.ts` god ray 생성부에서 각 ray의 상단 반지름을 하단보다 1.5~2× 넓게 설정(`CylinderGeometry(topR*1.8, topR*0.4, height)`)하고, opacity를 중심 0.18→가장자리 0으로 감쇠하는 custom ShaderMaterial로 교체해 산란 느낌을 부여
 - [x] `src/scene/SceneManager.ts` 또는 `Lighting.ts`의 fog 설정에서 `scene.fog = new THREE.FogExp2(color, density)`의 density를 현재보다 30% 줄이고(예: 0.035→0.024), fog color를 `#0a4a6e`(채도 높은 코발트)로 변경해 화면 하반부가 완전 암흑이 아닌 채도 있는 심해색을 유지하도록 수정
-- [ ] `src/scene/Lighting.ts` 또는 `SceneManager.ts`의 `fog` 설정에서 `near`를 현재보다 1.5~2× 늘리고 `far`를 80→120으로 올려 하단 암부 면적을 줄이고 중경 채도 유지
-- [ ] `src/scene/Lighting.ts` 또는 `SceneManager.ts`의 fog/ambient 설정에서 `ambientLight.intensity`를 0.15→0.35 수준으로 올리고, `scene.fog`의 near 거리를 줄여 심해 하단이 완전 검정으로 떨어지지 않도록 최저 밝기 확보
-- [ ] `src/scene/Ocean.ts` 배경 그라디언트 또는 `src/scene/SceneManager.ts` `renderer.setClearColor()`의 심해 색을 `#000a14` → `#002244` 수준으로 올려 하단 영역 채도를 높이고, `Lighting.ts`의 ambient light intensity를 0.05→0.15로 상향해 하단 흑색 영역을 청색 계열로 끌어올림
+- [x] `src/scene/Lighting.ts` 또는 `SceneManager.ts`의 `fog` 설정에서 `near`를 현재보다 1.5~2× 늘리고 `far`를 80→120으로 올려 하단 암부 면적을 줄이고 중경 채도 유지
+- [x] `src/scene/Lighting.ts` 또는 `SceneManager.ts`의 fog/ambient 설정에서 `ambientLight.intensity`를 0.15→0.35 수준으로 올리고, `scene.fog`의 near 거리를 줄여 심해 하단이 완전 검정으로 떨어지지 않도록 최저 밝기 확보
+- [x] `src/scene/Ocean.ts` 배경 그라디언트 또는 `src/scene/SceneManager.ts` `renderer.setClearColor()`의 심해 색을 `#000a14` → `#002244` 수준으로 올려 하단 영역 채도를 높이고, `Lighting.ts`의 ambient light intensity를 0.05→0.15로 상향해 하단 흑색 영역을 청색 계열로 끌어올림
 
-- [ ] Fish.ts:78 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.06 — yBase 조정으로 수심 변경
-- [ ] Fish.ts:78 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.03 — yBase 조정으로 수심 변경
-- [ ] 반복적인 문제 지적을 확인하여 개선할 수 있는 표준화된 루틴 개발
 - [ ] 코드 성능 향상: 리소스 할당 및 속도 최적화 (max_budget_usd 제한을 벗어날 수 있도록)
-- [ ] 코드 에러 처리 로직 재구성: API 오버로드 등 유연하고 확장 가능 한 오류 관리
-- [ ] 관련된 표준과 동기를 맞춘 표기법 및 표현 사용으로 방향 문제 최소화
-
-- [ ] Fish.ts:78 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.04 — yBase 조정으로 수심 변경
+- [ ] school 1·3·4 flee 후 recoveryTimeSec=-1 지속(pre-existing, §3-3 scope gate): `Fish.ts`의 해당 schoolDefs 중심 좌표·semi_a/semi_b 반경이 `BOID_BOUNDARY_MARGIN`(=8) 한계 근처인지, `FISH_ORBIT_WEIGHT`(=0.5) 복귀 인력이 flee 이탈 후 충분한지 별도 목표로 진단
+- [ ] `screenshot-1~4` 전체에서 godRayCone 쐐기형 기둥이 육안으로 식별되지 않음 — `Lighting.ts`의 `GOD_RAY_MAX_OPACITY`(현재 1.6, constants.ts L82) 값을 유지하되 `GOD_RAY_HEIGHT`(현재 60)를 40 이하로 줄이거나, cone geometry의 `topRadius` 배수를 현재 `bottomRadius * 1.8`에서 `bottomRadius * 3.5` 이상으로 확장해 수면 근처에서 광선 단면이 더 넓어지도록 조정
