@@ -130,7 +130,7 @@
 <!-- @src: agent/evolve.ts:runEvolutionStep -->
 - **[코드 검증] Evolver 호출 위치**: `agent/loop.ts`의 `runGoal()` 안, Observer 결과를 받은 직후·Planner 호출 전에 `runEvolutionStep()`이 한 번 호출되어야 한다. 호출 위치가 Planner 이후로 밀리면 dramaScore가 Planner 프롬프트에 전달되지 못한다. Reviewer는 loop.ts에서 `runEvolutionStep` 호출이 `runPlanner` 호출보다 앞 줄에 있는지 확인. 어긋나면 **실패**.
 
-- **[코드 검증] currentSchoolDefs 전달**: `agent/observe.ts`가 Observation에 `currentSchoolDefs: number[][]` 필드(각 6원소)를 포함해야 Evolver가 mutation 후보를 생성할 수 있다. 누락 시 Evolver는 조용히 변이 없이 종료된다. Reviewer는 `latest.json`에 `currentSchoolDefs`가 있고 길이가 `FISH_SCHOOL_COUNT`와 일치하는지 확인. 다르면 **실패**.
+- **[코드 검증] currentSchoolDefs 전달**: `agent/observe.ts`가 Observation에 `currentSchoolDefs: number[][]` 필드(각 6원소)를 포함해야 Evolver가 mutation 후보를 생성할 수 있다. 누락 시 Evolver는 조용히 변이 없이 종료된다(loop.ts 167행 guard). Reviewer는 `latest.json`에 `currentSchoolDefs`가 있고 길이가 `FISH_SCHOOL_COUNT`와 일치하는지 확인. **scope gate 적용(§3-3과 동일 취지)**: 이번 목표가 `agent/observe.ts`를 수정한 경우에만 REVIEW_FAIL. observe.ts를 건드리지 않은 목표에서 누락이 발견되면 pre-existing 이슈로 처리하고, 지적 사항에 "agent/observe.ts: getDebugState().schoolDefs를 Observation.currentSchoolDefs로 직렬화 추가 필요" 기록 후 PASS. **수정 방향**: `observe.ts`의 `page.evaluate()` 결과에 `currentSchoolDefs: window.__entities?.fishSchool?.getDebugState?.()?.schoolDefs ?? []` 추가.
 
 - **[데이터 검증] history.json schema**: `agent/evolution/history.json`의 schemaVersion=1, 각 entry는 `capturedAt`/`dramaScore`/`perSchool`/`schoolDefs`/`predatorMetricsSummary` 필드를 가져야 한다. `dramaScore`가 NaN이거나 `perSchool.length !== schoolDefs.length`이면 **실패**.
 

@@ -66,6 +66,12 @@ export class FishSchool {
   private readonly _schoolDispersion: Float32Array;
   // 학교별 flee 정규화 기준값 (낮을수록 작은 힘에도 최대 강도에 도달)
   private readonly _schoolPeakFlee: readonly number[];
+  // Spatial grid — XZ 격자(BOID_VISUAL_RANGE 크기 셀), 링크드 리스트 방식
+  private readonly _gridCells: number; // 한 축당 셀 수
+  private readonly _cellHead: Int32Array; // 셀별 리스트 헤드(fish 인덱스), -1=비어있음
+  private readonly _cellNext: Int32Array; // fish별 다음 포인터, -1=끝
+  // getDebugState() 내 재사용 버퍼
+  private readonly _debugForward = new THREE.Vector3();
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -76,8 +82,8 @@ export class FishSchool {
       [ -7,  -9,  -4,  5,  5, 2.5],  // 0: Q3(-,-) shallow  Z음방향 편중
       [  6,   6,  -8,  6,  5, 2.0],  // 1: Q1(+,+) mid
       [ -6,   8,  -4,  6,  5, 1.5],  // 2: Q2(-,+) mid
-      [  7, -10,  -7,  6,  6, 2.5],  // 3: Q4(+,-) deep     whale 궤적 Z:-21~-13 근접
-      [  3,  -8,  -3,  7,  6, 3.0],  // 4: Q4(+,-) surface  whale 궤적과 동시 가시 범위
+      [  9, -14,  -7,  5,  3, 2.5],  // 3: Q4(+,-) deep     cz -18→-14; z[-17,-11], boundary 여유 5 units 확보
+      [  3,  -2,  -3,  5,  3, 3.0],  // 4: Q4(+,-) surface  cz -8→-2; whale Z∈[-21,-12] 대비 Z 간격 확보, flee 강도 감소
     ];
     this.orbitPaths = this.schoolDefs.map((def) => this.buildOrbitPath(def));
 
@@ -94,6 +100,11 @@ export class FishSchool {
     this._schoolCentroids = Array.from({ length: FISH_SCHOOL_COUNT }, () => new THREE.Vector3());
     this._schoolDistances = new Float32Array(FISH_SCHOOL_COUNT);
     this._schoolDispersion = new Float32Array(FISH_SCHOOL_COUNT);
+
+    // Spatial grid 초기화 — 한 번만 allocate, update()에서 fill(-1)로 재사용
+    this._gridCells = Math.ceil(OCEAN_WIDTH / BOID_VISUAL_RANGE);
+    this._cellHead = new Int32Array(this._gridCells * this._gridCells).fill(-1);
+    this._cellNext = new Int32Array(FISH_COUNT).fill(-1);
 
     // Initialise per-group progress with equal phase spacing
     this.schoolProgress = new Float32Array(FISH_SCHOOL_COUNT);
@@ -335,6 +346,19 @@ export class FishSchool {
     const flee = this._flee;
     const sharkPos = this._sharkPos;
 
+    // ── Spatial grid 재구축 (프레임당 1회, 힙 할당 없음) ──
+    const G = this._gridCells;
+    const cellSize = BOID_VISUAL_RANGE;
+    this._cellHead.fill(-1);
+    for (let i = 0; i < this.fish.length; i++) {
+      const pos = this.fish[i].mesh.position;
+      const cx = Math.min(G - 1, Math.max(0, Math.floor((pos.x + halfWidth) / cellSize)));
+      const cz = Math.min(G - 1, Math.max(0, Math.floor((pos.z + halfWidth) / cellSize)));
+      const cellIdx = cz * G + cx;
+      this._cellNext[i] = this._cellHead[cellIdx];
+      this._cellHead[cellIdx] = i;
+    }
+
     for (let i = 0; i < this.fish.length; i++) {
       const fi = this.fish[i];
       const pos = fi.mesh.position;
@@ -355,26 +379,36 @@ export class FishSchool {
       let intraAvoidCount = 0;
       let neighborCount = 0;
 
-      for (let j = 0; j < this.fish.length; j++) {
-        if (i === j) continue;
-        const fj = this.fish[j];
-        diff.subVectors(pos, fj.mesh.position);
-        const dist = diff.length();
-
-        if (dist < BOID_VISUAL_RANGE) {
-          alignment.add(fj.velocity);
-          cohesion.add(fj.mesh.position);
-          neighborCount++;
-
-          if (dist < BOID_SEPARATION_DIST && dist > 0) {
-            separation.addScaledVector(diff, 1 / dist);
-            separationCount++;
-          }
-
-          // 같은 학교 + 극근접: 1/d² 반발력 (collision avoidance)
-          if (fj.schoolIndex === si && dist < INTRA_SCHOOL_AVOID_DIST && dist > 0) {
-            intraAvoid.addScaledVector(diff, 1 / (dist * dist));
-            intraAvoidCount++;
+      // ── 인접 9셀만 순회 (O(n·k), k≈10~20) ──
+      const icx = Math.min(G - 1, Math.max(0, Math.floor((pos.x + halfWidth) / cellSize)));
+      const icz = Math.min(G - 1, Math.max(0, Math.floor((pos.z + halfWidth) / cellSize)));
+      for (let dcz = -1; dcz <= 1; dcz++) {
+        const ncz = icz + dcz;
+        if (ncz < 0 || ncz >= G) continue;
+        for (let dcx = -1; dcx <= 1; dcx++) {
+          const ncx = icx + dcx;
+          if (ncx < 0 || ncx >= G) continue;
+          let j = this._cellHead[ncz * G + ncx];
+          while (j !== -1) {
+            if (j !== i) {
+              const fj = this.fish[j];
+              diff.subVectors(pos, fj.mesh.position);
+              const dist = diff.length();
+              if (dist < BOID_VISUAL_RANGE) {
+                alignment.add(fj.velocity);
+                cohesion.add(fj.mesh.position);
+                neighborCount++;
+                if (dist < BOID_SEPARATION_DIST && dist > 0) {
+                  separation.addScaledVector(diff, 1 / dist);
+                  separationCount++;
+                }
+                if (fj.schoolIndex === si && dist < INTRA_SCHOOL_AVOID_DIST && dist > 0) {
+                  intraAvoid.addScaledVector(diff, 1 / (dist * dist));
+                  intraAvoidCount++;
+                }
+              }
+            }
+            j = this._cellNext[j];
           }
         }
       }
@@ -420,7 +454,7 @@ export class FishSchool {
       // receives 11.2 units of pull-back while fish near orbit (≤3u) receive ≤2.4.
       this._orbitTarget.subVectors(orbitAnchor, pos);
       // During flee: suppress orbit so fish can scatter. After flee: boost orbit to recover.
-      // At fleeIntensity=0 → weight = FISH_ORBIT_WEIGHT * FISH_ORBIT_RECOVERY_BOOST (1.5).
+      // At fleeIntensity=0 → weight = FISH_ORBIT_WEIGHT * FISH_ORBIT_RECOVERY_BOOST (2.5).
       // At fleeIntensity=1 → weight = FISH_ORBIT_WEIGHT * 0.3 (0.15). Smooth in between.
       const fleeI = this._fleeIntensity[si];
       const effectiveOrbitWeight = FISH_ORBIT_WEIGHT * (FISH_ORBIT_RECOVERY_BOOST - (FISH_ORBIT_RECOVERY_BOOST - 0.3) * fleeI);
@@ -515,7 +549,7 @@ export class FishSchool {
     schoolDispersion: number[]; // 학교 내 centroid 기준 평균 거리 (flee 시 증가)
     schoolDefs: OrbitDef[]; // 현재 궤도 정의 (updateOrbitDef로 변경됨)
   } {
-    const _forward = new THREE.Vector3();
+    const _forward = this._debugForward;
     return {
       positions: this.fish.map((f) => ({
         x: f.mesh.position.x,

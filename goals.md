@@ -335,6 +335,8 @@
 - [x] `src/scene/Lighting.ts` 또는 `SceneManager.ts`의 fog/ambient 설정에서 `ambientLight.intensity`를 0.15→0.35 수준으로 올리고, `scene.fog`의 near 거리를 줄여 심해 하단이 완전 검정으로 떨어지지 않도록 최저 밝기 확보
 - [x] `src/scene/Ocean.ts` 배경 그라디언트 또는 `src/scene/SceneManager.ts` `renderer.setClearColor()`의 심해 색을 `#000a14` → `#002244` 수준으로 올려 하단 영역 채도를 높이고, `Lighting.ts`의 ambient light intensity를 0.05→0.15로 상향해 하단 흑색 영역을 청색 계열로 끌어올림
 
-- [ ] 코드 성능 향상: 리소스 할당 및 속도 최적화 (max_budget_usd 제한을 벗어날 수 있도록)
-- [ ] school 1·3·4 flee 후 recoveryTimeSec=-1 지속(pre-existing, §3-3 scope gate): `Fish.ts`의 해당 schoolDefs 중심 좌표·semi_a/semi_b 반경이 `BOID_BOUNDARY_MARGIN`(=8) 한계 근처인지, `FISH_ORBIT_WEIGHT`(=0.5) 복귀 인력이 flee 이탈 후 충분한지 별도 목표로 진단
-- [ ] `screenshot-1~4` 전체에서 godRayCone 쐐기형 기둥이 육안으로 식별되지 않음 — `Lighting.ts`의 `GOD_RAY_MAX_OPACITY`(현재 1.6, constants.ts L82) 값을 유지하되 `GOD_RAY_HEIGHT`(현재 60)를 40 이하로 줄이거나, cone geometry의 `topRadius` 배수를 현재 `bottomRadius * 1.8`에서 `bottomRadius * 3.5` 이상으로 확장해 수면 근처에서 광선 단면이 더 넓어지도록 조정
+- [x] 코드 성능 향상: 리소스 할당 및 속도 최적화 (max_budget_usd 제한을 벗어날 수 있도록)
+- [x] school 1·3·4 flee 후 recoveryTimeSec=-1 지속(pre-existing, §3-3 scope gate): `Fish.ts`의 해당 schoolDefs 중심 좌표·semi_a/semi_b 반경이 `BOID_BOUNDARY_MARGIN`(=8) 한계 근처인지, `FISH_ORBIT_WEIGHT`(=0.5) 복귀 인력이 flee 이탈 후 충분한지 별도 목표로 진단
+- [x] `screenshot-1~4` 전체에서 godRayCone 쐐기형 기둥이 육안으로 식별되지 않음 — `Lighting.ts`의 `GOD_RAY_MAX_OPACITY`(현재 1.6, constants.ts L82) 값을 유지하되 `GOD_RAY_HEIGHT`(현재 60)를 40 이하로 줄이거나, cone geometry의 `topRadius` 배수를 현재 `bottomRadius * 1.8`에서 `bottomRadius * 3.5` 이상으로 확장해 수면 근처에서 광선 단면이 더 넓어지도록 조정
+- [ ] PlaneGeometry를 `ConeGeometry(radiusTop≈0, radiusBottom=width*2, height)` 로 교체하고 ShaderMaterial에 `aDepth = (1.00 - uv.y) * falloff` 형태로 위→아래 투명도 증가(농담 falloff)를 적용해 부피감 있는 광선 구현.
+- [ ] `src/scene/Ocean.ts` `addGodRays()` — 현재 PlaneGeometry/BoxGeometry 대신 `ConeGeometry(radius, 0, 8)`로 교체하고, ShaderMaterial fragment shader에 `gl_FragColor.a *= 1.0 - vUv.y` falloff 추가해 아래로 갈수록 옅어지는 부피감 부여 (baseOpacity는 현재값 유지)

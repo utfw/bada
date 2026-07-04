@@ -180,8 +180,8 @@ export class Lighting {
 
       // CylinderGeometry(radiusTop, radiusBottom, height) — wide at surface (top), narrow at depth (bottom)
       const bottomRadius = 0.06 + Math.random() * 0.03;
-      const topRadius = bottomRadius * 1.8;
-      const coneGeo = new THREE.CylinderGeometry(topRadius, bottomRadius * 0.4, GOD_RAY_HEIGHT, 16, 4, true);
+      const topRadius = bottomRadius * 4.0;
+      const coneGeo = new THREE.CylinderGeometry(topRadius, bottomRadius * 0.2, GOD_RAY_HEIGHT, 16, 4, true);
       const cone = new THREE.Mesh(coneGeo, coneMat);
       // apex sits at SURFACE_HEIGHT; center of geometry is at SURFACE_HEIGHT - GOD_RAY_HEIGHT/2
       cone.position.set(x, SURFACE_HEIGHT - GOD_RAY_HEIGHT / 2, z);
