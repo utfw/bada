@@ -3,6 +3,162 @@
 이 문서는 `agent/` 파이프라인(`loop.ts`, `observe.ts`, `setGoals.ts`)에 가해진 설계 변경을 기록합니다.
 버그 픽스·기능 추가·프롬프트 수정 모두 포함하며, "왜 바꿨는가"를 중심으로 서술합니다.
 
+> **갱신 규칙**: 에이전트 인프라(`agent/**`)를 수정하는 사람 커밋(`feat(agent)`/`fix(agent|checks)`/`docs(agent)` 등, `[agent]` 자동 커밋 제외)을 만들 때는 이 파일 최상단에 `## [YYYY-MM-DD] 제목` 항목을 추가한다. `[agent]` 접미사가 붙은 자동 커밋은 에이전트 자신의 산출물이므로 기록 대상이 아니다.
+
+---
+
+## [2026-06-28] CHANGELOG 백필 + 갱신 규칙 자동화
+
+### 배경
+CHANGELOG가 2026-06-02 항목에서 멈춰, 이후 에이전트 인프라 변경 15개 커밋(vision judge·비용회계·stale 바인딩·pipeline 분리 등)이 미기록. 재발 방지를 위해 갱신을 커밋 절차에 편입.
+
+### agent/CHANGELOG.md
+- 6-02 이후 누락 항목 일괄 백필(6-04 flee-recovery 범위 제한 ~ 6-28 pipeline 분리). 상단에 갱신 규칙 명문화.
+
+### .claude/commands/commit.md (commit 스킬)
+- 절차에 "스테이징 대상에 `agent/**`가 있으면 CHANGELOG 최상단 항목 추가" 단계 추가. `[agent]` 자동 커밋·순수 `src/**` 커밋은 대상 아님.
+
+---
+
+## [2026-06-28] loop.ts를 책임별 pipeline 모듈로 분리 + 중복/동작 정리 (커밋 672ec02)
+
+### 배경
+`loop.ts`가 기능 누적으로 2085줄까지 커져 7+개의 독립 책임(로깅·git·목표 관리·Observer·Aesthetic·CLI 래퍼·단계 에이전트·커밋·오케스트레이션)이 한 파일에 혼재. 역할 경계가 흐려 변경 영향 파악이 어렵고, `findClaude`가 3개 파일에 중복 정의되는 등 중복도 누적.
+
+### agent/pipeline/ (신설 6모듈)
+- `types.ts` — 공유 interface/type + 경로·임계값 상수 (의존성 없는 잎 모듈). ROOT는 `../..`.
+- `runner.ts` — `runClaude`(overload 지수백오프 재시도) + `runOllama` + `findClaude`/`CLAUDE_BIN` + `OllamaError`.
+- `logging.ts` — `AgentLog`, trimChecklistLog, readChecklistHash, formatMetrics.
+- `observation.ts` — runObserver, summarizeObservation, runAestheticEvaluator, formatAestheticSummary.
+- `stages.ts` — runPlanner/runImplementer/runReviewer + logAndCheck + isValidReviewPass + extractSuggestions.
+- `goals.ts` — 목표 CRUD/생성(Ollama)/중복제거 + 커밋 대기열/자동커밋 + git 헬퍼.
+- import 방향 단방향: types ← runner/logging ← observation/stages/goals ← loop.
+
+### loop.ts
+- 2085줄 → 544줄. 오케스트레이션(runGoal/runStandaloneReview/runGoals/parseRunBudget/main)만 남김.
+- 중복 제거 헬퍼 `observe`/`evaluateAesthetic`/`appendAndRun` 추출 — Observer+Aesthetic 시퀀스(runGoal cycle 0 vs standaloneReview)와 goal-gen 3분기 중복 축약. 동작 불변.
+
+### 중복 제거 + 동작 개선
+- `findClaude` 3중 정의(loop/setGoals/judge) → `runner.findClaude` 하나로. setGoals·vision/judge가 재사용.
+- `vision/judge.ts`가 직접 `execFileSync` → 공용 `runClaude` 사용. **overload 자동 재시도 확보**(정상 경로 토큰 불변, 장애 시에만 재시도).
+- REVIEW_CHECKLIST `@src` 바인딩을 `agent/loop.ts:runEvolutionStep` → `agent/evolve.ts:runEvolutionStep`(실제 정의 위치)로 정정.
+
+### 검증
+- `npm run typecheck`(루트 references→agent) + `tsc -p tsconfig.agent.json` exit 0. include `["agent"]` glob이 pipeline/ 하위 자동 포함(`--listFiles` 확인).
+- `npm run check:checklist` 12바인딩 정상, `vision:judge --axis=godray` recall/precision 동일, `agent:review -n 1` 풀 경로 런타임 정상(src 미변경).
+
+### 교훈
+- NodeNext 모듈은 `.ts` 소스라도 상대 import를 `.js` 확장자로 적어야 함(기존 관례). IDE(tsserver)가 새 하위 디렉토리에 TS6307을 오탐할 수 있으나 `tsc` CLI가 권위 검증.
+
+---
+
+## [2026-06-28] Vision judge 다축 확장 + 갓레이 품질을 평가 루프에 편입 (커밋 6831f6e)
+
+### 배경
+사용자 관찰 "에이전트가 갓레이를 반복 수정해도 빛이 안 나아진다". 진단 결과 갓레이가 사실상 **평가 루프 밖**이었음: 수치 검증은 `GOD_RAY_MAX_OPACITY > 0`(부재만 감지), vision judge는 갓레이를 명시적으로 무시(버블 단일 축), 자율 루프가 실제로 보는 Aesthetic `[3] 광선 효과` rubric은 "광선 1개 보이면 2점"이라 **평면 사각 띠도 만점** 처리 → 개선 압력 0, opacity 진동만 반복(goals.md에 갓레이 수정 시도 8회+ 헛돔).
+
+### agent/vision/judge.ts
+- 축(axis) 파라미터화: `AXIS_RUBRICS` 상수(bubble/godray 각각 "오직 이 축만 본다"), `runAxis()`가 축마다 독립 혼동행렬 → 축별 recall/precision. `--axis=godray`로 단일 축 실행.
+
+### agent/vision/labels.json
+- schemaVersion 2로 `axis` 필드 추가 + godray ground-truth 5개 라벨링(awkward 3/borderline 2). '또렷하지만 평면 사각 띠'인 프레임을 natural→borderline 정정(Vision이 flat strip 지적, 사람 라벨이 관대했던 rubric-alignment 케이스). 첫 실측 godray 축 recall 100%/precision 100%. **측정셋에 진짜 부피감 있는 natural 프레임 0개** = 제품 결함 노출.
+
+### agent/loop.ts (Aesthetic `[3]` rubric 재작성)
+- "가시성 + 부피감(농담)" 두 조건으로: 부피감 있는 기둥=2점, 또렷하나 평면 띠·과노출=1점, 비가시=0점. 평면 사각 띠를 만점에서 강등.
+- **진동 방지 처방 순서** 명시: ①흐림→opacity 상향 ②또렷한데 평면→geometry/shader 교체 ③과노출→하향. 같은 사이클에 상향·하향 동시 제안 금지. surface-up.png 우선 근거.
+
+### agent/REVIEW_CHECKLIST.md
+- §10에 "갓레이 자연스러움(Vision judge — godray 축)" SUGGESTIONS 트리거 항목 신설. `@src: judge.ts:AXIS_RUBRICS` 바인딩.
+
+### 검증
+- 실제 씬 스크린샷에 라이브 실행: `[3] 광선 효과 = 0점`, 총점 7/10, SUGGESTION이 정확히 "baseOpacity 상향"(진동 아닌 단일 방향). 이전 rubric이면 만점이었을 장면.
+
+---
+
+## [2026-06-23] 버블-on-shark 문제로 fwd/lookAt 부호 뒤집기 경고 (커밋 50a1aaa)
+
+### 배경
+버블이 고래상어 등/머리 위에 보인다고 `getWorldDirection`(로컬 +Z)이나 lookAt 부호를 반대로 의심하는 회귀. 실측(`_sharkFwd` 오프셋 `-`→`+`)에서 오히려 버블이 더 심하게 등을 덮음 — 이동 방향은 이미 올바르고, 버블 가림은 스폰 거리·높이가 몸통 표면과 겹치는 별개 문제.
+
+### agent/REVIEW_CHECKLIST.md
+- §1에 "⛔ 버블/파티클 위치로 진행 방향(fwd/lookAt)을 의심하지 말 것" 항목 추가. 버블 조정은 거리·높이 수치로만, 미해결 시 사람 보고로 종료.
+
+---
+
+## [2026-06-22] Vision judge 신설 — Type C 케이스 recall/precision 측정 (커밋 3f93b14, 8f6b9dd, 462abd5)
+
+### 배경
+"수치는 정상인데 화면이 어색"한 Type C 버그는 텍스트 메트릭으로 못 잡음. Claude 멀티모달로 natural/awkward를 판정하되, **평가 자체의 신뢰성을 먼저 정량화**하는 것이 핵심(평가 시스템도 평가 대상). Vision judge를 결정권자로 쓰면 "평가자를 평가하는 무한루프"이므로 사람 라벨(ground truth) 대비 recall/precision을 재는 인프라부터 구축.
+
+### agent/vision/judge.ts + labels.json (신설)
+- `agent/vision/labels.json` — 사람이 라벨링한 ground truth {archive, shot, label, criterion}. borderline은 측정 제외.
+- `judge.ts` (`npm run vision:judge`) — claude CLI(Read 도구, sonnet, budget cap)가 이미지를 열어 판정, 라벨과 대조해 혼동행렬 → recall/precision 출력.
+- 첫 실측 recall 100%/precision 75%(n=4) — precision 갭(정상 1건 오탐)이 "왜 단독 결정권자로 쓰면 안 되는지"를 데이터로 증명.
+
+### rubric alignment (462abd5)
+- 오탐 재검토 결과 모델 오류가 아니라 사람·모델의 awkward 정의 불일치. judge 프롬프트를 **단일 축**(버블이 고래상어 표면을 덮는가, 갓레이·구도는 무시)으로 고정하고 라벨도 재정렬. precision 75%→87.5%(n=8), 사람이 natural로 본 3건이 모두 모델 판정(awkward)이 옳았음. 부수 발견: 이 씬엔 버블이 표면을 안 덮는 natural 프레임이 사실상 없다 = 스폰 오프셋 제품 결함 노출.
+
+### report per-stage CV (8f6b9dd)
+- `report.ts`에 단계별 비용 변동계수(CV) 컬럼 추가 — 재현성 정량화. vision 라벨 정제 동반.
+
+---
+
+## [2026-06-21] 신뢰성 인프라 — stale 바인딩 체크 + overload 재시도 + rate-limit 회계 분리 (커밋 38a8a3e, c085eb7, 6069bb6, 64b226a)
+
+### 배경
+자율 파이프라인의 재현성·비용 신뢰성을 AX 관점("비용 어떻게 관리?", "재현성 어떻게 보장?")에서 숫자로 답할 수 있게 하는 인프라 묶음.
+
+### 결정론적 stale-binding 체크 (38a8a3e)
+- `agent/checkChecklist.ts` 신설 — REVIEW_CHECKLIST 각 항목의 `<!-- @src: file:symbol -->` 태그를 grep으로 검증, 코드 이동/삭제 시 STALE 자동 감지. `npm run check:checklist`, stale이면 exit 1. LLM 미사용(결정성 자체가 가치). §10 갓레이·§9 부호처럼 코드 드리프트로 반복 수동 정정되던 패턴 자동화.
+
+### overload 지수 백오프 재시도 (c085eb7)
+- `loop.ts` `runClaude`에 일시 과부하(overload/529, 5xx, 타임아웃) 시 지수 백오프 재시도(4s/8s/16s, MAX_API_RETRIES=3) 추가. 일 사용량 한도(rate-limit)는 짧은 대기로 안 풀리므로 그대로 반환(기존 흐름 유지). 성공/코드실패/한도도달은 즉시 반환.
+
+### rate-limit vs 코드 실패 회계 분리 (6069bb6)
+- `metric()`에 `rateLimited` 필드 추가 — 인프라 한도 도달을 코드 실패와 구분해 비용 회계 신뢰성 확보. `report.ts`가 이를 분리 집계.
+
+### report/checklist 정리 (64b226a)
+- `report.ts` 패딩 단순화, `checkChecklist.ts` 파일 읽기 캐싱.
+
+---
+
+## [2026-06-18] per-stage 토큰/비용 회계 + report (커밋 a37ce74)
+
+### 배경
+파이프라인 단계별 비용·시간·토큰이 콘솔에만 흘러 사후 회계·재현성 분석 불가. metrics를 구조화 저장하고 집계 도구가 필요.
+
+### loop.ts + report.ts + observe.ts
+- `AgentLog.metric()`이 단계별 토큰·비용·소요시간을 `agent/metrics.jsonl`에 한 줄씩 append(run/goal/stage/attempt/success/rateLimited/tokens).
+- `agent/report.ts` (`npm run report`) 신설 — jsonl을 읽어 단계별 토큰/비용 집계 리포트. `.gitignore`에 metrics.jsonl 추가(분석 전용, git 비추적).
+- `evolve.ts`에 관찰 누적 로직 확장.
+
+---
+
+## [2026-06-09] 시각 소스 변경 시 대표 스크린샷 아카이브 (커밋 01d34bf)
+
+### 배경
+시각 관련 코드가 바뀐 목표가 완료됐을 때 그 시점 모습을 보존해 "무엇이 바뀌어 이렇게 됐는지" 추적하고 싶음. 기준을 출력(픽셀·점수)이 아니라 **입력(시각 코드 변경)**으로 삼아 타이밍 오탐 제거.
+
+### loop.ts
+- `archiveVisualMilestone(changedFiles, goalText, commitMsg)` 신설 — `VISUAL_SOURCE_FILES`(Lighting/Ocean/SkyBox/Fish/WhaleShark/constants) 중 변경분이 있는 완료 목표에서만 대표 스샷(screenshot-1, surface-up)을 `agent/observations/history/<stamp>_<sha>/`에 복사 + meta.json(commit·goal·변경파일 연결).
+
+---
+
+## [2026-06-05] Aesthetic 제안 임계치 7→8 + pectoral 검증기 실제 구조 정합 (커밋 0a9ac5f, 937c7f0)
+
+### aesthetic 임계치 상향 (0a9ac5f)
+- `loop.ts` — 미적 점수 < 7 → < 8일 때 개선 제안 추가. 7/10에서도 개선 여지가 있어 제안 트리거 범위 확대(`AESTHETIC_SUGGEST_THRESHOLD`).
+
+### pectoral 검증기 정합 (937c7f0)
+- `agent/checks/numeric.ts` — pectoral 접합 검증기가 실제 `WhaleShark.ts` fin 구조(group position + shape X extent)와 어긋나 오탐하던 것을 실제 구조에 맞춤. root 매립이 의도된 gap-hiding이면 통과하도록 shape_max_x 고려 로직 반영.
+
+---
+
+## [2026-06-04] §3-3 flee-recovery 실패를 flee 코드 건드리는 목표로 범위 제한 (커밋 4f1474c)
+
+### agent/REVIEW_CHECKLIST.md
+- §3-3 flee-recovery 실패 판정이 무관한 목표에도 광범위 적용되던 것을, flee 관련 코드를 실제로 수정하는 목표에 한해 실패로 판정하도록 범위 축소(과잉 REVIEW_FAIL 방지).
+
 ---
 
 ## [2026-06-02] 사용자 의도 기반 목표 생성 — git log에서 사람 커밋 추출 후 generator에 주입
