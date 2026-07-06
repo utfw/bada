@@ -45,7 +45,8 @@ agent/
 
 다음은 프로젝트의 명시적 결정으로, 에이전트가 "누락"으로 오인해 복구하면 안 됨:
 - **해저 바닥 없음** — Ocean에 seabed/caustic projector를 추가하지 말 것
-- **카메라 초기 위치는 원점(0,0,0)** — 사용자 중심 360° 뷰
+- **카메라 위치는 원점(0,0,0) 고정** — 위치는 이동하지 않고 방향만 회전
+- **카메라 방향은 고래상어 soft-follow + 드래그 병행** — `SceneManager.animate()`에서 고래상어가 화면 앞(NDC z 0~1)에 있으면 `camera.lookAt`으로 부드럽게 자동 추적(BASE_RATE/BOOST_FACTOR lerp)하고, 시야 밖이면 DeviceControls 드래그가 방향을 제어한다. 이 auto-follow는 의도된 동작이므로 "드래그를 덮어쓴다"고 제거하지 말 것
 - **dev 모드에서 `window.__scene` / `__camera` / `__controls` / `__entities` 노출** — Observer가 이걸 읽으므로 제거 금지
 
 ## 핵심 아키텍처 규칙
