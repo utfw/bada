@@ -338,5 +338,20 @@
 - [x] 코드 성능 향상: 리소스 할당 및 속도 최적화 (max_budget_usd 제한을 벗어날 수 있도록)
 - [x] school 1·3·4 flee 후 recoveryTimeSec=-1 지속(pre-existing, §3-3 scope gate): `Fish.ts`의 해당 schoolDefs 중심 좌표·semi_a/semi_b 반경이 `BOID_BOUNDARY_MARGIN`(=8) 한계 근처인지, `FISH_ORBIT_WEIGHT`(=0.5) 복귀 인력이 flee 이탈 후 충분한지 별도 목표로 진단
 - [x] `screenshot-1~4` 전체에서 godRayCone 쐐기형 기둥이 육안으로 식별되지 않음 — `Lighting.ts`의 `GOD_RAY_MAX_OPACITY`(현재 1.6, constants.ts L82) 값을 유지하되 `GOD_RAY_HEIGHT`(현재 60)를 40 이하로 줄이거나, cone geometry의 `topRadius` 배수를 현재 `bottomRadius * 1.8`에서 `bottomRadius * 3.5` 이상으로 확장해 수면 근처에서 광선 단면이 더 넓어지도록 조정
-- [ ] PlaneGeometry를 `ConeGeometry(radiusTop≈0, radiusBottom=width*2, height)` 로 교체하고 ShaderMaterial에 `aDepth = (1.00 - uv.y) * falloff` 형태로 위→아래 투명도 증가(농담 falloff)를 적용해 부피감 있는 광선 구현.
-- [ ] `src/scene/Ocean.ts` `addGodRays()` — 현재 PlaneGeometry/BoxGeometry 대신 `ConeGeometry(radius, 0, 8)`로 교체하고, ShaderMaterial fragment shader에 `gl_FragColor.a *= 1.0 - vUv.y` falloff 추가해 아래로 갈수록 옅어지는 부피감 부여 (baseOpacity는 현재값 유지)
+- [x] PlaneGeometry를 `ConeGeometry(radiusTop≈0, radiusBottom=width*2, height)` 로 교체하고 ShaderMaterial에 `aDepth = (1.00 - uv.y) * falloff` 형태로 위→아래 투명도 증가(농담 falloff)를 적용해 부피감 있는 광선 구현.
+- [x] `src/scene/Ocean.ts` `addGodRays()` — 현재 PlaneGeometry/BoxGeometry 대신 `ConeGeometry(radius, 0, 8)`로 교체하고, ShaderMaterial fragment shader에 `gl_FragColor.a *= 1.0 - vUv.y` falloff 추가해 아래로 갈수록 옅어지는 부피감 부여 (baseOpacity는 현재값 유지)
+- [x] `Lighting.ts`의 nearRayMeshes `PlaneGeometry` height 추가 감소(현재값 절반 이하) 또는 z-offset 범위 확장(현재 ±3 → ±8 이상)으로 whaleshark-side 프리셋 앵글에서 수직 스트라이프 점유율 40% 미만으로 분산
+- [ ] `src/scene/Ocean.ts` `addGodRays()` — 현재 PlaneGeometry 기반 god ray를 `ConeGeometry(topRadius≈0.05, bottomRadius≈0.8, height=12)`로 교체하고, `ShaderMaterial`의 fragment shader에 `float falloff = 1.0 - vUv.y; opacity = baseOpacity * falloff * falloff;` 형태의 y축 falloff를 추가해 아래로 갈수록 자연스럽게 퍼지는 부피감을 부여할 것
+- [ ] Fish 모델 완성도:
+- [ ] - [ ] 꼬리지느러미 크기: 꼬리지느러미의 높이(y축 스케일)가 몸통 높이의 최소 50% 이상이어야 한다. 너무 작으면 시각적으로 꼬리가 없는 것처럼 보이므로 **실패**.
+- [ ] - [ ] 지느러미(dorsal/pectoral) 크기: 등지느러미·가슴지느러미가 몸통에 비해 시각적으로 인지 가능한 크기여야 한다. 몸통 길이의 20% 미만이면 **실패**.
+- [ ] Fish 군집 자연스러움:
+- [ ] - [ ] 개별 물고기는 군집 궤도에 느슨하게 따라가야 하며, 모든 물고기가 동일 경로를 정확히 공유하면 안 된다. **실패**.
+- [ ] Fish ↔ WhaleShark 회피 상호작용:
+- [ ] 진화 루프 정합성 (Evolver):
+- [ ] - [ ] Evolver 호출 위치: `agent/loop.ts`의 `runGoal()` 안, Observer 결과를 받은 직후·Planner 호출 전에 `runEvolutionStep()`이 한 번 호출되어야 한다. **실패**.
+- [ ] 근접샷 검은 화면 금지:
+- [ ] - [ ] Observer 미탐지 주의: HUD·버튼 등 UI 오버레이가 있으면 3D 뷰포트가 완전 검은색이어도 파일 크기가 10KB를 초과할 수 있다. Reviewer는 `analyzeBrightness()` anomaly가 없더라도 반드시 whaleshark-*.png를 직접 열어(Read) 육안 확인해야 한다. **실패**.
+- [ ] 씬 불변식 (Do Not Regress):
+- [ ] - [ ] 해저 바닥(seabed)은 제거된 상태가 정상. Ocean에 seabed/caustic projector를 추가하지 말 것.
+- [ ] - [ ] 카메라 초기 위치 (0, 0, 0) 고정. `SceneManager.init()`에서 변경 금지.

@@ -191,7 +191,7 @@ export class Lighting {
     }
 
     // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
-    this.nearRayGeo = new THREE.PlaneGeometry(2.4, 6);
+    this.nearRayGeo = new THREE.PlaneGeometry(2.4, 1.0);
     const nearRayMat = new THREE.MeshBasicMaterial({
       color: 0xa8d8f0,
       opacity: 0.08,
@@ -206,10 +206,11 @@ export class Lighting {
       const x = Math.abs(rawX) < 2.0 ? (rawX < 0 ? rawX - 2.5 : rawX + 2.5) : rawX;
       mesh.position.set(
         x,
-        0,
         Math.random() * 6 - 3,
+        Math.random() * 18 - 9,
       );
       mesh.rotation.x = 0.06 + Math.random() * 0.04;
+      mesh.rotation.y = Math.random() * 0.3 - 0.15;
       mesh.renderOrder = 998;
       scene.add(mesh);
       this.nearRayMeshes.push(mesh);

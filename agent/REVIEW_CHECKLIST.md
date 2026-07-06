@@ -189,6 +189,8 @@
 
 - **[코드 검증] Ocean.ts god ray 수직 방향 필수**: `Ocean.ts`의 `addGodRays()`에서 PlaneGeometry 메시의 `rotation.x`가 `Math.PI/2`이면 **수평 평면(XZ)**이 되어 height(8~14) 단위가 Z축으로 전개된다 — 측면 카메라에서 edge-on으로만 보이므로 광선 기둥 효과가 없다. 목표("Y축 하향 광선 스프라이트")를 달성하려면 `|rotation.x| < 0.5`(기본 수직 방향)이어야 하며 height가 Y축으로 전개되어야 한다. `rotation.x = Math.PI/2` 설정이면 **실패**.
 
+- **[코드 검증] addGodRays() ConeGeometry height 0 금지**: `Ocean.ts`의 `addGodRays()`에서 configs 배열에 `height` 필드가 정의되어 있더라도 `new THREE.ConeGeometry(radius, height, segments)` 생성 시 `cfg.height` 대신 `0`(하드코딩)이 전달되면 콘이 height=0인 퇴화 기하체(flat disc)가 되어 화면에 전혀 렌더링되지 않는다. Reviewer는 ConeGeometry 생성자 두 번째 인자가 `0`이거나 `cfg.height`를 참조하지 않으면 **실패**.
+
 - **[코드 검증] 수면 애니메이션**: `Ocean.ts`의 수면 material(또는 ShaderMaterial) 에 `time` 또는 `elapsed` 기반 uniform 갱신 코드가 `update()` 또는 `animate()` 내에 있어야 한다. 정적 material(갱신 없음)이면 수면이 고정된 평면으로 보이므로 **실패**.
 
 - **[시각 검증] surface-up.png 수면 투시**: Observer가 아래에서 위를 바라보는 `surface-up.png`를 촬영한다(카메라 y=-10, target y=15). 이 이미지에서 수면이 단일 불투명 면이거나 빛의 변화가 전혀 없으면 투명도·굴절 미구현을 의미한다 — SUGGESTIONS에 수면 투명도 또는 굴절 효과 개선 추가.
@@ -221,7 +223,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-26) [human] §3 보강: dorsal/secondDorsal rotation.y를 animateBodyUndulation에서 body tilt 각도로 동기화하지 않으면 position.x 추적만으로는 fin이 기울어진 body 표면에서 수직으로 떠 있어 시각 분리 발생 — 실패 기준 및 SUGGESTIONS 트리거 명시. §3-2 보강: FishSchool 단일 orbitPath 공유 시 씬 단조로움 실패 기준 및 궤도 중심 분산 기준 추가 — 수치 검증 통과해도 이 구조 문제는 별도 코드 확인 필요.
 - (2026-04-27) [human] §1 추가: Fish forwardDot 역방향 이슈를 HUMAN_VERIFICATION_REQUIRED로 분류 — Reviewer가 이 항목을 REVIEW_FAIL로 반복 보고하지 않도록 명시.
 - (2026-04-29) [reviewer] §9 신설: 버블 파티클 크기 최대값(sizes max) ≤ 0.2, 기저 알파 X ≤ 0.15 초과 시 고래상어보다 버블이 두드러지는 시각 불균형 발생 — 코드 수치 검증 기준 추가.
 - (2026-05-03) [reviewer] §4 보강: whaleshark-*.png 뿐 아니라 topview-t1/t2.png도 3D 뷰포트 검은색이면 엔티티 방향 탑뷰 검증이 불가 — HUMAN_VERIFICATION_REQUIRED로 분류하고 Observer의 setPresetView/topview 카메라 로직 이상을 사람에게 보고. §4 원인 후보(DeviceControls 경합, plain 객체 lookAt)가 topview에도 동일하게 적용됨.
@@ -251,3 +252,4 @@
 - (2026-06-27) [reviewer] §10 추가: nearRayMesh opacity≤0.3·height=10에서도 whaleshark-front/side/surface-up 프리셋 앵글에서 30~70% 스트라이프 점유 패턴 확인 — 프리셋 카메라가 PlaneGeometry 면 방향을 정면 투영하는 각도와 겹칠 때 발생. 40%이상이면 SUGGESTIONS 트리거(REVIEW_FAIL 아님) 항목 신설. nearRay update() opacity 일관성 항목에 "update()가 opacity를 건드리지 않는 경우 체크 불필요" 명시 추가.
 - (2026-06-30) [reviewer] §10 추가: constants.ts DEFAULT_FOG_DENSITY/DEFAULT_FOG_COLOR가 SceneManager.ts init()에서 실제 초기 fog 설정에 사용됨 — Lighting.ts 프리셋 수정 시 이 두 상수도 같은 방향으로 동기화해야 하며, 반대 방향 변경 시 경고 항목 신설.
 - (2026-06-28) [human] §10 추가: 갓레이 "자연스러움(Vision judge — godray 축)" 품질 항목 신설. 기존 godray 평가(수치 opacity>0 가드레일 + Reviewer 한 줄 가시성 검증)가 부재만 잡고 평면 띠·실선 같은 저품질을 통과시켜 에이전트가 godray를 반복 수정해도 체감 개선이 없던 문제 해소. vision judge(`judge.ts`)를 버블 단일 축에서 축(axis) 파라미터화하여 bubble/godray 두 축을 독립 측정하도록 확장, `labels.json` schemaVersion 2로 axis 필드 추가 + godray ground-truth 5개 라벨링(awkward 3/borderline 2). 라벨링 중 '또렷하지만 평면 사각 띠'인 07-54 프레임을 natural→borderline 정정(Vision이 flat strip 지적, 사람 라벨이 관대했던 rubric-alignment 케이스). `npm run vision:judge -- --axis=godray`로 단일 축 실행 지원.
+- (2026-07-06) [reviewer] §10 추가: addGodRays() ConeGeometry height=0 금지 — configs 배열에 height 필드가 있어도 geometry 생성 시 `0` 하드코딩 시 콘 전부 퇴화(flat disc) → 불가시. Ocean.ts:205 실측. `cfg.height` 참조 여부를 Reviewer가 반드시 확인하도록 명시.
