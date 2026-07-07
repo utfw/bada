@@ -58,7 +58,7 @@ export const BOID_COHESION_WEIGHT = 0.08;
 // 기존 separation은 전체 학교 간에 동일 가중치로 작동하지만, 학교 내 개체가
 // 매우 가까이 붙는 케이스(spread<1.5)는 별도로 강하게 밀어내야 시각적 밀집
 // 해소가 가능. AVOID_DIST는 SEPARATION_DIST보다 작아 극근접에만 발동.
-export const INTRA_SCHOOL_AVOID_DIST = 1.2;
+export const INTRA_SCHOOL_AVOID_DIST = 1.8;
 export const INTRA_SCHOOL_AVOID_WEIGHT = 14.0;
 export const BOID_BOUNDARY_MARGIN = 8;
 export const BOID_BOUNDARY_FORCE = 5;

@@ -11,7 +11,7 @@ import {
 import { WeatherData } from '../weather/WeatherService';
 
 interface GodRay {
-  mesh: THREE.Mesh<THREE.ConeGeometry, THREE.ShaderMaterial>;
+  mesh: THREE.Mesh<THREE.CylinderGeometry, THREE.ShaderMaterial>;
   baseOpacity: number;
 }
 
@@ -169,14 +169,14 @@ export class Ocean {
   private addGodRays(scene: THREE.Scene): void {
     // 8 cones with apex at surface, extending downward into the water
     const configs: { x: number; z: number; radius: number; height: number; opacity: number; phase: number }[] = [
-      { x:  1.2, z: -0.8, radius: 0.9,  height: 20, opacity: 0.20, phase: 0.0 },
-      { x: -1.5, z:  1.0, radius: 0.7,  height: 20, opacity: 0.18, phase: 0.8 },
-      { x:  0.5, z:  4.0, radius: 0.9,  height: 20, opacity: 0.20, phase: 1.6 },
-      { x: -1.0, z: -4.0, radius: 0.9,  height: 20, opacity: 0.18, phase: 2.4 },
-      { x:  4.0, z:  0.3, radius: 0.9,  height: 20, opacity: 0.20, phase: 3.2 },
-      { x: -2.5, z: -0.5, radius: 0.7,  height: 20, opacity: 0.18, phase: 4.0 },
-      { x:  0.0, z: -2.0, radius: 0.9,  height: 20, opacity: 0.22, phase: 4.8 },
-      { x:  4.5, z:  4.0, radius: 1.2,  height: 20, opacity: 0.20, phase: 5.6 },
+      { x:  1.2, z: -0.8, radius: 0.9,  height: 12, opacity: 0.20, phase: 0.0 },
+      { x: -1.5, z:  1.0, radius: 0.7,  height: 12, opacity: 0.18, phase: 0.8 },
+      { x:  0.5, z:  4.0, radius: 0.9,  height: 12, opacity: 0.20, phase: 1.6 },
+      { x: -1.0, z: -4.0, radius: 0.9,  height: 12, opacity: 0.18, phase: 2.4 },
+      { x:  4.0, z:  0.3, radius: 0.9,  height: 12, opacity: 0.20, phase: 3.2 },
+      { x: -2.5, z: -0.5, radius: 0.7,  height: 12, opacity: 0.18, phase: 4.0 },
+      { x:  0.0, z: -2.0, radius: 0.9,  height: 12, opacity: 0.22, phase: 4.8 },
+      { x:  4.5, z:  4.0, radius: 1.2,  height: 12, opacity: 0.20, phase: 5.6 },
     ];
 
     const godRayVertexShader = `
@@ -195,14 +195,14 @@ export class Ocean {
       void main() {
         float edge = abs(vUv.x - 0.5) * 2.0;
         float radialFade = 1.0 - smoothstep(0.0, 1.0, edge);
-        float alpha = uBaseOpacity * radialFade * (0.85 + 0.15 * sin(uTime * 0.4 + uPhase));
+        float falloff = 1.0 - vUv.y;
+        float alpha = uBaseOpacity * radialFade * falloff * falloff * (0.85 + 0.15 * sin(uTime * 0.4 + uPhase));
         gl_FragColor = vec4(0.659, 0.875, 1.0, alpha);
-        gl_FragColor.a *= vUv.y;
       }
     `;
 
     for (const cfg of configs) {
-      const geometry = new THREE.ConeGeometry(cfg.radius, 0, 8);
+      const geometry = new THREE.CylinderGeometry(0.05, cfg.radius, cfg.height, 8);
       const material = new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
@@ -213,11 +213,11 @@ export class Ocean {
         fragmentShader: godRayFragmentShader,
         transparent: true,
         depthWrite: false,
-        side: THREE.DoubleSide,
+        side: THREE.FrontSide,
         blending: THREE.AdditiveBlending,
       });
       const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.set(cfg.x, SURFACE_HEIGHT, cfg.z);
+      mesh.position.set(cfg.x, SURFACE_HEIGHT - cfg.height / 2, cfg.z);
       scene.add(mesh);
       this.godRays.push({ mesh, baseOpacity: cfg.opacity });
     }

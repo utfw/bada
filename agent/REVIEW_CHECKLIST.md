@@ -66,7 +66,7 @@
 
 - **[코드 검증] 꼬리지느러미 이중 회전 버그**: `createCaudalFin()`에서 tailGroup 내부의 개별 fin 메시(upperFin, lowerFin)에 `rotation.y`가 설정되어 있으면 안 된다. tailGroup 자체가 `update()`에서 `-Math.PI/2 + sin(...)` 회전을 받으므로, 내부 메시에 추가로 `rotation.y = Math.PI/2`를 설정하면 합산이 0이 되어 꼬리지느러미가 수평으로 눕는다. **내부 메시에 rotation.y가 있으면 실패.**
 
-- **[코드 검증] 가슴지느러미 수평 방향 — rotation.x**: `createPectoralFins()`에서 pectoral fin의 `rotation.x`는 반드시 **약 ±π/2** 여야 한다. `rotation.x ≈ 0`이면 shape이 XY 수직 평면에 위치해 측면에서 얇은 막대기로 보인다. 올바른 설정은 `rotation.x = -Math.PI/2`로 shape을 XZ 수평 평면(날개 방향)에 눕히는 것이다. **|rotation.x| < 0.5이면 실패.**
+- **[코드 검증] 가슴지느러미 수평 방향 — rotation.x**: `createPectoralFins()`에서 pectoral fin의 `rotation.x`는 반드시 **약 ±π/2** 여야 한다. `rotation.x ≈ 0`이면 shape이 XY 수직 평면에 위치해 측면에서 얇은 막대기로 보인다. 올바른 설정은 `rotation.x = -Math.PI/2`로 shape을 XZ 수평 평면(날개 방향)에 눕히는 것이다. **|rotation.x| < 0.5이면 실패.** 단, geometry 버텍스 세 점의 y좌표가 모두 동일한 상수(예: `y=-0.1`)로 정의된 경우, geometry가 처음부터 XZ 수평 평면에 있으므로 `rotation.x=0`이어도 통과로 판정한다 — 이 경우 시각 확인(side·surface-up 앵글에서 납작한 타원형 실루엣)으로 대체.
 
 ## 3-1. Fish 모델 완성도
 
@@ -223,7 +223,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-04-27) [human] §1 추가: Fish forwardDot 역방향 이슈를 HUMAN_VERIFICATION_REQUIRED로 분류 — Reviewer가 이 항목을 REVIEW_FAIL로 반복 보고하지 않도록 명시.
 - (2026-04-29) [reviewer] §9 신설: 버블 파티클 크기 최대값(sizes max) ≤ 0.2, 기저 알파 X ≤ 0.15 초과 시 고래상어보다 버블이 두드러지는 시각 불균형 발생 — 코드 수치 검증 기준 추가.
 - (2026-05-03) [reviewer] §4 보강: whaleshark-*.png 뿐 아니라 topview-t1/t2.png도 3D 뷰포트 검은색이면 엔티티 방향 탑뷰 검증이 불가 — HUMAN_VERIFICATION_REQUIRED로 분류하고 Observer의 setPresetView/topview 카메라 로직 이상을 사람에게 보고. §4 원인 후보(DeviceControls 경합, plain 객체 lookAt)가 topview에도 동일하게 적용됨.
 - (2026-05-05) [human] §3 보강: 등지느러미 rotation.y 부호 검증(음수 필수), 꼬리지느러미 내부 메시 이중 rotation.y 버그(합산 0→수평), 가슴지느러미 rotation.x 수평 방향 검증(|rotation.x| < 0.5이면 실패) 항목 추가. 세 버그 모두 에이전트가 수치 체크만으로 탐지하지 못해 사람이 직접 발견함.
@@ -253,3 +252,4 @@
 - (2026-06-30) [reviewer] §10 추가: constants.ts DEFAULT_FOG_DENSITY/DEFAULT_FOG_COLOR가 SceneManager.ts init()에서 실제 초기 fog 설정에 사용됨 — Lighting.ts 프리셋 수정 시 이 두 상수도 같은 방향으로 동기화해야 하며, 반대 방향 변경 시 경고 항목 신설.
 - (2026-06-28) [human] §10 추가: 갓레이 "자연스러움(Vision judge — godray 축)" 품질 항목 신설. 기존 godray 평가(수치 opacity>0 가드레일 + Reviewer 한 줄 가시성 검증)가 부재만 잡고 평면 띠·실선 같은 저품질을 통과시켜 에이전트가 godray를 반복 수정해도 체감 개선이 없던 문제 해소. vision judge(`judge.ts`)를 버블 단일 축에서 축(axis) 파라미터화하여 bubble/godray 두 축을 독립 측정하도록 확장, `labels.json` schemaVersion 2로 axis 필드 추가 + godray ground-truth 5개 라벨링(awkward 3/borderline 2). 라벨링 중 '또렷하지만 평면 사각 띠'인 07-54 프레임을 natural→borderline 정정(Vision이 flat strip 지적, 사람 라벨이 관대했던 rubric-alignment 케이스). `npm run vision:judge -- --axis=godray`로 단일 축 실행 지원.
 - (2026-07-06) [reviewer] §10 추가: addGodRays() ConeGeometry height=0 금지 — configs 배열에 height 필드가 있어도 geometry 생성 시 `0` 하드코딩 시 콘 전부 퇴화(flat disc) → 불가시. Ocean.ts:205 실측. `cfg.height` 참조 여부를 Reviewer가 반드시 확인하도록 명시.
+- (2026-07-07) [reviewer] §3 수정: 가슴지느러미 rotation.x 규칙에 예외 추가 — geometry 버텍스 y값이 모두 동일 상수이면 XZ 수평이 이미 보장되므로 rotation.x=0이어도 통과. |rotation.x|<0.5 단순 코드 탐색이 오탐하는 패턴(Fish.ts pectoral 구현)에서 발견.

@@ -82,8 +82,8 @@ export class FishSchool {
       [ -7,  -9,  -4,  5,  5, 2.5],  // 0: Q3(-,-) shallow  Z음방향 편중
       [  6,   6,  -8,  6,  5, 2.0],  // 1: Q1(+,+) mid
       [ -6,   8,  -4,  6,  5, 1.5],  // 2: Q2(-,+) mid
-      [  9, -14,  -7,  5,  3, 2.5],  // 3: Q4(+,-) deep     cz -18→-14; z[-17,-11], boundary 여유 5 units 확보
-      [  3,  -2,  -3,  5,  3, 3.0],  // 4: Q4(+,-) surface  cz -8→-2; whale Z∈[-21,-12] 대비 Z 간격 확보, flee 강도 감소
+      [  9, -12,  -7,  5,  2, 2.5],  // 3: Q4(+,-) deep     semi_b 3→2, cz -14→-12; boundary 여유 확보
+      [  3,   2,  -3,  5,  3, 3.0],  // 4: Q4(+,-) surface  cz -2→2; whale Z∈[-21,-12] 대비 Z 간격 증가
     ];
     this.orbitPaths = this.schoolDefs.map((def) => this.buildOrbitPath(def));
 
@@ -248,11 +248,11 @@ export class FishSchool {
     outline.scale.setScalar(1.05);
     inner.add(outline);
 
-    const tailGeo = new THREE.ConeGeometry(0.5, 1.0, 4);
+    const tailGeo = new THREE.ConeGeometry(0.72, 1.0, 4);
     tailGeo.rotateZ(Math.PI / 2);
     const tail = new THREE.Mesh(tailGeo, mat);
     tail.position.x = -1.4;
-    tail.scale.set(1, 1, 0.4);
+    tail.scale.set(1, 1, 0.5);
     tail.name = 'tail';
     inner.add(tail);
 

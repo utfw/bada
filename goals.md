@@ -341,9 +341,9 @@
 - [x] PlaneGeometry를 `ConeGeometry(radiusTop≈0, radiusBottom=width*2, height)` 로 교체하고 ShaderMaterial에 `aDepth = (1.00 - uv.y) * falloff` 형태로 위→아래 투명도 증가(농담 falloff)를 적용해 부피감 있는 광선 구현.
 - [x] `src/scene/Ocean.ts` `addGodRays()` — 현재 PlaneGeometry/BoxGeometry 대신 `ConeGeometry(radius, 0, 8)`로 교체하고, ShaderMaterial fragment shader에 `gl_FragColor.a *= 1.0 - vUv.y` falloff 추가해 아래로 갈수록 옅어지는 부피감 부여 (baseOpacity는 현재값 유지)
 - [x] `Lighting.ts`의 nearRayMeshes `PlaneGeometry` height 추가 감소(현재값 절반 이하) 또는 z-offset 범위 확장(현재 ±3 → ±8 이상)으로 whaleshark-side 프리셋 앵글에서 수직 스트라이프 점유율 40% 미만으로 분산
-- [ ] `src/scene/Ocean.ts` `addGodRays()` — 현재 PlaneGeometry 기반 god ray를 `ConeGeometry(topRadius≈0.05, bottomRadius≈0.8, height=12)`로 교체하고, `ShaderMaterial`의 fragment shader에 `float falloff = 1.0 - vUv.y; opacity = baseOpacity * falloff * falloff;` 형태의 y축 falloff를 추가해 아래로 갈수록 자연스럽게 퍼지는 부피감을 부여할 것
-- [ ] Fish 모델 완성도:
-- [ ] - [ ] 꼬리지느러미 크기: 꼬리지느러미의 높이(y축 스케일)가 몸통 높이의 최소 50% 이상이어야 한다. 너무 작으면 시각적으로 꼬리가 없는 것처럼 보이므로 **실패**.
+- [x] `src/scene/Ocean.ts` `addGodRays()` — 현재 PlaneGeometry 기반 god ray를 `ConeGeometry(topRadius≈0.05, bottomRadius≈0.8, height=12)`로 교체하고, `ShaderMaterial`의 fragment shader에 `float falloff = 1.0 - vUv.y; opacity = baseOpacity * falloff * falloff;` 형태의 y축 falloff를 추가해 아래로 갈수록 자연스럽게 퍼지는 부피감을 부여할 것
+- [x] Fish 모델 완성도:
+- [x] - [ ] 꼬리지느러미 크기: 꼬리지느러미의 높이(y축 스케일)가 몸통 높이의 최소 50% 이상이어야 한다. 너무 작으면 시각적으로 꼬리가 없는 것처럼 보이므로 **실패**.
 - [ ] - [ ] 지느러미(dorsal/pectoral) 크기: 등지느러미·가슴지느러미가 몸통에 비해 시각적으로 인지 가능한 크기여야 한다. 몸통 길이의 20% 미만이면 **실패**.
 - [ ] Fish 군집 자연스러움:
 - [ ] - [ ] 개별 물고기는 군집 궤도에 느슨하게 따라가야 하며, 모든 물고기가 동일 경로를 정확히 공유하면 안 된다. **실패**.
@@ -355,3 +355,6 @@
 - [ ] 씬 불변식 (Do Not Regress):
 - [ ] - [ ] 해저 바닥(seabed)은 제거된 상태가 정상. Ocean에 seabed/caustic projector를 추가하지 말 것.
 - [ ] - [ ] 카메라 초기 위치 (0, 0, 0) 고정. `SceneManager.init()`에서 변경 금지.
+
+- [ ] Fish.ts:84 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.02 — yBase 조정으로 수심 변경
+- [ ] WhaleShark 경로 제어점을 school 3 orbit center에서 21 unit 이상 유지하여 궤도 복귀 가능성 확보.
