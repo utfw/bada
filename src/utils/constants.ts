@@ -52,7 +52,7 @@ export const BOID_MAX_SPEED = 8;
 export const BOID_MIN_SPEED = 3;
 export const BOID_SEPARATION_WEIGHT = 8.0;
 export const BOID_ALIGNMENT_WEIGHT = 1.0;
-export const BOID_COHESION_WEIGHT = 0.08;
+export const BOID_COHESION_WEIGHT = 0.05;
 // ── Intra-school 충돌 회피 ─────────────────────────
 // 같은 학교 내에서만 작동하는 close-range 반발력 (1/d² falloff).
 // 기존 separation은 전체 학교 간에 동일 가중치로 작동하지만, 학교 내 개체가
@@ -62,7 +62,7 @@ export const INTRA_SCHOOL_AVOID_DIST = 1.8;
 export const INTRA_SCHOOL_AVOID_WEIGHT = 14.0;
 export const BOID_BOUNDARY_MARGIN = 8;
 export const BOID_BOUNDARY_FORCE = 5;
-export const FISH_ORBIT_SPEED = 0.06;
+export const FISH_ORBIT_SPEED = 0.09;
 // invariant: FISH_ORBIT_WEIGHT ≤ BOID_SEPARATION_WEIGHT * 0.5 (0.5 ≤ 4.0) — do not raise
 export const FISH_ORBIT_WEIGHT = 0.5;
 // applied as orbit-weight multiplier when fleeIntensity=0; see Fish.ts effectiveOrbitWeight
@@ -70,7 +70,7 @@ export const FISH_ORBIT_RECOVERY_BOOST = 8.0;
 // ── Predator avoidance (Boids ↔ WhaleShark) ──────
 // flee range = shark가 학교 중심에서 이 거리 안에 들어오면 flee force가 적용되는 임계
 // flee weight = separation/cohesion 가중치와 같은 단위. 합쳐서 BOID_SEPARATION_WEIGHT를 압도해야 분산이 가시화됨.
-export const PREDATOR_FLEE_RANGE = 21;
+export const PREDATOR_FLEE_RANGE = 14;
 export const PREDATOR_FLEE_WEIGHT = 14.0;
 // flee 강도 0~1 정규화 시 사용 — fish 1마리의 즉각 force가 이 값이면 1.0으로 본다
 export const PREDATOR_FLEE_INTENSITY_NORM = 4.0;

@@ -28,6 +28,7 @@ interface FishInstance {
   mesh: THREE.Group;
   velocity: THREE.Vector3;
   schoolIndex: number;
+  phaseOffset: number;
   disposables: Array<THREE.BufferGeometry | THREE.Material | THREE.Texture>;
 }
 
@@ -66,6 +67,8 @@ export class FishSchool {
   private readonly _schoolDispersion: Float32Array;
   // 학교별 flee 정규화 기준값 (낮을수록 작은 힘에도 최대 강도에 도달)
   private readonly _schoolPeakFlee: readonly number[];
+  // 학교별 궤도 순환 속도 배율 — 학교마다 다른 리듬으로 drama 다양화
+  private readonly _schoolOrbitSpeedFactor: readonly number[];
   // Spatial grid — XZ 격자(BOID_VISUAL_RANGE 크기 셀), 링크드 리스트 방식
   private readonly _gridCells: number; // 한 축당 셀 수
   private readonly _cellHead: Int32Array; // 셀별 리스트 헤드(fish 인덱스), -1=비어있음
@@ -79,11 +82,11 @@ export class FishSchool {
     // Centers spread across all 4 quadrants at varied depths for a rich 360° scene.
     // [cx, cz, yBase, semi_a, semi_b, yWave]
     this.schoolDefs = [
-      [ -7,  -9,  -4,  5,  5, 2.5],  // 0: Q3(-,-) shallow  Z음방향 편중
+      [ -7,  -9,  -4,  7,  4, 3.5],  // 0: Q3(-,-) shallow  wider ellipse, taller yWave
       [  6,   6,  -8,  6,  5, 2.0],  // 1: Q1(+,+) mid
       [ -6,   8,  -4,  6,  5, 1.5],  // 2: Q2(-,+) mid
-      [  9, -12,  -7,  5,  2, 2.5],  // 3: Q4(+,-) deep     semi_b 3→2, cz -14→-12; boundary 여유 확보
-      [  3,   2,  -3,  5,  3, 3.0],  // 4: Q4(+,-) surface  cz -2→2; whale Z∈[-21,-12] 대비 Z 간격 증가
+      [ -5,   5,  -7,  8,  4, 4.0],  // 3: Q2(-,+) deep     wider semi_a, taller yWave
+      [  3,   2,  -3,  5,  3, 5.0],  // 4: Q4(+,-) surface  tall vertical sweep
     ];
     this.orbitPaths = this.schoolDefs.map((def) => this.buildOrbitPath(def));
 
@@ -94,6 +97,7 @@ export class FishSchool {
       PREDATOR_FLEE_INTENSITY_NORM, // 3
       PREDATOR_FLEE_INTENSITY_NORM, // 4
     ];
+    this._schoolOrbitSpeedFactor = [1.0, 0.9, 1.1, 0.85, 1.15];
     this._fleeForceFrameSum = new Float32Array(FISH_SCHOOL_COUNT);
     this._schoolPopulation = new Int32Array(FISH_SCHOOL_COUNT);
     this._fleeIntensity = new Float32Array(FISH_SCHOOL_COUNT);
@@ -157,7 +161,7 @@ export class FishSchool {
       ).normalize();
       const velocity = dir.multiplyScalar(BOID_MIN_SPEED);
 
-      this.fish.push({ mesh, velocity, schoolIndex, disposables });
+      this.fish.push({ mesh, velocity, schoolIndex, phaseOffset: (Math.random() - 0.5) * 0.3, disposables });
       scene.add(mesh);
     }
   }
@@ -325,7 +329,7 @@ export class FishSchool {
   update(elapsed: number, delta: number): void {
     // Advance each group's orbit progress independently
     for (let g = 0; g < FISH_SCHOOL_COUNT; g++) {
-      this.schoolProgress[g] = (this.schoolProgress[g] + FISH_ORBIT_SPEED * delta) % 1;
+      this.schoolProgress[g] = (this.schoolProgress[g] + FISH_ORBIT_SPEED * this._schoolOrbitSpeedFactor[g] * delta) % 1;
     }
 
     // 학교별 누적 버퍼 초기화 (centroid 계산 + flee force 누적)
@@ -368,8 +372,8 @@ export class FishSchool {
       this._schoolCentroids[si].add(pos);
       this._schoolPopulation[si]++;
 
-      // Per-group orbit anchor for this fish — reuse pre-allocated vector (§7: no loop alloc)
-      const orbitAnchor = this.orbitPaths[si].getPointAt(this.schoolProgress[si], this._orbitAnchor);
+      // Per-fish orbit anchor: individual phaseOffset offsets each fish on the shared orbit path
+      const orbitAnchor = this.orbitPaths[si].getPointAt((this.schoolProgress[si] + fi.phaseOffset + 1) % 1, this._orbitAnchor);
 
       separation.set(0, 0, 0);
       intraAvoid.set(0, 0, 0);
@@ -500,7 +504,7 @@ export class FishSchool {
 
     // ── 학교별 후처리: centroid, 거리, dispersion, smoothed flee intensity ──
     // smoothing rate: 200ms 응답 시간 (1/τ ≈ 5/s)
-    const FLEE_SMOOTH_RATE = 5.0;
+    const FLEE_SMOOTH_RATE = 10.0;
     const smoothK = Math.min(FLEE_SMOOTH_RATE * delta, 1.0);
     for (let g = 0; g < FISH_SCHOOL_COUNT; g++) {
       const n = this._schoolPopulation[g];

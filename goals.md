@@ -344,9 +344,9 @@
 - [x] `src/scene/Ocean.ts` `addGodRays()` — 현재 PlaneGeometry 기반 god ray를 `ConeGeometry(topRadius≈0.05, bottomRadius≈0.8, height=12)`로 교체하고, `ShaderMaterial`의 fragment shader에 `float falloff = 1.0 - vUv.y; opacity = baseOpacity * falloff * falloff;` 형태의 y축 falloff를 추가해 아래로 갈수록 자연스럽게 퍼지는 부피감을 부여할 것
 - [x] Fish 모델 완성도:
 - [x] - [ ] 꼬리지느러미 크기: 꼬리지느러미의 높이(y축 스케일)가 몸통 높이의 최소 50% 이상이어야 한다. 너무 작으면 시각적으로 꼬리가 없는 것처럼 보이므로 **실패**.
-- [ ] - [ ] 지느러미(dorsal/pectoral) 크기: 등지느러미·가슴지느러미가 몸통에 비해 시각적으로 인지 가능한 크기여야 한다. 몸통 길이의 20% 미만이면 **실패**.
-- [ ] Fish 군집 자연스러움:
-- [ ] - [ ] 개별 물고기는 군집 궤도에 느슨하게 따라가야 하며, 모든 물고기가 동일 경로를 정확히 공유하면 안 된다. **실패**.
+- [x] - [ ] 지느러미(dorsal/pectoral) 크기: 등지느러미·가슴지느러미가 몸통에 비해 시각적으로 인지 가능한 크기여야 한다. 몸통 길이의 20% 미만이면 **실패**.
+- [x] Fish 군집 자연스러움:
+- [x] - [ ] 개별 물고기는 군집 궤도에 느슨하게 따라가야 하며, 모든 물고기가 동일 경로를 정확히 공유하면 안 된다. **실패**.
 - [ ] Fish ↔ WhaleShark 회피 상호작용:
 - [ ] 진화 루프 정합성 (Evolver):
 - [ ] - [ ] Evolver 호출 위치: `agent/loop.ts`의 `runGoal()` 안, Observer 결과를 받은 직후·Planner 호출 전에 `runEvolutionStep()`이 한 번 호출되어야 한다. **실패**.
@@ -358,3 +358,6 @@
 
 - [ ] Fish.ts:84 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.02 — yBase 조정으로 수심 변경
 - [ ] WhaleShark 경로 제어점을 school 3 orbit center에서 21 unit 이상 유지하여 궤도 복귀 가능성 확보.
+- [ ] fish fin structure verifier를 정교화하여 WhaleShark의 실제 부위와 일치하게 합니다.
+- [ ] code review checklist에 대한 stale-binding 체크를 결정성있게 하여 실패한 경우 재시도합니다.
+- [ ] 비전 판독기에는 rate-limit와 코드 실패를 구별하여 cost accounting을 개선합니다.

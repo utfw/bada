@@ -231,8 +231,8 @@ export class WhaleShark {
   private createDorsalFin(): void {
     const shape = new THREE.Shape();
     shape.moveTo(0, 0);
-    shape.quadraticCurveTo(0.6, 1.4, 1.4, 1.6);
-    shape.quadraticCurveTo(1.6, 1.4, 1.4, 0.3);
+    shape.quadraticCurveTo(0.8, 2.0, 1.8, 3.2);
+    shape.quadraticCurveTo(2.0, 2.8, 1.8, 0.4);
     shape.lineTo(0, 0);
 
     const extrudeSettings: THREE.ExtrudeGeometryOptions = {
@@ -279,9 +279,9 @@ export class WhaleShark {
   private createPectoralFins(): void {
     const shape = new THREE.Shape();
     shape.moveTo(0, 0);
-    shape.quadraticCurveTo(1.8, 0.5, 3.2, 0.1);
-    shape.quadraticCurveTo(3.4, -0.3, 2.4, -0.7);
-    shape.quadraticCurveTo(1.2, -0.6, 0, 0);
+    shape.quadraticCurveTo(2.2, 0.7, 4.2, 0.1);
+    shape.quadraticCurveTo(4.4, -0.4, 3.2, -1.0);
+    shape.quadraticCurveTo(1.6, -0.8, 0, 0);
 
     const extrudeSettings: THREE.ExtrudeGeometryOptions = {
       depth: 0.1,
