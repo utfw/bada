@@ -70,7 +70,7 @@ export const FISH_ORBIT_RECOVERY_BOOST = 8.0;
 // ── Predator avoidance (Boids ↔ WhaleShark) ──────
 // flee range = shark가 학교 중심에서 이 거리 안에 들어오면 flee force가 적용되는 임계
 // flee weight = separation/cohesion 가중치와 같은 단위. 합쳐서 BOID_SEPARATION_WEIGHT를 압도해야 분산이 가시화됨.
-export const PREDATOR_FLEE_RANGE = 14;
+export const PREDATOR_FLEE_RANGE = 12;
 export const PREDATOR_FLEE_WEIGHT = 14.0;
 // flee 강도 0~1 정규화 시 사용 — fish 1마리의 즉각 force가 이 값이면 1.0으로 본다
 export const PREDATOR_FLEE_INTENSITY_NORM = 4.0;

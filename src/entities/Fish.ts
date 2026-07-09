@@ -82,10 +82,10 @@ export class FishSchool {
     // Centers spread across all 4 quadrants at varied depths for a rich 360° scene.
     // [cx, cz, yBase, semi_a, semi_b, yWave]
     this.schoolDefs = [
-      [ -7,  -9,  -4,  7,  4, 3.5],  // 0: Q3(-,-) shallow  wider ellipse, taller yWave
-      [  6,   6,  -8,  6,  5, 2.0],  // 1: Q1(+,+) mid
-      [ -6,   8,  -4,  6,  5, 1.5],  // 2: Q2(-,+) mid
-      [ -5,   5,  -7,  8,  4, 4.0],  // 3: Q2(-,+) deep     wider semi_a, taller yWave
+      [ -4,  -8,  -4,  6,  3, 3.5],  // 0: Q3(-,-) shallow  cz -9→-8, semi_a 7→6, semi_b 4→3
+      [  6, -10,  -8,  6,  4, 2.0],  // 1: Q1→Q3   cz -12→-10, semi_b 5→4 (reduce shark path overlap)
+      [ -6,   8,  -7,  6,  5, 1.5],  // 2: Q2(-,+) mid
+      [ -5, -15,  -7,  8,  4, 4.0],  // 3: deep zone cz 5→-15 (shark encounter)
       [  3,   2,  -3,  5,  3, 5.0],  // 4: Q4(+,-) surface  tall vertical sweep
     ];
     this.orbitPaths = this.schoolDefs.map((def) => this.buildOrbitPath(def));

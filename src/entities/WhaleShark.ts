@@ -482,10 +482,10 @@ export class WhaleShark {
       new THREE.Vector3(2.25 * XZ_SCALE, -2.55, -12.75 * XZ_SCALE),
       new THREE.Vector3(4.5 * XZ_SCALE, -3.05, -10.5 * XZ_SCALE),
       new THREE.Vector3(6.75 * XZ_SCALE, -3.45, -4.5 * XZ_SCALE),
-      new THREE.Vector3(8.25 * XZ_SCALE, -3.75, 1.5 * XZ_SCALE),
+      new THREE.Vector3(5.0, -3.75, 2.5),               // school 4(cx=3,cz=2) 근방
       new THREE.Vector3(5.25 * XZ_SCALE, -3.25, 5.25 * XZ_SCALE),
       new THREE.Vector3(0 * XZ_SCALE, -2.75, 6.75 * XZ_SCALE),
-      new THREE.Vector3(-5.25 * XZ_SCALE, -3.25, 5.25 * XZ_SCALE),
+      new THREE.Vector3(-6.0, -3.25, 8.0),               // school 2(cx=-6,cz=8) 근방
       new THREE.Vector3(-8.25 * XZ_SCALE, -3.75, 1.5 * XZ_SCALE),
       new THREE.Vector3(-6.75 * XZ_SCALE, -3.45, -4.5 * XZ_SCALE),
       new THREE.Vector3(-4.5 * XZ_SCALE, -3.05, -10.5 * XZ_SCALE),

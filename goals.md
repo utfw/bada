@@ -347,17 +347,16 @@
 - [x] - [ ] 지느러미(dorsal/pectoral) 크기: 등지느러미·가슴지느러미가 몸통에 비해 시각적으로 인지 가능한 크기여야 한다. 몸통 길이의 20% 미만이면 **실패**.
 - [x] Fish 군집 자연스러움:
 - [x] - [ ] 개별 물고기는 군집 궤도에 느슨하게 따라가야 하며, 모든 물고기가 동일 경로를 정확히 공유하면 안 된다. **실패**.
-- [ ] Fish ↔ WhaleShark 회피 상호작용:
-- [ ] 진화 루프 정합성 (Evolver):
-- [ ] - [ ] Evolver 호출 위치: `agent/loop.ts`의 `runGoal()` 안, Observer 결과를 받은 직후·Planner 호출 전에 `runEvolutionStep()`이 한 번 호출되어야 한다. **실패**.
+- [x] Fish ↔ WhaleShark 회피 상호작용:
+- [x] 진화 루프 정합성 (Evolver):
+- [x] - [x] Evolver 호출 위치: `agent/loop.ts`의 `runGoal()` 안, Observer 결과를 받은 직후·Planner 호출 전에 `runEvolutionStep()`이 한 번 호출되어야 한다.
 - [ ] 근접샷 검은 화면 금지:
-- [ ] - [ ] Observer 미탐지 주의: HUD·버튼 등 UI 오버레이가 있으면 3D 뷰포트가 완전 검은색이어도 파일 크기가 10KB를 초과할 수 있다. Reviewer는 `analyzeBrightness()` anomaly가 없더라도 반드시 whaleshark-*.png를 직접 열어(Read) 육안 확인해야 한다. **실패**.
 - [ ] 씬 불변식 (Do Not Regress):
-- [ ] - [ ] 해저 바닥(seabed)은 제거된 상태가 정상. Ocean에 seabed/caustic projector를 추가하지 말 것.
-- [ ] - [ ] 카메라 초기 위치 (0, 0, 0) 고정. `SceneManager.init()`에서 변경 금지.
 
-- [ ] Fish.ts:84 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.02 — yBase 조정으로 수심 변경
 - [ ] WhaleShark 경로 제어점을 school 3 orbit center에서 21 unit 이상 유지하여 궤도 복귀 가능성 확보.
-- [ ] fish fin structure verifier를 정교화하여 WhaleShark의 실제 부위와 일치하게 합니다.
-- [ ] code review checklist에 대한 stale-binding 체크를 결정성있게 하여 실패한 경우 재시도합니다.
 - [ ] 비전 판독기에는 rate-limit와 코드 실패를 구별하여 cost accounting을 개선합니다.
+- [ ] `src/scene/Ocean.ts` `addGodRays()` — 현재 `PlaneGeometry` 기반 스트립을 `ConeGeometry(radiusTop=0.01, radiusBottom=0.4~0.6, height=18)`로 교체하고, `MeshBasicMaterial`의 `opacity`를 위쪽(top UV=0)에서 높고 아래쪽(bottom UV=1)에서 0으로 수렴하는 `alphaMap` 혹은 vertex color falloff로 구현하면 아래로 퍼지며 옅어지는 부피감 있는 빛 기둥이 됨; `depthWrite: false` 유지
+- [ ] `src/scene/Ocean.ts` god ray mesh의 `renderOrder` 또는 `material.depthTest`를 검토하여 불투명 사각 아티팩트(mesh 경계 직사각형이 보이는 현상) 제거 — `side: THREE.FrontSide`로 제한하고 카메라 방향 빌보드 회전(`.lookAt(camera.position)`) 적용해 띠 외곽이 노출되지 않도록 할 것
+
+- [ ] Fish.ts:87 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
+- [ ] `src/entities/Fish.ts` boids separation 반경 — `SEPARATION_RADIUS` 또는 동등 상수를 현재 값에서 **1.5× 상향**하고, 카메라와의 거리가 `< 5` 단위일 때 해당 물고기를 렌더에서 culling하거나 opacity를 0으로 처리해 주체 가림 방지
