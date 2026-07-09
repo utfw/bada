@@ -252,8 +252,11 @@ export class FishSchool {
     outline.scale.setScalar(1.05);
     inner.add(outline);
 
+    // 꼬리지느러미: 머리는 inner +X, 꼬리는 −X. 원뿔 apex는 +X(머리 쪽, 몸통에 묻힘),
+    // 넓은 base가 −X(꼬리 끝)로 벌어져 갈래진 꼬리 실루엣 (몸통)< 을 만든다.
+    // rotateZ 부호가 +π/2이면 apex가 뒤(−X)로 가 (몸통)> 화살촉이 되므로 −π/2 유지.
     const tailGeo = new THREE.ConeGeometry(0.72, 1.0, 4);
-    tailGeo.rotateZ(Math.PI / 2);
+    tailGeo.rotateZ(-Math.PI / 2);
     const tail = new THREE.Mesh(tailGeo, mat);
     tail.position.x = -1.4;
     tail.scale.set(1, 1, 0.5);

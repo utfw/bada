@@ -75,6 +75,9 @@
 - **지느러미(dorsal/pectoral) 크기**: 등지느러미·가슴지느러미가 몸통에 비해 시각적으로 인지 가능한 크기여야 한다. 몸통 길이의 20% 미만이면 **실패**. 지느러미가 존재하지만 너무 작아 보이지 않는 것도 실패로 판정.
 - 꼬리지느러미는 몸통 뒤쪽에 부착되어 `tail.rotation.y = sin(...)` 애니메이션으로 좌우 진동해야 한다.
 - Reviewer는 `createFishMesh()` 코드에서 tail, dorsal fin, pectoral fin 파츠가 실제로 생성·추가되는지 확인. `inner.add(tail)` 등이 없으면 실패.
+
+<!-- @src: src/entities/Fish.ts:createFishMesh -->
+- **[코드 검증] 꼬리지느러미 방향 — tailGeo.rotateZ 부호**: `createFishMesh()`에서 꼬리는 `ConeGeometry`(apex가 초기 +Y)를 `rotateZ`로 눕혀 X축에 정렬한다. **기준점**: 물고기 머리는 inner **+X**(눈 `position.x = 1.0`), 꼬리는 **−X**(`tail.position.x` < 0)이다. 갈래진 꼬리 실루엣 `(몸통)<`가 되려면 원뿔의 **넓은 base가 꼬리 끝(−X)** 으로 벌어지고 **apex(뾰족한 점)가 머리 쪽(+X)** 으로 몸통에 묻혀야 한다. 즉 `tailGeo.rotateZ()` 인자는 반드시 **음수(−Math.PI/2)** 여야 한다. `rotateZ(Math.PI/2)`(양수)이면 apex가 −X(꼬리 끝)로 나가 `(몸통)>` 화살촉 모양이 되므로 **실패**. (탑뷰/근접샷만으로는 삼각형이 어느 쪽으로 벌어졌는지 판별이 어려워 사람이 발견 — §3 등지느러미 `rotation.y` 부호 검증과 동일한 결정적 코드 검증으로 자동화.)
 - **지느러미 단면 가시성**: 등지느러미·가슴지느러미를 `BufferGeometry` 삼각형(평면)으로 구현할 경우 material에 `side: THREE.DoubleSide`가 설정되어야 한다. `FrontSide`(기본값)만 적용하면 법선 반대쪽에서 지느러미가 투명해져 시각적으로 존재하지 않는 것처럼 보인다. Reviewer는 평면 지느러미 material에 DoubleSide가 없으면 **실패** 판정.
 
 ## 3-2. Fish 군집 자연스러움
@@ -253,3 +256,4 @@
 - (2026-06-28) [human] §10 추가: 갓레이 "자연스러움(Vision judge — godray 축)" 품질 항목 신설. 기존 godray 평가(수치 opacity>0 가드레일 + Reviewer 한 줄 가시성 검증)가 부재만 잡고 평면 띠·실선 같은 저품질을 통과시켜 에이전트가 godray를 반복 수정해도 체감 개선이 없던 문제 해소. vision judge(`judge.ts`)를 버블 단일 축에서 축(axis) 파라미터화하여 bubble/godray 두 축을 독립 측정하도록 확장, `labels.json` schemaVersion 2로 axis 필드 추가 + godray ground-truth 5개 라벨링(awkward 3/borderline 2). 라벨링 중 '또렷하지만 평면 사각 띠'인 07-54 프레임을 natural→borderline 정정(Vision이 flat strip 지적, 사람 라벨이 관대했던 rubric-alignment 케이스). `npm run vision:judge -- --axis=godray`로 단일 축 실행 지원.
 - (2026-07-06) [reviewer] §10 추가: addGodRays() ConeGeometry height=0 금지 — configs 배열에 height 필드가 있어도 geometry 생성 시 `0` 하드코딩 시 콘 전부 퇴화(flat disc) → 불가시. Ocean.ts:205 실측. `cfg.height` 참조 여부를 Reviewer가 반드시 확인하도록 명시.
 - (2026-07-07) [reviewer] §3 수정: 가슴지느러미 rotation.x 규칙에 예외 추가 — geometry 버텍스 y값이 모두 동일 상수이면 XZ 수평이 이미 보장되므로 rotation.x=0이어도 통과. |rotation.x|<0.5 단순 코드 탐색이 오탐하는 패턴(Fish.ts pectoral 구현)에서 발견.
+- (2026-07-10) [human] §3-1 추가: 꼬리지느러미 방향 결정적 검증 — `tailGeo.rotateZ` 부호는 음수(−Math.PI/2) 필수. 기준점은 머리=inner +X(눈 position.x=1.0), 꼬리=−X. 넓은 base가 −X(꼬리 끝)로 벌어지고 apex가 +X(머리 쪽)로 묻혀야 `(몸통)<`. 양수(+π/2)면 apex가 뒤로 가 `(몸통)>` 화살촉 꼬리로 실패. 스샷으로 삼각형 방향 판별 불가해 사람이 발견, §3 등지느러미 rotation.y 부호 검증과 동일 패턴으로 자동화.

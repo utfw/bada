@@ -7,6 +7,21 @@
 
 ---
 
+## [2026-07-10] Fish 꼬리지느러미 방향 결정적 검증 항목 추가
+
+### 배경
+물고기 꼬리가 `(몸통)>` 화살촉 모양으로 뒤집혀 있었으나(`tailGeo.rotateZ` 부호 오류) Observer 탑뷰/근접샷만으로는 삼각형이 어느 쪽으로 벌어졌는지 판별이 어려워 파이프라인이 회귀를 잡지 못하고 사람이 발견. 방향 판정에 필요한 "기준점"이 체크리스트에 없던 것이 원인.
+
+### agent/REVIEW_CHECKLIST.md
+- §3-1에 `[코드 검증] 꼬리지느러미 방향 — tailGeo.rotateZ 부호` 항목 추가. 기준점(머리=inner +X / 눈 `position.x=1.0`, 꼬리=−X)을 명시하고, `tailGeo.rotateZ()` 인자가 음수(−Math.PI/2)여야 함을 결정적 조건으로 규정. 양수(+π/2)면 apex가 꼬리 끝(−X)으로 나가 `(몸통)>` 화살촉이 되므로 실패.
+- `<!-- @src: src/entities/Fish.ts:createFishMesh -->` 바인딩 추가 — `npm run check:checklist`의 stale 감지 대상에 편입.
+
+### 효과 / 검증
+- §3 등지느러미 `rotation.y` 부호 검증과 동일한 결정적 코드 검증 패턴으로 자동화 — 다음 실행부터 Reviewer가 코드만으로 꼬리 방향 회귀를 판정.
+- `npm run check:checklist` 13개 바인딩 전부 정상, `npx tsc --noEmit` 통과.
+
+---
+
 ## [2026-06-28] CHANGELOG 백필 + 갱신 규칙 자동화
 
 ### 배경
