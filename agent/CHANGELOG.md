@@ -7,6 +7,26 @@
 
 ---
 
+## [2026-07-11] Vision judge 신뢰성 영속화 + 재현성 측정
+
+### 배경
+로드맵 3순위(vision judge)의 남은 일 중 하나. judge가 recall/precision을 계산하되 콘솔에 출력하고 버려, "평가자가 시간이 지나며 나빠졌나"를 숫자로 답할 수 없었다. 게다가 judge는 sonnet 호출이라 **비결정적**인데(같은 이미지도 실행마다 판정이 흔들릴 수 있음) 그 변동을 기록하지 않았다. 1순위가 비용 CV로 재현성을 정량화했듯(`metrics.jsonl`→`report.ts`), 평가자 자신의 재현성도 재야 파이프라인에 안전하게 얹을 수 있다.
+
+### agent/vision/judge.ts
+- 판정마다 `agent/vision/judgments.jsonl`에 한 줄 append(`{ts, run, axis, archive, shot, truth, verdict, correct, rep}`). 한 번의 `vision:judge` 호출 = 하나의 run.
+- `--repeat=K` 플래그 — 같은 이미지를 K번 판정해 **판정 flip율(자기일관성)** 측정. 비용 CV의 평가자 버전. K>1이면 다수결과 다른 판정 비율·불안정 이미지 출력.
+
+### agent/vision/reliability.ts (신설, `npm run vision:reliability`)
+- `judgments.jsonl`을 읽어 축별로: 누적 recall/precision, **실행 간 recall/precision CV**(run이 2개 이상일 때 재현성), 이미지별 판정 flip율(자기일관성) 리포트. `report.ts`가 `metrics.jsonl`로 비용 재현성을 재는 구조와 병행.
+
+### 기타
+- `package.json`에 `vision:reliability` 스크립트, `.gitignore`에 `judgments.jsonl`(분석 산출물, `metrics.jsonl`과 동일 취급).
+
+### 검증
+- godray 축 2회 실행(repeat 1 + repeat 2, 9판정): 실행 간 recall CV 0.0%, flip율 0.0% — "godray awkward 판정은 확률적 흔들림 없이 안정 → SUGGESTIONS 트리거 승격 안전"을 숫자로 확인. 파이프라인 통합(judge를 Reviewer 사이클에 연결)의 전제 조건 충족.
+
+---
+
 ## [2026-07-10] Fish 꼬리지느러미 방향 결정적 검증 항목 추가
 
 ### 배경

@@ -6,6 +6,7 @@ agent/logs/
 agent/observations/
 agent/pending-commit.json
 agent/metrics.jsonl
+agent/vision/judgments.jsonl
 .vscode/
 .claude/
 docs
