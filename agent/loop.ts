@@ -58,6 +58,7 @@ import {
   extractCommitMsg,
   recordCompletedGoal,
 } from "./pipeline/goals.js";
+import { visionSuggestions } from "./pipeline/vision-check.js";
 import { runEvolutionStep, type DramaScoreResult } from "./evolve.js";
 import { runNumericChecks } from "./checks/numeric.js";
 
@@ -91,6 +92,24 @@ function evaluateAesthetic(observation: Observation | null): AestheticEval {
     }
   }
   return ae;
+}
+
+/**
+ * 측정된 vision judge(재현성 입증 축만)를 라이브 프레임에 판정해 awkward면 SUGGESTIONS 추가.
+ * Aesthetic Evaluator와 병렬. suppress 임계치를 존중(백로그 과다 시 보류). SUGGESTIONS 전용.
+ */
+function appendVisionSuggestions(observation: Observation | null): void {
+  console.log(`\n👁  Vision Judge (승격 축) — 라이브 프레임 판정`);
+  const sugg = visionSuggestions(observation?.screenshots ?? []);
+  if (sugg.length === 0) return;
+  const pendingNow = parsePendingGoals().length;
+  if (pendingNow >= SUGGESTION_SUPPRESS_THRESHOLD) {
+    console.log(`  ⏸  미완료 목표 ${pendingNow}개 ≥ 임계치(${SUGGESTION_SUPPRESS_THRESHOLD}) — vision-check 제안 보류`);
+    return;
+  }
+  appendGoals(sugg);
+  console.log(`  💡 vision-check 제안 ${sugg.length}개 → goals.md 추가`);
+  for (const s of sugg) console.log(`    - ${s.slice(0, 90)}`);
 }
 
 /** 생성된 목표를 goals.md에 추가하고 즉시 파이프라인으로 실행. 단독 리뷰 3분기 공통. */
@@ -210,6 +229,9 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
         }
       }
       fullObservationSummary = observationSummary + formatAestheticSummary(aestheticEval);
+
+      // 측정된 vision judge(승격 축)를 라이브 프레임에 병렬 판정 → awkward면 SUGGESTIONS
+      appendVisionSuggestions(observation);
     }
 
     // Evolver 결과는 모든 cycle에서 Planner에게 전달 (cycle 0 미적 평가와 독립)
@@ -353,6 +375,9 @@ function runStandaloneReview(budget: RunBudget): void {
   console.log(`\n🎨 Aesthetic Evaluator — 애니메이션 스타일 평가`);
   const aestheticEval = evaluateAesthetic(observation);
   const fullObservationSummary = observationSummary + formatAestheticSummary(aestheticEval);
+
+  // 측정된 vision judge(승격 축)를 라이브 프레임에 병렬 판정 → awkward면 SUGGESTIONS
+  appendVisionSuggestions(observation);
 
   // Reviewer 실행 (목표 없이, 전체 체크리스트 점검)
   console.log(`\n🔍 Reviewer — 체크리스트 전체 점검`);

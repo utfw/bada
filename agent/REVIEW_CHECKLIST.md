@@ -187,7 +187,7 @@
 
 - **[시각 검증] 갓레이 가시성**: `screenshot-1~4.png` 중 최소 1장에서 수면에서 내려오는 밝은 쐐기형 광선 줄기가 보여야 한다. 4장 모두에서 광선이 보이지 않으면 opacity·위치·각도 문제이므로 **실패 징후** — SUGGESTIONS에 갓레이 opacity/위치 개선 추가.
 
-<!-- @src: agent/vision/judge.ts:AXIS_RUBRICS -->
+<!-- @src: agent/vision/core.ts:AXIS_RUBRICS -->
 - **[시각 품질] 갓레이 자연스러움 (Vision judge — godray 축)**: 갓레이 "존재/가시성"만으로는 품질을 평가하지 못한다(수치 가드레일과 Reviewer 한 줄 시각 검증은 opacity>0 같은 **부재**만 잡고, 평면 띠·실선 같은 **저품질**은 통과시킨다 — 실제로 에이전트가 godray를 반복 수정해도 체감 개선이 없던 원인). godray 축 ground-truth(`agent/vision/labels.json`의 `axis:"godray"` 샘플)는 **가시성 + 자연스러움(부피감·농담)** 두 가지를 본다: 광선이 비가시(opacity 과소)이거나, 보이더라도 균일 너비의 **납작한 평면 띠·가는 실선**이면 awkward. 판정 절차 — (1) 빛줄기가 인지되는가? (2) 인지된다면 부피감 있는 광선인가, 그어 놓은 띠/실선인가? Reviewer는 `surface-up.png`(수면 투시 앵글이라 godray가 가장 잘 드러남)를 직접 Read해 이 기준으로 판정하고, awkward면 SUGGESTIONS에 "godray를 ConeGeometry 또는 부피감 falloff(아래로 갈수록 퍼지고 옅어지는 농담) 있는 shader로 — 균일 사각 띠/실선 금지" 목표를 추가한다. 이 항목은 REVIEW_FAIL 사유가 아닌 SUGGESTIONS 트리거다. **회귀 검증**: `npm run vision:judge -- --axis=godray`로 Vision 판정과 라벨 일치(recall/precision)를 먼저 확인 — recall이 충분히 높아야 이 축을 신뢰할 수 있다(2026-06-28 기준 recall 100%, precision 100%, 단 측정셋에 natural 프레임 0개라 precision은 진짜 부피감 godray 구현 후 재검증 필요).
 
 - **[코드 검증] Ocean.ts god ray 수직 방향 필수**: `Ocean.ts`의 `addGodRays()`에서 PlaneGeometry 메시의 `rotation.x`가 `Math.PI/2`이면 **수평 평면(XZ)**이 되어 height(8~14) 단위가 Z축으로 전개된다 — 측면 카메라에서 edge-on으로만 보이므로 광선 기둥 효과가 없다. 목표("Y축 하향 광선 스프라이트")를 달성하려면 `|rotation.x| < 0.5`(기본 수직 방향)이어야 하며 height가 Y축으로 전개되어야 한다. `rotation.x = Math.PI/2` 설정이면 **실패**.

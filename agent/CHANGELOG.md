@@ -7,6 +7,28 @@
 
 ---
 
+## [2026-07-11] Vision judge를 라이브 파이프라인에 연결 (승격 축 SUGGESTIONS)
+
+### 배경
+로드맵 3순위의 명시된 잔여 작업 — "vision judge를 Reviewer 사이클에 직접 호출 연결". 직전에 평가자 재현성 인프라(vision:reliability)를 깔았으므로 이제 안전하게 착수 가능: **재현성(CV·flip율)이 낮게 입증된 축만** 라이브 프레임에 판정해 SUGGESTIONS를 낸다. 로드맵 원칙 준수 — judge는 PASS/FAIL 결정권 없이 SUGGESTIONS 트리거로만.
+
+### agent/vision/core.ts (신설)
+- `AXIS_RUBRICS` + `judgeImage`(순수 판정, 부작용 없음) + 타입을 judge.ts에서 추출. judge.ts(측정)와 pipeline/vision-check.ts(라이브)가 중복 없이 공유. `judgeImage`가 jsonl에 기록하지 않으므로 라이브 판정이 신뢰성 측정 데이터를 오염시키지 않는다.
+
+### agent/pipeline/vision-check.ts (신설)
+- `PROMOTED_AXES=["godray"]` — 재현성 입증 축만 승격(godray: 2026-07-11 실측 recall CV 0.0%/flip율 0.0%; bubble은 미측정이라 제외 = 게이트가 실제로 무언가를 배제). 축→라이브 스크린샷 매핑(godray→surface-up.png). `visionSuggestions()`가 승격 축을 라이브 프레임에 판정해 awkward면 축별 개선 목표(§10 정합) 반환.
+
+### agent/loop.ts
+- `appendVisionSuggestions()` 헬퍼 — runGoal cycle 0(Aesthetic 직후)과 standaloneReview 두 곳에서 호출. Aesthetic과 병렬. suppress 임계치 존중, appendGoals(dedup·금지패턴 필터 경유). godray 중복 제안은 기존 dedup이 처리.
+
+### agent/REVIEW_CHECKLIST.md
+- `@src` 바인딩 정정: `judge.ts:AXIS_RUBRICS` → `core.ts:AXIS_RUBRICS`(추출로 이동).
+
+### 검증
+- typecheck·check:checklist(12바인딩)·vision:judge(리팩터 후 recall 100%) 통과. `agent:review -n 1` 라이브 실행: vision-check[godray]가 라이브 surface-up.png를 awkward 판정("납작한 기하 띠, 부피감 없음")해 SUGGESTION 추가 — 두 훅 지점 모두 발동. src 미변경(budget gate), judgments.jsonl 미오염(라이브 판정 12건 중 0건, 전부 측정용) 확인.
+
+---
+
 ## [2026-07-11] Vision judge 신뢰성 영속화 + 재현성 측정
 
 ### 배경
