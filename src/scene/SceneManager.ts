@@ -145,7 +145,6 @@ export class SceneManager {
 
   applyWeather(data: WeatherData): void {
     this.lighting.applyWeather(data);
-    this.ocean.applyWeather(data);
     this.skyBox.applyWeather(data.condition);
 
     if (this.scene.fog instanceof THREE.FogExp2) {

@@ -8,15 +8,13 @@ import {
   CAMERA_FOV,
   CAMERA_NEAR,
 } from '../utils/constants';
-import { WeatherData } from '../weather/WeatherService';
 
 interface GodRay {
-  mesh: THREE.Mesh<THREE.CylinderGeometry, THREE.ShaderMaterial>;
+  mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   baseOpacity: number;
 }
 
 export class Ocean {
-  private surface!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   private debrisParticles!: THREE.Points;
   private bubbleParticles!: THREE.Points;
   private _sharkPos = new THREE.Vector3();
@@ -31,74 +29,10 @@ export class Ocean {
   constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
     this._scene = scene;
     this._camera = camera;
-    this.createSurface(scene);
     this.createDebris(scene);
     this.createBubbles(scene);
     this.addGodRays(scene);
     this.createBackgroundQuad(camera);
-  }
-
-  private createSurface(scene: THREE.Scene): void {
-    const geometry = new THREE.PlaneGeometry(
-      OCEAN_WIDTH * 2,
-      OCEAN_WIDTH * 2,
-      64,
-      64,
-    );
-
-    const material = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uSurfaceColor: { value: new THREE.Color(0x0077be) },
-        uDeepColor: { value: new THREE.Color(0x0D73B8) },
-        uOpacity: { value: 0.82 },
-        uRefraction: { value: 0.04 },
-      },
-      vertexShader: `
-        uniform float uTime;
-        varying vec2 vUv;
-        varying float vWave;
-        void main() {
-          vUv = uv;
-          vec3 pos = position;
-          float wave = sin(pos.x * 0.5 + uTime) * 0.8
-                     + sin(pos.y * 0.3 + uTime * 0.7) * 0.6
-                     + sin((pos.x + pos.y) * 0.2 + uTime * 1.3) * 0.4;
-          pos.z += wave;
-          vWave = wave;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 uSurfaceColor;
-        uniform vec3 uDeepColor;
-        uniform float uOpacity;
-        uniform float uRefraction;
-        uniform float uTime;
-        varying vec2 vUv;
-        varying float vWave;
-        void main() {
-          vec2 distort = vec2(
-            sin(vUv.y * 25.0 + uTime) * uRefraction,
-            cos(vUv.x * 20.0 + uTime * 0.8) * uRefraction
-          );
-          vec2 distortedUv = vUv + distort;
-          float mixFactor = (vWave + 1.8) / 3.6;
-          vec3 color = mix(uDeepColor, uSurfaceColor, mixFactor);
-          float caustic = sin(distortedUv.x * 40.0) * sin(distortedUv.y * 40.0);
-          color += vec3(caustic * 0.05);
-          gl_FragColor = vec4(color, uOpacity);
-        }
-      `,
-      transparent: true,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    });
-
-    this.surface = new THREE.Mesh(geometry, material);
-    this.surface.rotation.x = -Math.PI / 2;
-    this.surface.position.y = SURFACE_HEIGHT;
-    scene.add(this.surface);
   }
 
   private createDebris(scene: THREE.Scene): void {
@@ -167,17 +101,20 @@ export class Ocean {
   }
 
   private addGodRays(scene: THREE.Scene): void {
-    // 8 cones with apex at surface, extending downward into the water
-    const configs: { x: number; z: number; radius: number; height: number; opacity: number; phase: number }[] = [
-      { x:  1.2, z: -0.8, radius: 0.9,  height: 12, opacity: 0.20, phase: 0.0 },
-      { x: -1.5, z:  1.0, radius: 0.7,  height: 12, opacity: 0.18, phase: 0.8 },
-      { x:  0.5, z:  4.0, radius: 0.9,  height: 12, opacity: 0.20, phase: 1.6 },
-      { x: -1.0, z: -4.0, radius: 0.9,  height: 12, opacity: 0.18, phase: 2.4 },
-      { x:  4.0, z:  0.3, radius: 0.9,  height: 12, opacity: 0.20, phase: 3.2 },
-      { x: -2.5, z: -0.5, radius: 0.7,  height: 12, opacity: 0.18, phase: 4.0 },
-      { x:  0.0, z: -2.0, radius: 0.9,  height: 12, opacity: 0.22, phase: 4.8 },
-      { x:  4.5, z:  4.0, radius: 1.2,  height: 12, opacity: 0.20, phase: 5.6 },
+    // 카메라를 향해 빌보드되는 세로 광선 평면들. 3D 실린더는 옆에서 보면 납작한
+    // 슬랩으로 잘려 보이므로, 항상 넓은 면이 카메라를 향하는 평면 + 부드러운
+    // 셰이더(중앙·상단 밝고 가장자리·깊이로 0으로 수렴)로 부피감을 낸다.
+    const configs: { x: number; z: number; width: number; opacity: number; phase: number }[] = [
+      { x:  1.5, z: -1.0, width: 4.0, opacity: 0.26, phase: 0.0 },
+      { x: -2.2, z:  1.5, width: 3.4, opacity: 0.22, phase: 0.8 },
+      { x:  0.8, z:  4.5, width: 4.4, opacity: 0.26, phase: 1.6 },
+      { x: -1.5, z: -4.5, width: 3.8, opacity: 0.22, phase: 2.4 },
+      { x:  5.0, z:  0.5, width: 3.8, opacity: 0.24, phase: 3.2 },
+      { x: -3.5, z: -1.0, width: 3.4, opacity: 0.22, phase: 4.0 },
+      { x: -0.5, z: -2.5, width: 4.6, opacity: 0.28, phase: 4.8 },
+      { x:  5.5, z:  4.5, width: 4.0, opacity: 0.24, phase: 5.6 },
     ];
+    const RAY_HEIGHT = 26;
 
     const godRayVertexShader = `
       varying vec2 vUv;
@@ -193,16 +130,21 @@ export class Ocean {
       uniform float uBaseOpacity;
       varying vec2 vUv;
       void main() {
-        float edge = abs(vUv.x - 0.5) * 2.0;
-        float radialFade = 1.0 - smoothstep(0.0, 1.0, edge);
-        float falloff = 1.0 - vUv.y;
-        float alpha = uBaseOpacity * radialFade * falloff * falloff * (0.85 + 0.15 * sin(uTime * 0.4 + uPhase));
-        gl_FragColor = vec4(0.659, 0.875, 1.0, alpha);
+        // 가로: 부드러운 벨 — 중앙 밝고 가장자리에서 정확히 0으로 수렴(하드 엣지 없음).
+        float d = abs(vUv.x - 0.5) * 2.0;             // 0 중앙, 1 가장자리
+        float horiz = (1.0 - d) * (1.0 - d);          // pow2 벨: d=0→1, d=1→0
+        // 세로: 수면(위, vUv.y=1) 밝고 깊이(아래)로 옅어짐. 최상단도 부드럽게 페이드.
+        float depth = smoothstep(0.0, 0.55, vUv.y);
+        float topFade = smoothstep(1.0, 0.88, vUv.y);
+        float vert = depth * topFade;
+        float pulse = 0.85 + 0.15 * sin(uTime * 0.4 + uPhase);
+        float alpha = uBaseOpacity * horiz * vert * pulse;
+        gl_FragColor = vec4(0.72, 0.87, 1.0, alpha);
       }
     `;
 
     for (const cfg of configs) {
-      const geometry = new THREE.CylinderGeometry(0.05, cfg.radius, cfg.height, 8);
+      const geometry = new THREE.PlaneGeometry(cfg.width, RAY_HEIGHT);
       const material = new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
@@ -213,11 +155,12 @@ export class Ocean {
         fragmentShader: godRayFragmentShader,
         transparent: true,
         depthWrite: false,
-        side: THREE.FrontSide,
+        side: THREE.DoubleSide,
         blending: THREE.AdditiveBlending,
       });
       const mesh = new THREE.Mesh(geometry, material);
-      mesh.position.set(cfg.x, SURFACE_HEIGHT - cfg.height / 2, cfg.z);
+      // 상단이 수면(SURFACE_HEIGHT) 근처에 오도록 배치. Y축 빌보드는 update()에서.
+      mesh.position.set(cfg.x, SURFACE_HEIGHT - RAY_HEIGHT / 2, cfg.z);
       scene.add(mesh);
       this.godRays.push({ mesh, baseOpacity: cfg.opacity });
     }
@@ -292,12 +235,14 @@ export class Ocean {
   }
 
   update(elapsed: number, delta: number): void {
-    this.surface.material.uniforms.uTime.value = elapsed;
-
-    // Animate god rays — time uniform drives per-ray pulse via shader
+    // Animate god rays — time uniform drives per-ray pulse via shader.
+    // 매 프레임 카메라를 향해 Y축 빌보드해 항상 넓은 면이 보이게 한다(납작한 슬랩 방지).
     this.godRayTime += delta;
     this.godRays.forEach((ray) => {
       ray.mesh.material.uniforms['uTime'].value = this.godRayTime;
+      const dx = this._camera.position.x - ray.mesh.position.x;
+      const dz = this._camera.position.z - ray.mesh.position.z;
+      ray.mesh.rotation.y = Math.atan2(dx, dz);
     });
 
     // Animate debris
@@ -345,37 +290,6 @@ export class Ocean {
     bubblePos.needsUpdate = true;
   }
 
-  applyWeather(data: WeatherData): void {
-    const surfaceUniforms = this.surface.material.uniforms;
-    switch (data.condition) {
-      case 'clear':
-        surfaceUniforms.uSurfaceColor.value.set(0x0099dd);
-        surfaceUniforms.uDeepColor.value.set(0x0D73B8);
-        surfaceUniforms.uOpacity.value = 0.82;
-        break;
-      case 'cloudy':
-        surfaceUniforms.uSurfaceColor.value.set(0x336688);
-        surfaceUniforms.uDeepColor.value.set(0x223344);
-        surfaceUniforms.uOpacity.value = 0.82;
-        break;
-      case 'rain':
-        surfaceUniforms.uSurfaceColor.value.set(0x225566);
-        surfaceUniforms.uDeepColor.value.set(0x112233);
-        surfaceUniforms.uOpacity.value = 0.82;
-        break;
-      case 'snow':
-        surfaceUniforms.uSurfaceColor.value.set(0x88aacc);
-        surfaceUniforms.uDeepColor.value.set(0x446688);
-        surfaceUniforms.uOpacity.value = 0.82;
-        break;
-      case 'fog':
-        surfaceUniforms.uSurfaceColor.value.set(0x445566);
-        surfaceUniforms.uDeepColor.value.set(0x223344);
-        surfaceUniforms.uOpacity.value = 0.82;
-        break;
-    }
-  }
-
   private createBackgroundQuad(camera: THREE.PerspectiveCamera): void {
     const geo = new THREE.PlaneGeometry(2, 2);
 
@@ -418,19 +332,12 @@ export class Ocean {
     const debrisMat = this.debrisParticles.material as THREE.ShaderMaterial;
     debrisMat.uniforms.uOpacity.value = 0.4 + (aqi - 1) * 0.15;
     debrisMat.uniforms.uSizeScale.value = 1.0 + (aqi - 1) * 0.33;
-
-    // AQI가 나쁠수록 수면 탁해짐
-    const surfaceUniforms = this.surface.material.uniforms;
-    surfaceUniforms.uOpacity.value = Math.min(surfaceUniforms.uOpacity.value + (aqi - 1) * 0.05, 1.0);
   }
 
   dispose(): void {
     this._camera.remove(this._bgQuad);
     this._bgQuad.geometry.dispose();
     this._bgQuad.material.dispose();
-
-    this.surface.geometry.dispose();
-    this.surface.material.dispose();
 
     this.debrisParticles.geometry.dispose();
     (this.debrisParticles.material as THREE.Material).dispose();
