@@ -1,11 +1,5 @@
 import * as THREE from 'three';
-import {
-  SURFACE_HEIGHT,
-  GOD_RAY_COUNT,
-  GOD_RAY_HEIGHT,
-  GOD_RAY_MAX_OPACITY,
-  GOD_RAY_COLOR,
-} from '../utils/constants';
+import { SURFACE_HEIGHT } from '../utils/constants';
 import { WeatherData, WeatherCondition } from '../weather/WeatherService';
 
 interface LightingPreset {
@@ -75,10 +69,6 @@ export class Lighting {
   private surfacePointLight: THREE.PointLight;
   private dorsalFillLight: THREE.DirectionalLight;
   private hemisphereLight: THREE.HemisphereLight;
-  private godRayCones: THREE.Mesh<THREE.CylinderGeometry, THREE.ShaderMaterial>[] = [];
-  private godRayConeBaseOpacity: number[] = [];
-  private nearRayMeshes: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>[] = [];
-  private nearRayGeo!: THREE.PlaneGeometry;
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
@@ -121,121 +111,16 @@ export class Lighting {
     this.surfacePointLight.position.set(0, SURFACE_HEIGHT - 1, 0);
     scene.add(this.surfacePointLight);
 
-    // God Rays — volumetric CylinderGeometry cones with AdditiveBlending ShaderMaterial
-    // Apex at surface, opening downward; always visible regardless of camera position
-    const rayColor = new THREE.Color(GOD_RAY_COLOR);
-
-    const vertexShader = `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `;
-
-    const fragmentShader = `
-      uniform float uTime;
-      uniform float uPhase;
-      uniform vec3 uColor;
-      uniform float uMaxOpacity;
-      uniform float uBaseMaxOpacity;
-      varying vec2 vUv;
-      void main() {
-        const float PI = 3.14159;
-        float fade = 0.18 * (1.0 - vUv.y);
-        float pulse = 0.9 + sin(uTime * 0.3 + uPhase) * 0.18;
-        float weatherScale = uBaseMaxOpacity > 0.0 ? uMaxOpacity / uBaseMaxOpacity : 1.0;
-        float alpha = fade * weatherScale * pulse;
-        float radial = sin(vUv.x * PI);
-        float radialFade = smoothstep(0.0, 0.45, radial) * smoothstep(1.0, 0.55, radial);
-        alpha *= radialFade;
-        gl_FragColor = vec4(uColor, alpha);
-      }
-    `;
-
-    for (let i = 0; i < GOD_RAY_COUNT; i++) {
-      const angle = (i / GOD_RAY_COUNT) * Math.PI * 2;
-      const radius = 5 + Math.random() * 12;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-
-      const baseOpacity = GOD_RAY_MAX_OPACITY * (0.9 + Math.random() * 0.2);
-      this.godRayConeBaseOpacity.push(baseOpacity);
-
-      const coneMat = new THREE.ShaderMaterial({
-        vertexShader,
-        fragmentShader,
-        uniforms: {
-          uTime: { value: 0 },
-          uPhase: { value: (i / GOD_RAY_COUNT) * Math.PI * 2 },
-          uColor: { value: rayColor },
-          uMaxOpacity: { value: baseOpacity },
-          uBaseMaxOpacity: { value: baseOpacity },
-        },
-        transparent: true,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      });
-
-      // CylinderGeometry(radiusTop, radiusBottom, height) — wide at surface (top), narrow at depth (bottom)
-      const bottomRadius = 0.06 + Math.random() * 0.03;
-      const topRadius = bottomRadius * 4.0;
-      const coneGeo = new THREE.CylinderGeometry(topRadius, bottomRadius * 0.2, GOD_RAY_HEIGHT, 16, 4, true);
-      const cone = new THREE.Mesh(coneGeo, coneMat);
-      // apex sits at SURFACE_HEIGHT; center of geometry is at SURFACE_HEIGHT - GOD_RAY_HEIGHT/2
-      cone.position.set(x, SURFACE_HEIGHT - GOD_RAY_HEIGHT / 2, z);
-      cone.renderOrder = 999;
-      scene.add(cone);
-      this.godRayCones.push(cone);
-    }
-
-    // Near-surface auxiliary god rays — narrow PlaneGeometry beams close to camera
-    this.nearRayGeo = new THREE.PlaneGeometry(2.4, 1.0);
-    const nearRayMat = new THREE.MeshBasicMaterial({
-      color: 0xa8d8f0,
-      opacity: 0.08,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    });
-    for (let i = 0; i < 16; i++) {
-      const mesh = new THREE.Mesh(this.nearRayGeo, nearRayMat);
-      const rawX = (i / 16 * 2 - 1) * 8 + Math.random() * 0.4;
-      const x = Math.abs(rawX) < 2.0 ? (rawX < 0 ? rawX - 2.5 : rawX + 2.5) : rawX;
-      mesh.position.set(
-        x,
-        Math.random() * 6 - 3,
-        Math.random() * 18 - 9,
-      );
-      mesh.rotation.x = 0.06 + Math.random() * 0.04;
-      mesh.rotation.y = Math.random() * 0.3 - 0.15;
-      mesh.renderOrder = 998;
-      scene.add(mesh);
-      this.nearRayMeshes.push(mesh);
-    }
+    // God ray 시각 효과는 SceneManager의 후처리(GodRayPass, 스크린스페이스 light
+    // scattering)로 일원화됨 — Lighting은 실제 조명만 담당한다. (이전엔 여기 실린더
+    // cone + 근접 PlaneGeometry beam이 있었으나 후처리 패스가 이를 사각형 아티팩트로
+    // 증폭해 제거함.)
   }
 
-  update(elapsed: number, camera: THREE.Camera): void {
-    const aboveSurface = camera.position.y > SURFACE_HEIGHT;
+  update(_elapsed: number, _camera: THREE.Camera): void {
     this.sunLight.position.set(0, SURFACE_HEIGHT + 10, 0);
     this.sunLight.target.position.set(0, -1, 0);
     this.sunLight.target.updateMatrixWorld();
-    this.godRayCones.forEach((cone) => {
-      cone.material.uniforms.uTime.value = elapsed;
-      if (aboveSurface) {
-        cone.material.uniforms.uMaxOpacity.value = Math.min(
-          cone.material.uniforms.uMaxOpacity.value,
-          0.25,
-        );
-      }
-    });
-    // nearRayMeshes visibility: hide when camera is above surface (rays come from above)
-    const nearRayVisible = !aboveSurface;
-    this.nearRayMeshes.forEach((m) => {
-      m.visible = nearRayVisible;
-    });
   }
 
   applyWeather(data: WeatherData): void {
@@ -249,11 +134,6 @@ export class Lighting {
     fog.color.set(preset.fogColor);
     fog.density = preset.fogDensity;
     (this.scene.background as THREE.Color).set(preset.fogColor);
-
-    const opacityScale = preset.godRayIntensity / WEATHER_PRESETS.clear.godRayIntensity;
-    this.godRayCones.forEach((cone, i) => {
-      cone.material.uniforms.uMaxOpacity.value = this.godRayConeBaseOpacity[i] * opacityScale;
-    });
   }
 
   applyAqi(aqi: number): void {
@@ -268,13 +148,5 @@ export class Lighting {
     this.dorsalFillLight.dispose();
     this.underFillPoint.dispose();
     this.surfacePointLight.dispose();
-    this.godRayCones.forEach((cone) => {
-      cone.geometry.dispose();
-      cone.material.dispose();
-    });
-    this.nearRayGeo.dispose();
-    if (this.nearRayMeshes.length > 0) {
-      this.nearRayMeshes[0].material.dispose();
-    }
   }
 }

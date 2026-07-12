@@ -6,11 +6,16 @@ import { WhaleShark } from '../entities/WhaleShark';
 import { FishSchool } from '../entities/Fish';
 import { DeviceControls } from '../controls/DeviceControls';
 import { WeatherData } from '../weather/WeatherService';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { GodRayPass } from './GodRayPass';
 import {
   CAMERA_FOV,
   CAMERA_NEAR,
   CAMERA_FAR,
   MAX_PIXEL_RATIO,
+  SURFACE_HEIGHT,
   DEFAULT_FOG_DENSITY,
   DEFAULT_FOG_COLOR,
   DEFAULT_BG_COLOR,
@@ -34,10 +39,16 @@ export class SceneManager {
   private container!: HTMLElement;
   private isRunning = false;
   private animationFrameId = 0;
+  private composer!: EffectComposer;
+  private godRayPass!: GodRayPass;
   private readonly _sharkWorldPos = new THREE.Vector3();
   private readonly _sharkWorldFwd = new THREE.Vector3();
   private readonly _sharkNDC = new THREE.Vector3();
   private readonly _cameraLookTarget = new THREE.Vector3();
+  // God ray 광원(태양) — Lighting.sunLight와 동일한 수면 위 지점. 매 프레임 스크린 투영.
+  private readonly _sunWorld = new THREE.Vector3(0, SURFACE_HEIGHT + 10, 0);
+  private readonly _sunNDC = new THREE.Vector3();
+  private readonly GODRAY_EXPOSURE = 0.9;
 
   async init(): Promise<void> {
     this.container = document.getElementById('scene-container')!;
@@ -75,6 +86,15 @@ export class SceneManager {
     this.whaleShark = new WhaleShark(this.scene);
     this.fishSchool = new FishSchool(this.scene);
     this.controls = new DeviceControls(this.camera, this.renderer.domElement);
+
+    // 후처리 체인: 씬 렌더 → 볼류메트릭 god ray(가산) → 톤매핑·sRGB 출력.
+    // 톤매핑을 OutputPass로 이관하므로 RenderPass는 linear 중간 버퍼에 렌더된다.
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.godRayPass = new GodRayPass();
+    this.composer.addPass(this.godRayPass);
+    this.composer.addPass(new OutputPass());
+    this.composer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
 
     window.addEventListener('resize', this.onResize);
 
@@ -203,7 +223,18 @@ export class SceneManager {
       this.camera.lookAt(this._cameraLookTarget);
     }
 
-    this.renderer.render(this.scene, this.camera);
+    // God ray 광원(태양)을 스크린 uv로 투영해 패스에 전달. 카메라 뒤면(z>1) 광선 끔.
+    // 태양(수면 위 지점)을 스크린 uv로 투영해 광선의 방사 중심으로 삼는다.
+    this._sunNDC.copy(this._sunWorld).project(this.camera);
+    if (this._sunNDC.z < 1) {
+      this.godRayPass.setLightPosition(this._sunNDC.x * 0.5 + 0.5, this._sunNDC.y * 0.5 + 0.5);
+      this.godRayPass.setExposure(this.GODRAY_EXPOSURE);
+    } else {
+      this.godRayPass.setExposure(0);
+    }
+    this.godRayPass.setTime(elapsed);
+
+    this.composer.render();
   };
 
   private getContainerSize(): { width: number; height: number } {
@@ -218,6 +249,7 @@ export class SceneManager {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
+    this.composer.setSize(width, height);
   };
 
   dispose(): void {
@@ -225,6 +257,8 @@ export class SceneManager {
     cancelAnimationFrame(this.animationFrameId);
     window.removeEventListener('resize', this.onResize);
 
+    this.godRayPass.dispose();
+    this.composer.dispose();
     this.renderer.dispose();
     this.renderer.domElement.remove();
 

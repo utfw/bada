@@ -9,18 +9,11 @@ import {
   CAMERA_NEAR,
 } from '../utils/constants';
 
-interface GodRay {
-  mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
-  baseOpacity: number;
-}
-
 export class Ocean {
   private debrisParticles!: THREE.Points;
   private bubbleParticles!: THREE.Points;
   private _sharkPos = new THREE.Vector3();
   private _sharkFwd = new THREE.Vector3(0, 0, -1);
-  private godRays: GodRay[] = [];
-  private godRayTime: number = 0;
   private godRaySpots: THREE.SpotLight[] = [];
   private _scene!: THREE.Scene;
   private _bgQuad!: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
@@ -101,70 +94,10 @@ export class Ocean {
   }
 
   private addGodRays(scene: THREE.Scene): void {
-    // 카메라를 향해 빌보드되는 세로 광선 평면들. 3D 실린더는 옆에서 보면 납작한
-    // 슬랩으로 잘려 보이므로, 항상 넓은 면이 카메라를 향하는 평면 + 부드러운
-    // 셰이더(중앙·상단 밝고 가장자리·깊이로 0으로 수렴)로 부피감을 낸다.
-    const configs: { x: number; z: number; width: number; opacity: number; phase: number }[] = [
-      { x:  1.5, z: -1.0, width: 4.0, opacity: 0.26, phase: 0.0 },
-      { x: -2.2, z:  1.5, width: 3.4, opacity: 0.22, phase: 0.8 },
-      { x:  0.8, z:  4.5, width: 4.4, opacity: 0.26, phase: 1.6 },
-      { x: -1.5, z: -4.5, width: 3.8, opacity: 0.22, phase: 2.4 },
-      { x:  5.0, z:  0.5, width: 3.8, opacity: 0.24, phase: 3.2 },
-      { x: -3.5, z: -1.0, width: 3.4, opacity: 0.22, phase: 4.0 },
-      { x: -0.5, z: -2.5, width: 4.6, opacity: 0.28, phase: 4.8 },
-      { x:  5.5, z:  4.5, width: 4.0, opacity: 0.24, phase: 5.6 },
-    ];
-    const RAY_HEIGHT = 26;
-
-    const godRayVertexShader = `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `;
-
-    const godRayFragmentShader = `
-      uniform float uTime;
-      uniform float uPhase;
-      uniform float uBaseOpacity;
-      varying vec2 vUv;
-      void main() {
-        // 가로: 부드러운 벨 — 중앙 밝고 가장자리에서 정확히 0으로 수렴(하드 엣지 없음).
-        float d = abs(vUv.x - 0.5) * 2.0;             // 0 중앙, 1 가장자리
-        float horiz = (1.0 - d) * (1.0 - d);          // pow2 벨: d=0→1, d=1→0
-        // 세로: 수면(위, vUv.y=1) 밝고 깊이(아래)로 옅어짐. 최상단도 부드럽게 페이드.
-        float depth = smoothstep(0.0, 0.55, vUv.y);
-        float topFade = smoothstep(1.0, 0.88, vUv.y);
-        float vert = depth * topFade;
-        float pulse = 0.85 + 0.15 * sin(uTime * 0.4 + uPhase);
-        float alpha = uBaseOpacity * horiz * vert * pulse;
-        gl_FragColor = vec4(0.72, 0.87, 1.0, alpha);
-      }
-    `;
-
-    for (const cfg of configs) {
-      const geometry = new THREE.PlaneGeometry(cfg.width, RAY_HEIGHT);
-      const material = new THREE.ShaderMaterial({
-        uniforms: {
-          uTime: { value: 0 },
-          uPhase: { value: cfg.phase },
-          uBaseOpacity: { value: cfg.opacity },
-        },
-        vertexShader: godRayVertexShader,
-        fragmentShader: godRayFragmentShader,
-        transparent: true,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-        blending: THREE.AdditiveBlending,
-      });
-      const mesh = new THREE.Mesh(geometry, material);
-      // 상단이 수면(SURFACE_HEIGHT) 근처에 오도록 배치. Y축 빌보드는 update()에서.
-      mesh.position.set(cfg.x, SURFACE_HEIGHT - RAY_HEIGHT / 2, cfg.z);
-      scene.add(mesh);
-      this.godRays.push({ mesh, baseOpacity: cfg.opacity });
-    }
-
+    // 시각 광선은 SceneManager의 후처리(GodRayPass, 스크린스페이스 light scattering)가
+    // 담당한다 — 지오메트리 방식은 부피감을 낼 수 없어 제거됨. 여기서는 수면에서
+    // 내려오는 실제 조명(SpotLight)만 둔다: 물고기·고래상어를 위에서 비춰 후처리
+    // 광선이 걸릴 밝은 실루엣 대비(occlusion gap)를 만든다.
     const spotPositions: { x: number; z: number }[] = [
       { x: -8, z:  0 },
       { x:  8, z:  0 },
@@ -234,17 +167,8 @@ export class Ocean {
     scene.add(this.bubbleParticles);
   }
 
-  update(elapsed: number, delta: number): void {
-    // Animate god rays — time uniform drives per-ray pulse via shader.
-    // 매 프레임 카메라를 향해 Y축 빌보드해 항상 넓은 면이 보이게 한다(납작한 슬랩 방지).
-    this.godRayTime += delta;
-    this.godRays.forEach((ray) => {
-      ray.mesh.material.uniforms['uTime'].value = this.godRayTime;
-      const dx = this._camera.position.x - ray.mesh.position.x;
-      const dz = this._camera.position.z - ray.mesh.position.z;
-      ray.mesh.rotation.y = Math.atan2(dx, dz);
-    });
-
+  update(elapsed: number, _delta: number): void {
+    // 시각 god ray는 후처리(GodRayPass)가 담당 — 여기서는 파티클만 애니메이트.
     // Animate debris
     const debrisPos = this.debrisParticles.geometry.attributes
       .position as THREE.BufferAttribute;
@@ -298,7 +222,8 @@ export class Ocean {
     // (Three.js PlaneGeometry starts at top-left and goes row by row)
     const posAttr = geo.attributes.position as THREE.BufferAttribute;
     const colors = new Float32Array(posAttr.count * 3);
-    const topColor = new THREE.Color(0x0d4a6e);
+    // 상단을 밝은 시안으로 — 후처리 God ray가 "쏟아질" 밝은 광원(수면) 역할 + 수직 깊이감.
+    const topColor = new THREE.Color(0x3a9fd8);
     const bottomColor = new THREE.Color(0x020818);
     for (let i = 0; i < posAttr.count; i++) {
       const y = posAttr.getY(i);
@@ -344,13 +269,6 @@ export class Ocean {
 
     this.bubbleParticles.geometry.dispose();
     (this.bubbleParticles.material as THREE.Material).dispose();
-
-    this.godRays.forEach(({ mesh }) => {
-      mesh.geometry.dispose();
-      mesh.material.dispose();
-      this._scene.remove(mesh);
-    });
-    this.godRays = [];
 
     for (const spot of this.godRaySpots) {
       this._scene.remove(spot);
