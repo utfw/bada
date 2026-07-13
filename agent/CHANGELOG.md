@@ -7,7 +7,17 @@
 
 ---
 
-## [2026-07-11] Vision judge를 라이브 파이프라인에 연결 (승격 축 SUGGESTIONS)
+## [2026-07-13] Vision judge godray 축 재교정 실험 — 사람↔judge 경계 불일치 정량화
+
+### 배경
+후처리 볼류메트릭 god ray 구현(커밋 dc75eb2) 후, 빌보드→후처리 8회+ 반복에도 judge가 모든 god ray를 일관되게 awkward로 판정. 사람 눈엔 후처리 버전이 실제 볼류메트릭 god ray(부드러운 방사형 갈래·실루엣·농담)로 보이는데 judge는 "가는 방사형 실선"으로 봄. judge가 나쁜 god ray(평면 슬랩·비가시)는 잘 잡았으나 좋은 god ray를 못 알아보는지 = 과잉 엄격인지 정량 검증.
+
+### agent/vision/labels.json + 아카이브
+- 후처리 god ray 프레임 2개 라벨 추가(균형 라벨링): surface-up(광선 또렷·방사형) → `natural`, screenshot-1(수평 앵글이라 광선 희미) → `awkward`. 프레임은 `agent/observations/history/2026-07-13T00-00-00_dc75eb2/`에 보존(gitignore — 기존 라벨 아카이브와 동일하게 로컬 측정 전용).
+
+### 측정 결과 (`npm run vision:judge -- --axis=godray`)
+- **precision 100% → 80%** (FP=1), recall 100% 유지. judge가 natural 라벨 프레임을 awkward로 오탐(FP), 희미한 screenshot-1은 정확히 awkward(TP).
+- **해석(정직)**: judge의 근거("가는 실선, 부피감 없음")도 완전 부당하진 않음 — god ray가 부드럽지만 다소 희미한 건 사실. "judge가 틀렸다"가 아니라 **주관적 품질 경계에서의 사람↔judge 불일치**이며, precision 80%가 이를 정량화. 로드맵 원칙("judge는 결정권자 아닌 신호") 재확인 — 주관 축은 만족 가능 구간이 좁고 rubric-alignment가 지속 필요. 향후 사람 재검토로 라벨 정정 가능(과거 borderline 정정 선례와 동일).
 
 ### 배경
 로드맵 3순위의 명시된 잔여 작업 — "vision judge를 Reviewer 사이클에 직접 호출 연결". 직전에 평가자 재현성 인프라(vision:reliability)를 깔았으므로 이제 안전하게 착수 가능: **재현성(CV·flip율)이 낮게 입증된 축만** 라이브 프레임에 판정해 SUGGESTIONS를 낸다. 로드맵 원칙 준수 — judge는 PASS/FAIL 결정권 없이 SUGGESTIONS 트리거로만.

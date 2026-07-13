@@ -105,6 +105,20 @@
       "axis": "godray",
       "label": "awkward",
       "criterion": "[godray] 측면 정면 앵글, 수면 아래 깊은 곳에 빛줄기가 거의 보이지 않음. 가는 수직선 1~2개만 어렴풋 → awkward (단 측면 앵글은 surface-up보다 갓레이가 덜 드러나는 게 정상임을 감안해도 과소)."
+    },
+    {
+      "archive": "agent/observations/history/2026-07-13T00-00-00_dc75eb2",
+      "shot": "surface-up.png",
+      "axis": "godray",
+      "label": "natural",
+      "criterion": "[godray][후처리·재교정 테스트] 후처리(GodRayPass, 스크린스페이스 light scattering) 도입 프레임. 수면 방향에서 고래상어 뒤로 부드러운 방사형 빛줄기가 퍼지고 실루엣이 걸리며 아래로 옅어지는 농담이 있음 → 사람 판단: 평면 슬랩·비가시 awkward 범주와 명확히 다른 '실제 볼류메트릭 god ray'라 natural. **judge는 이를 일관되게 awkward('가는 방사형 실선')로 판정** — 이 라벨은 judge의 godray 축 기준이 과잉 엄격(좋은 프레임 오탐)인지 recall/precision으로 검증하기 위한 rubric-alignment 케이스. 향후 사람 재검토로 borderline/awkward 정정 가능."
+    },
+    {
+      "archive": "agent/observations/history/2026-07-13T00-00-00_dc75eb2",
+      "shot": "screenshot-1.png",
+      "axis": "godray",
+      "label": "awkward",
+      "criterion": "[godray][후처리·재교정 테스트] 같은 후처리 버전이나 수평 측면 앵글이라 태양이 화면 밖(위)이라 광선이 거의 인지되지 않음 → 사람 판단도 awkward(비가시). judge가 여기서 awkward면 정당한 TP. surface-up(natural)과 대비해 '같은 구현이라도 앵글에 따라 god ray 가시성이 다르다'를 라벨로 명시 — judge가 앵글을 구분해 좋은 프레임만 통과시키는지 균형 측정."
     }
   ]
 }
