@@ -198,18 +198,36 @@ function checkSeparationVsCohesion(): CheckResult {
 
 // ── 시각 효과 상수 ──────────────────────────────────────────────────────────
 
-/** GOD_RAY_MAX_OPACITY > 0. 0이면 갓레이 비가시. */
-function checkGodRayOpacity(): CheckResult {
-  const src = readSrc("src/utils/constants.ts");
-  const op = extractNumber(src, /GOD_RAY_MAX_OPACITY\s*=\s*([-\d.]+)/);
-  if (op === null) {
-    return { name: "GOD_RAY_MAX_OPACITY", ok: false, severity: "fail",
-      reason: "상수를 찾을 수 없음" };
+/**
+ * God ray는 후처리(GodRayPass) 방식 — 지오메트리 god ray는 씬 불변식으로 금지됨.
+ * 검증: (1) SceneManager가 GodRayPass를 composer에 배선하고 GODRAY_EXPOSURE > 0,
+ * (2) GodRayPass의 uExposure 기본값 > 0. 어느 쪽이 0이면 광선 비가시.
+ */
+function checkGodRayPassWiring(): CheckResult {
+  const name = "GodRayPass 배선";
+  let pass: string, mgr: string;
+  try {
+    pass = readSrc("src/scene/GodRayPass.ts");
+    mgr = readSrc("src/scene/SceneManager.ts");
+  } catch {
+    return { name, ok: false, severity: "fail",
+      reason: "GodRayPass.ts 또는 SceneManager.ts를 읽을 수 없음 — 후처리 god ray 제거됨?" };
   }
-  return op > 0
-    ? { name: "GOD_RAY_MAX_OPACITY", ok: true, severity: "fail" }
-    : { name: "GOD_RAY_MAX_OPACITY", ok: false, severity: "fail",
-        reason: `opacity=${op} → 갓레이 비가시` };
+  if (!/composer\.addPass\(\s*this\.godRayPass\s*\)/.test(mgr)) {
+    return { name, ok: false, severity: "fail",
+      reason: "SceneManager composer 체인에 godRayPass 미배선 → 광선 없음" };
+  }
+  const exposure = extractNumber(mgr, /GODRAY_EXPOSURE\s*=\s*([-\d.]+)/);
+  if (exposure === null || exposure <= 0) {
+    return { name, ok: false, severity: "fail",
+      reason: `SceneManager GODRAY_EXPOSURE=${exposure ?? "미검출"} → 광선 비가시` };
+  }
+  const uExposure = extractNumber(pass, /uExposure:\s*\{\s*value:\s*([-\d.]+)/);
+  if (uExposure === null || uExposure <= 0) {
+    return { name, ok: false, severity: "fail",
+      reason: `GodRayPass uExposure 기본값=${uExposure ?? "미검출"} → 광선 비가시` };
+  }
+  return { name, ok: true, severity: "fail" };
 }
 
 // ── 반점 스케일 일치 ─────────────────────────────────────────────────────────
@@ -287,7 +305,7 @@ const ALL_CHECKS: (() => CheckResult)[] = [
   checkCaudalDoubleRotation,
   checkOrbitVsSeparationWeight,
   checkSeparationVsCohesion,
-  checkGodRayOpacity,
+  checkGodRayPassWiring,
   checkSpotScale,
   checkOrbitPathsArrayExists,
   checkOrbitCentersSpread,

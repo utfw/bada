@@ -75,13 +75,6 @@ export const PREDATOR_FLEE_WEIGHT = 14.0;
 // flee 강도 0~1 정규화 시 사용 — fish 1마리의 즉각 force가 이 값이면 1.0으로 본다
 export const PREDATOR_FLEE_INTENSITY_NORM = 4.0;
 
-// ── God Rays (volumetric planes) ─────────────────
-export const GOD_RAY_COUNT = 8;
-export const GOD_RAY_HEIGHT = 38;
-export const GOD_RAY_PLANE_WIDTH = 0.044;
-export const GOD_RAY_MAX_OPACITY = 1.6;
-export const GOD_RAY_COLOR = 0xa8d8f0;
-
 // ── Controls ───────────────────────────────────────
 export const GYRO_SMOOTHING = 0.08;
 export const TOUCH_SENSITIVITY = 0.003;

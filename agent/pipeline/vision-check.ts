@@ -25,8 +25,9 @@ const AXIS_SHOT: Record<Axis, string> = {
 };
 
 // awkward 판정 시 내보낼 개선 목표. REVIEW_CHECKLIST §10 godray 가이드와 정합.
+// ⛔ 지오메트리 god ray 메시 추가를 유도하는 문구 금지 — 후처리(GodRayPass)가 씬 불변식.
 const AXIS_SUGGESTION: Record<Axis, string> = {
-  godray: "`src/scene/Ocean.ts`의 `addGodRays()`에서 baseOpacity를 상향(현재 0.005~0.007로 과소)하고, PlaneGeometry 대신 ConeGeometry 또는 fragment shader에 아래로 옅어지는 falloff를 추가해 부피감 있는 광선으로 교체",
+  godray: "`src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)",
   bubble: "`src/scene/Ocean.ts`의 `createBubbles()`에서 버블 스폰 거리(`mouthDist`)·높이 오프셋을 조정해 버블이 고래상어 몸통/등 표면을 덮지 않고 입 앞 바깥에 모이도록 수정",
 };
 

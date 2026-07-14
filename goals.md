@@ -350,13 +350,10 @@
 - [x] Fish ↔ WhaleShark 회피 상호작용:
 - [x] 진화 루프 정합성 (Evolver):
 - [x] - [x] Evolver 호출 위치: `agent/loop.ts`의 `runGoal()` 안, Observer 결과를 받은 직후·Planner 호출 전에 `runEvolutionStep()`이 한 번 호출되어야 한다.
-- [ ] 근접샷 검은 화면 금지:
-- [ ] 씬 불변식 (Do Not Regress):
+- [x] 근접샷 검은 화면 금지:
+- [x] 씬 불변식 (Do Not Regress):
 
 - [ ] WhaleShark 경로 제어점을 school 3 orbit center에서 21 unit 이상 유지하여 궤도 복귀 가능성 확보.
-- [ ] 비전 판독기에는 rate-limit와 코드 실패를 구별하여 cost accounting을 개선합니다.
-- [ ] `src/scene/Ocean.ts` `addGodRays()` — 현재 `PlaneGeometry` 기반 스트립을 `ConeGeometry(radiusTop=0.01, radiusBottom=0.4~0.6, height=18)`로 교체하고, `MeshBasicMaterial`의 `opacity`를 위쪽(top UV=0)에서 높고 아래쪽(bottom UV=1)에서 0으로 수렴하는 `alphaMap` 혹은 vertex color falloff로 구현하면 아래로 퍼지며 옅어지는 부피감 있는 빛 기둥이 됨; `depthWrite: false` 유지
-- [ ] `src/scene/Ocean.ts` god ray mesh의 `renderOrder` 또는 `material.depthTest`를 검토하여 불투명 사각 아티팩트(mesh 경계 직사각형이 보이는 현상) 제거 — `side: THREE.FrontSide`로 제한하고 카메라 방향 빌보드 회전(`.lookAt(camera.position)`) 적용해 띠 외곽이 노출되지 않도록 할 것
 
 - [ ] Fish.ts:87 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
 - [ ] `src/entities/Fish.ts` boids separation 반경 — `SEPARATION_RADIUS` 또는 동등 상수를 현재 값에서 **1.5× 상향**하고, 카메라와의 거리가 `< 5` 단위일 때 해당 물고기를 렌더에서 culling하거나 opacity를 0으로 처리해 주체 가림 방지

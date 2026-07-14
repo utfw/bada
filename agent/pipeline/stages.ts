@@ -203,14 +203,14 @@ ${numericReport}
 
 검증 절차 (순서대로):
 1. agent/REVIEW_CHECKLIST.md Read → 모든 항목 점검 (금지 규칙·갱신 규칙 포함).
-   다만 [코드 수치 검증] 표기 항목 중 위 자동 수치 검증에 포함된 항목(pectoral/dorsal 위치, rotation 부호, 가중치 비율, GOD_RAY_MAX_OPACITY, createSpots scale)은 **자동 결과를 그대로 인용**하고 재검증하지 말 것.
+   다만 [코드 수치 검증] 표기 항목 중 위 자동 수치 검증에 포함된 항목(pectoral/dorsal 위치, rotation 부호, 가중치 비율, GodRayPass 배선, createSpots scale)은 **자동 결과를 그대로 인용**하고 재검증하지 말 것.
 2. agent/observations/topview-t1.png, topview-t2.png 를 Read 도구로 직접 열어 머리/이동 방향 비교.
    ⚠️ 두 이미지를 Read로 열지 않으면 아래 "탑뷰 관찰" 섹션을 작성할 수 없음 — 템플릿 복붙 금지.
 3. agent/observations/screenshot-1~4.png, whaleshark-front/side/top/below.png, surface-up.png Read → 육안 확인 (자동 검증이 못 잡는 동적 gap·시각 품질 영역)
-   - surface-up.png: 아래에서 위를 바라본 샷. 수면 투시·갓레이·조명 분위기 확인 (§10 기준)
+   - surface-up.png: 아래에서 위를 바라본 샷. 상단 광원·후처리 갓레이·조명 분위기 확인 (§10 기준. 수면 평면은 의도적으로 없음 — 씬 불변식)
 4. npx tsc --noEmit Bash 실행 → 타입 에러 없어야 함
 5. 변경 파일 코드 Read → 목표 구현 여부, any 타입, dispose() 누락 확인
-   - src/scene/Ocean.ts: 갓레이 메시 생성, 수면 material 시간 갱신 구조 (§10)
+   - god ray는 후처리(SceneManager의 GodRayPass) 방식 — Ocean/Lighting에 지오메트리 god ray 메시가 추가돼 있으면 §10 불변식 위반 (§10)
    - src/scene/Lighting.ts: AmbientLight/DirectionalLight 비율, fog 색상 (§10)
 6. 새 버그 패턴 발견 시에만 REVIEW_CHECKLIST.md 갱신 (규칙·항목 추가/수정 시에만).
    - ⛔ REVIEW_PASS 결과 보고용으로 갱신 로그에 entry 추가 금지.

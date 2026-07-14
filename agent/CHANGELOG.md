@@ -7,6 +7,24 @@
 
 ---
 
+## [2026-07-14] God ray 후처리 전환에 따른 stale 항목 일괄 정리
+
+### 배경
+god ray가 지오메트리(Ocean 빌보드 + Lighting cone/near-ray)에서 후처리(GodRayPass)로 일원화(커밋 dc75eb2)되면서, 옛 지오메트리 전제의 검증·상수·목표·프롬프트가 곳곳에 stale로 남음. 에이전트가 이를 근거로 지오메트리 god ray를 "복구"하려 들면 씬 불변식 위반 + 사각 아티팩트 재발 위험 → 일괄 정리.
+
+### 변경
+- `src/utils/constants.ts`: 미사용 `GOD_RAY_COUNT/HEIGHT/PLANE_WIDTH/MAX_OPACITY/COLOR` 5개 상수 제거(src 참조 0건, typecheck 확인).
+- `agent/checks/numeric.ts`: `checkGodRayOpacity`(constants opacity>0 검사, 상수 제거로 무의미) → `checkGodRayPassWiring`(SceneManager composer에 godRayPass 배선 + `GODRAY_EXPOSURE`>0 + `GodRayPass.uExposure`>0 검증)으로 교체.
+- `agent/REVIEW_CHECKLIST.md` §10 대개편: stale 지오메트리 항목 5개(갓레이 A/B/C 존재, rotation.x 수직, ConeGeometry height=0, nearRay opacity, nearRayMesh 스트라이프) + 수면 항목 2개 제거 → "후처리 배선(씬 불변식)"·"수면 평면 없음 불변식"·"상단 광원 투시"로 교체. `@src`를 `GodRayPass.ts:GodRayPass`로. godray 자연스러움 항목에 재교정 실험(precision 80%) + 무한 재수정 방지(2회 연속 동일 원인 awkward→사람 이관) 반영.
+- `agent/pipeline/stages.ts`: Reviewer 프롬프트의 `GOD_RAY_MAX_OPACITY`→`GodRayPass 배선`, "갓레이 메시 생성·수면 material" 참조를 후처리·수면 평면 없음으로 갱신.
+- `agent/pipeline/vision-check.ts`: godray awkward 제안 문구를 "지오메트리 교체"에서 "GodRayPass uniform 조정(⛔ 지오메트리 메시 금지)"으로.
+- `goals.md`: 완료·충돌 pending 정리 — 지오메트리 god ray 목표 2개(후처리로 대체됨), 이미 완료된 rate-limit 목표 제거, 섹션 헤더 2개 `[ ]`→`[x]`.
+
+### 검증
+typecheck 0에러, check:checklist 전 바인딩 정상(GodRayPass 포함), numeric "GodRayPass 배선" 통과.
+
+---
+
 ## [2026-07-13] Vision judge godray 축 재교정 실험 — 사람↔judge 경계 불일치 정량화
 
 ### 배경
