@@ -58,6 +58,31 @@ export function getChangedFiles(): string[] {
 }
 
 /**
+ * 미커밋 agent/** 소스 변경을 감지해 경고한다(REVIEW_CHECKLIST.md 제외).
+ *
+ * autoCommitAndPush는 `src/`·`goals.md`·`agent/REVIEW_CHECKLIST.md`만 stage한다 —
+ * 에이전트가 자기 인프라(loop/observe 등)를 무검토로 push하는 것을 막는 의도된
+ * 가드레일(README·CHANGELOG 2026-05-01). 그 결과 에이전트 목표가 agent/** 소스를
+ * 수정하면 목표는 '완료'로 마킹되지만 그 변경은 커밋되지 않고 워킹트리에 조용히
+ * 남는다(과거 observe.ts가 6일간 고아로 방치된 실제 사례). 이 함수는 실행 종료 시
+ * 그런 미커밋 변경을 드러내 사람이 검토·수동 커밋 또는 되돌리도록 안내한다.
+ *
+ * 대상은 agent/** 소스(.ts)만 — evolution/history.json·metrics.jsonl 같은 런타임
+ * 데이터는 매 실행 갱신돼 경고 노이즈가 되므로 제외. REVIEW_CHECKLIST.md(.md)도
+ * autoCommit 대상이라 .ts 필터로 자연히 제외된다.
+ */
+export function warnUncommittedAgentChanges(): void {
+  const changed = getChangedFiles().filter(
+    (f) => f.startsWith("agent/") && f.endsWith(".ts"),
+  );
+  if (changed.length === 0) return;
+  console.log(`\n⚠️  agent/** 미커밋 변경 ${changed.length}개 — 자동 커밋 제외 대상 (사람 검토 필요)`);
+  for (const f of changed) console.log(`   - ${f}`);
+  console.log(`   → autoCommit은 agent/** 인프라를 stage하지 않는다(가드레일). 에이전트가 이를`);
+  console.log(`     수정했다면 사람이 검토 후 수동 커밋하거나, 원치 않으면 되돌릴 것: git checkout -- <파일>`);
+}
+
+/**
  * 시각 관련 소스가 바뀐 채로 목표가 완료됐을 때만 대표 스크린샷을 아카이브한다.
  * 기준은 출력(픽셀·점수)이 아니라 입력(시각 코드 변경)이라 타이밍 오탐이 없고,
  * meta.json으로 git 변경 내역과 연결돼 "무엇이 바뀌어 이렇게 됐는지" 추적 가능.

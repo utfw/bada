@@ -7,7 +7,17 @@
 
 ---
 
-## [2026-07-14] God ray 후처리 전환에 따른 stale 항목 일괄 정리
+## [2026-07-15] 미커밋 agent/** 변경 가시화 — 조용한 유실 방지
+
+### 배경
+`autoCommitAndPush`는 `src/`·`goals.md`·`agent/REVIEW_CHECKLIST.md`만 stage한다(에이전트가 자기 인프라를 무검토로 push하는 것 방지 — 의도된 가드레일, 2026-05-01). 그 결과 에이전트 목표가 `agent/**` 소스를 수정하면 목표는 `[x]` 완료로 마킹되고 커밋 메시지가 큐에 등록되지만, 그 변경은 커밋되지 않고 워킹트리에 **조용히 고아로** 남는다. 실제로 `agent/observe.ts`가 2026-07-09 자율 실행에서 수정(근접샷을 원점 원거리 샷으로 바꿔 검은화면을 회피 — 근접 검사 기능을 죽인 저품질 자가수정)됐으나 6일간 미커밋 방치되다 사람이 발견·되돌림. 가드레일은 옳게 auto-push를 막았으나 "완료 마킹 + 조용한 유실"이 구멍이었다.
+
+### agent/pipeline/goals.ts + loop.ts
+- `warnUncommittedAgentChanges()` 신설 — `getChangedFiles()`에서 미커밋 `agent/**` **소스(.ts)**를 감지해 실행 종료 시 "자동 커밋 제외 대상, 사람 검토 필요" 경고 + 되돌리기 안내 출력. 런타임 데이터(evolution/history.json·metrics.jsonl)는 매 실행 갱신돼 노이즈이므로 `.ts` 필터로 제외. REVIEW_CHECKLIST.md(.md)도 autoCommit 대상이라 자연 제외.
+- `runGoals()` 종료부에서 호출 — 가드레일(자동 커밋 제외)은 유지하면서 조용한 유실만 드러낸다. 에이전트가 인프라 개선을 제안하되 사람이 검토·커밋하는 흐름.
+
+### 검증
+typecheck 0에러. 헬퍼 단독 호출 시 현재 미커밋 `agent/**` .ts를 정확히 감지, `evolution/history.json`은 제외 확인.
 
 ### 배경
 god ray가 지오메트리(Ocean 빌보드 + Lighting cone/near-ray)에서 후처리(GodRayPass)로 일원화(커밋 dc75eb2)되면서, 옛 지오메트리 전제의 검증·상수·목표·프롬프트가 곳곳에 stale로 남음. 에이전트가 이를 근거로 지오메트리 god ray를 "복구"하려 들면 씬 불변식 위반 + 사각 아티팩트 재발 위험 → 일괄 정리.

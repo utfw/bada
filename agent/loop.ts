@@ -54,6 +54,7 @@ import {
   generateGoalsFromChecklist,
   generateGoalsFromReview,
   getChangedFiles,
+  warnUncommittedAgentChanges,
   archiveVisualMilestone,
   extractCommitMsg,
   recordCompletedGoal,
@@ -494,6 +495,10 @@ function runGoals(log: AgentLog, budget: RunBudget): void {
     console.log(`결과: ${completed}/${processed} 완료`);
   }
   console.log("═".repeat(60));
+
+  // 에이전트가 자기 인프라(agent/**)를 수정했으면 autoCommit이 이를 stage하지 않아
+  // 조용히 고아로 남는다 — 사람이 검토·수동 커밋하도록 실행 종료 시 경고.
+  warnUncommittedAgentChanges();
 }
 
 // ── 메인 ──────────────────────────────────────────────────────────────────────
