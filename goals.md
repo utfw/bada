@@ -358,7 +358,8 @@
 - [x] Fish.ts:87 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
 - [x] `src/entities/Fish.ts` boids separation 반경 — `SEPARATION_RADIUS` 또는 동등 상수를 현재 값에서 **1.5× 상향**하고, 카메라와의 거리가 `< 5` 단위일 때 해당 물고기를 렌더에서 culling하거나 opacity를 0으로 처리해 주체 가림 방지
 
-- [ ] Fish.ts:87 schoolDefs[2]의 yBase을 -7에서 -4로 변경 (원본 def: [-6, 8, -7, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
-- [ ] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
-- [ ] `src/entities/Fish.ts` 또는 `src/scene/Ocean.ts`의 `addGodRays` 함수에서 각 광선 PlaneGeometry의 `baseOpacity`를 현재 0.005~0.007에서 **0.04~0.08**로 상향하고, 광선 너비(`rayWidth`)도 1.5~2배 확대해 surface-up 앵글에서 빛 기둥이 또렷이 보이도록 수정
+- [x] Fish.ts:87 schoolDefs[2]의 yBase을 -7에서 -4로 변경 (원본 def: [-6, 8, -7, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [x] `src/entities/Fish.ts` 또는 `src/scene/Ocean.ts`의 `addGodRays` 함수에서 각 광선 PlaneGeometry의 `baseOpacity`를 현재 0.005~0.007에서 **0.04~0.08**로 상향하고, 광선 너비(`rayWidth`)도 1.5~2배 확대해 surface-up 앵글에서 빛 기둥이 또렷이 보이도록 수정
 - [ ] `src/entities/Fish.ts`의 Boids separation 반경(`separationRadius`) 또는 카메라 근접 시 repulsion 임계값을 높여 물고기 군집이 카메라(원점 0,0,0) 2~3유닛 이내로 진입하지 못하도록 제한해 주체(고래상어) 가림 현상 완화
+- [ ] `src/entities/Ocean.ts` `addGodRays()` — `baseOpacity` 를 현재 0.005~0.007에서 **0.04~0.06**으로 상향하고, 빔 `width`도 1.5× 확대해 GodRayPass 입력 휘도를 높일 것. opacity가 충분히 확보된 후에야 geometry/shader 교체(부피감 개선) 여부를 판단할 것.
