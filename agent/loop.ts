@@ -25,6 +25,7 @@ import {
   type GoalResult,
   type GoalMetrics,
   type StageMetrics,
+  type StageResult,
   type AestheticEval,
   type Observation,
   type RunBudget,
@@ -93,6 +94,21 @@ function evaluateAesthetic(observation: Observation | null): AestheticEval {
     }
   }
   return ae;
+}
+
+/**
+ * 단계(Planner/Implementer/Reviewer) 실패 시 반환할 GoalResult 결정.
+ * 예산 캡 도달(budgetExhausted)은 코드 실패가 아니라 자원 한도이므로, 전체 실행을
+ * 멈추지 않고 이 목표만 실패로 두고 다음 목표로 진행("failed"). 그 외 예기치 않은
+ * CLI 실패는 systemic 위험이라 실행 중단("interrupted").
+ */
+function stageFailureResult(result: StageResult, stageLabel: string): "failed" | "interrupted" {
+  if (result.budgetExhausted) {
+    console.log(`\n💸 ${stageLabel}: 예산 캡 도달 — 이 목표만 건너뛰고 다음 목표로 진행합니다(전체 중단 아님).`);
+    console.log(`   반복되면 stages.ts의 해당 단계 budgetUsd를 상향하거나 목표를 더 작게 쪼갤 것.`);
+    return "failed";
+  }
+  return "interrupted";
 }
 
 /**
@@ -251,7 +267,7 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
     if (planCheck === "stage-failed") {
       markGoal(goal.lineIndex, "pending");
       log.goalEnd(false, []);
-      return "interrupted";
+      return stageFailureResult(planResult, "Planner");
     }
     const plan = extractPlan(planResult.output);
 
@@ -276,7 +292,7 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
       if (implCheck === "stage-failed") {
         markGoal(goal.lineIndex, "pending");
         log.goalEnd(false, getChangedFiles().filter((f) => !filesBefore.has(f)));
-        return "interrupted";
+        return stageFailureResult(implResult, "Implementer");
       }
       if (!implResult.output.includes("IMPL_COMPLETE")) {
         reviewFeedback = "이전 구현이 IMPL_COMPLETE를 출력하지 않았습니다. 원인을 파악하고 다시 시도하세요.";
@@ -302,7 +318,7 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
       if (reviewCheck === "stage-failed") {
         markGoal(goal.lineIndex, "pending");
         log.goalEnd(false, changedSoFar);
-        return "interrupted";
+        return stageFailureResult(reviewResult, "Reviewer");
       }
 
       if (checklistBefore !== checklistAfter) {

@@ -152,6 +152,9 @@ export interface StageResult {
   output: string;
   success: boolean;
   rateLimited: boolean;
+  // 예산 캡(--max-budget-usd) 도달로 CLI가 중도 종료 — 코드 실패가 아닌 자원 한도.
+  // 이 목표만 실패 처리하고 다음 목표로 진행(전체 중단 방지)하기 위해 구분한다.
+  budgetExhausted?: boolean;
   metrics?: StageMetrics;
 }
 

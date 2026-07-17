@@ -122,7 +122,10 @@ ${plan}
   return runClaude(prompt, "Bash,Edit,Write,Read,Glob,Grep", 30, {
     model: "sonnet",
     effort: "low",
-    budgetUsd: 0.40,
+    // Implementer는 실제 편집+tsc+재시도라 복잡한 목표(예: 경로 거리 계산)에서
+    // $0.40으로는 작업 중 캡에 걸려 실패한다(2026-07-16 WhaleShark 경로 목표 실측).
+    // Reviewer와 동일한 $0.80으로 상향 — 캡은 상한이라 저렴한 목표(대부분)엔 무영향.
+    budgetUsd: 0.80,
   });
 }
 

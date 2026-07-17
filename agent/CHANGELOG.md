@@ -7,7 +7,18 @@
 
 ---
 
-## [2026-07-15] 미커밋 agent/** 변경 가시화 — 조용한 유실 방지
+## [2026-07-16] Implementer 예산 캡 상향 + 예산 초과가 전체 실행을 멈추지 않게
+
+### 배경
+`npm run agent`가 복잡한 목표(WhaleShark 경로 제어점 거리 계산)에서 실패·중단. Implementer가 $0.40 예산 캡(`--max-budget-usd`)에 걸려(14k out토큰/7턴 작업 중) CLI가 `subtype:"error_max_budget_usd", is_error:true`로 종료 → `success:false` → 단계 실패 → `interrupted` → **전체 실행 중단**(0/1 완료). 두 문제: (1) Implementer 예산이 복잡 목표엔 부족, (2) 예산 초과(자원 한도)를 코드 실패와 동일 취급해 한 목표가 전체 큐를 멈춤.
+
+### 변경
+- `agent/pipeline/stages.ts`: Implementer `budgetUsd` $0.40 → **$0.80**(Reviewer와 동일). 캡은 상한이라 저렴한 목표(대부분 $0.05~0.13)엔 무영향, 복잡 목표에만 헤드룸.
+- `agent/pipeline/types.ts`·`runner.ts`: `StageResult.budgetExhausted` 추가. `parseClaudeJson`이 `subtype === "error_max_budget_usd"`를 감지해 플래그 전파.
+- `agent/loop.ts`: `stageFailureResult()` 신설 — 단계 실패가 예산 초과면 `"failed"`(이 목표만 실패, 다음 목표로 진행) 반환, 그 외 예기치 않은 실패는 기존대로 `"interrupted"`(전체 중단). Planner/Implementer/Reviewer 세 단계에 적용. runGoals는 `"failed"`를 break하지 않으므로 한 목표의 예산 초과가 나머지 큐를 막지 않는다.
+
+### 검증
+typecheck 0에러. 실제 로그의 `error_max_budget_usd` JSON으로 `parseClaudeJson` → `budgetExhausted:true`, 정상 응답 → `false` 확인.
 
 ### 배경
 `autoCommitAndPush`는 `src/`·`goals.md`·`agent/REVIEW_CHECKLIST.md`만 stage한다(에이전트가 자기 인프라를 무검토로 push하는 것 방지 — 의도된 가드레일, 2026-05-01). 그 결과 에이전트 목표가 `agent/**` 소스를 수정하면 목표는 `[x]` 완료로 마킹되고 커밋 메시지가 큐에 등록되지만, 그 변경은 커밋되지 않고 워킹트리에 **조용히 고아로** 남는다. 실제로 `agent/observe.ts`가 2026-07-09 자율 실행에서 수정(근접샷을 원점 원거리 샷으로 바꿔 검은화면을 회피 — 근접 검사 기능을 죽인 저품질 자가수정)됐으나 6일간 미커밋 방치되다 사람이 발견·되돌림. 가드레일은 옳게 auto-push를 막았으나 "완료 마킹 + 조용한 유실"이 구멍이었다.
