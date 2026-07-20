@@ -47,7 +47,7 @@ export const FISH_COUNT = 120;
 export const FISH_SCHOOL_COUNT = 5;
 export const FISH_ORBIT_Y = -5;
 export const BOID_VISUAL_RANGE = 8;
-export const BOID_SEPARATION_DIST = 3.75;
+export const BOID_SEPARATION_DIST = 5.5;
 export const BOID_MAX_SPEED = 8;
 export const BOID_MIN_SPEED = 3;
 export const BOID_SEPARATION_WEIGHT = 8.0;
@@ -74,6 +74,9 @@ export const PREDATOR_FLEE_RANGE = 12;
 export const PREDATOR_FLEE_WEIGHT = 14.0;
 // flee 강도 0~1 정규화 시 사용 — fish 1마리의 즉각 force가 이 값이면 1.0으로 본다
 export const PREDATOR_FLEE_INTENSITY_NORM = 4.0;
+// ── Camera repulsion (Boids ↔ Camera) ────────────
+export const CAMERA_REPULSION_RANGE = 4.0;
+export const CAMERA_REPULSION_WEIGHT = 6.0;
 
 // ── Controls ───────────────────────────────────────
 export const GYRO_SMOOTHING = 0.08;

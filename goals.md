@@ -361,5 +361,12 @@
 - [x] Fish.ts:87 schoolDefs[2]의 yBase을 -7에서 -4로 변경 (원본 def: [-6, 8, -7, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
 - [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
 - [x] `src/entities/Fish.ts` 또는 `src/scene/Ocean.ts`의 `addGodRays` 함수에서 각 광선 PlaneGeometry의 `baseOpacity`를 현재 0.005~0.007에서 **0.04~0.08**로 상향하고, 광선 너비(`rayWidth`)도 1.5~2배 확대해 surface-up 앵글에서 빛 기둥이 또렷이 보이도록 수정
-- [ ] `src/entities/Fish.ts`의 Boids separation 반경(`separationRadius`) 또는 카메라 근접 시 repulsion 임계값을 높여 물고기 군집이 카메라(원점 0,0,0) 2~3유닛 이내로 진입하지 못하도록 제한해 주체(고래상어) 가림 현상 완화
-- [ ] `src/entities/Ocean.ts` `addGodRays()` — `baseOpacity` 를 현재 0.005~0.007에서 **0.04~0.06**으로 상향하고, 빔 `width`도 1.5× 확대해 GodRayPass 입력 휘도를 높일 것. opacity가 충분히 확보된 후에야 geometry/shader 교체(부피감 개선) 여부를 판단할 것.
+- [x] `src/entities/Fish.ts`의 Boids separation 반경(`separationRadius`) 또는 카메라 근접 시 repulsion 임계값을 높여 물고기 군집이 카메라(원점 0,0,0) 2~3유닛 이내로 진입하지 못하도록 제한해 주체(고래상어) 가림 현상 완화
+- [x] `src/entities/Ocean.ts` `addGodRays()` — `baseOpacity` 를 현재 0.005~0.007에서 **0.04~0.06**으로 상향하고, 빔 `width`도 1.5× 확대해 GodRayPass 입력 휘도를 높일 것. opacity가 충분히 확보된 후에야 geometry/shader 교체(부피감 개선) 여부를 판단할 것.
+- [x] **색상 채도 향상** — `src/scene/Lighting.ts`의 ambient/fog 색상을 회색 계열에서 채도 높은 청록으로 교체. 예: `scene.fog = new THREE.FogExp2(0x0a4a6e, 0.018)`, ambient light color `0x1a6fa8` → `0x0e9ec2`로 수정. 하단 갈색 fog가 사라지고 코발트 채도가 올라감.
+- [ ] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+
+- [ ] Fish.ts:91 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
+- [ ] `src/scene/Ocean.ts` `addGodRays()` — `SpotLight` color를 `#1ec0e0`(코발트 청록)으로, `SceneManager`의 `GodRayPass` uniform `uExposure`를 현재 대비 1.5~2× 상향하고 `uBandCount`를 줄여(예: 12→8) 개별 광선을 두껍게 만들고, `uThreshold`를 낮춰 광선 하단으로 갈수록 falloff가 생기도록 조정
+- [ ] `src/scene/SceneManager.ts` `GodRayPass` uniform — `uDecay`(또는 falloff 계수)를 추가/증가시켜 광선이 아래로 갈수록 자연스럽게 퍼지며 옅어지는 부피감을 부여; 현재 균일 직선 띠인 원인은 decay 없이 일정 opacity가 유지되기 때문
+- [ ] **배경 채도 상향** — `src/scene/SceneManager.ts` 또는 `src/scene/Ocean.ts`의 fog color 및 배경 clearColor를 `#1a6080`→`#0d6e99` 수준으로 채도를 높이고, 하단 fog color를 `#0a3050`(회갈색 제거)으로 조정해 심해 색조를 코발트 계열로 교체.

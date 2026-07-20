@@ -1,4 +1,8 @@
 import * as THREE from 'three';
+
+const CAMERA_EXCLUSION_RADIUS = 3.0;
+const CAMERA_REPULSION_WEIGHT = 2.0;
+
 import {
   OCEAN_DEPTH,
   OCEAN_WIDTH,
@@ -483,6 +487,14 @@ export class FishSchool {
         accel.y -= BOID_BOUNDARY_FORCE * ((pos.y - (yMax - margin)) / margin);
       } else if (pos.y < yMin + margin) {
         accel.y += BOID_BOUNDARY_FORCE * ((yMin + margin - pos.y) / margin);
+      }
+
+      // Camera exclusion — push fish away from camera origin if too close
+      diff.subVectors(pos, this._cameraPos);
+      const camDist = diff.length();
+      if (camDist < CAMERA_EXCLUSION_RADIUS && camDist > 0) {
+        const weight = ((CAMERA_EXCLUSION_RADIUS - camDist) / CAMERA_EXCLUSION_RADIUS) * CAMERA_REPULSION_WEIGHT;
+        accel.addScaledVector(diff, weight / camDist);
       }
 
       fi.velocity.addScaledVector(accel, delta);

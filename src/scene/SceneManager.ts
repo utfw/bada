@@ -48,7 +48,7 @@ export class SceneManager {
   // God ray 광원(태양) — Lighting.sunLight와 동일한 수면 위 지점. 매 프레임 스크린 투영.
   private readonly _sunWorld = new THREE.Vector3(0, SURFACE_HEIGHT + 10, 0);
   private readonly _sunNDC = new THREE.Vector3();
-  private readonly GODRAY_EXPOSURE = 4.8;
+  private readonly GODRAY_EXPOSURE = 8.0;
 
   async init(): Promise<void> {
     this.container = document.getElementById('scene-container')!;

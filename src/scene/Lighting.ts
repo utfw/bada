@@ -14,48 +14,48 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x0d6ea0,
+    ambientColor: 0x0e9ec2,
     ambientIntensity: 0.75,
     sunColor: 0x40c8f0,
     sunIntensity: 3.2,
     godRayIntensity: 2.8,
-    fogColor: 0x002244,
+    fogColor: 0x0a4a6e,
     fogDensity: 0.00290,
   },
   cloudy: {
-    ambientColor: 0x2a7aaa,
+    ambientColor: 0x1a8ec8,
     ambientIntensity: 1.05,
     sunColor: 0x40c8f0,
     sunIntensity: 1.2,
     godRayIntensity: 1.8,
-    fogColor: 0x002244,
+    fogColor: 0x083a5c,
     fogDensity: 0.00252,
   },
   rain: {
-    ambientColor: 0x1a6ea0,
+    ambientColor: 0x0e88be,
     ambientIntensity: 1.10,
     sunColor: 0x40c8f0,
     sunIntensity: 0.8,
     godRayIntensity: 0.85,
-    fogColor: 0x002244,
+    fogColor: 0x072e50,
     fogDensity: 0.00330,
   },
   snow: {
-    ambientColor: 0x5d8fb8,
+    ambientColor: 0x4ab0d8,
     ambientIntensity: 1.20,
     sunColor: 0x40c8f0,
     sunIntensity: 1.4,
     godRayIntensity: 2.5,
-    fogColor: 0x002244,
+    fogColor: 0x0c4a70,
     fogDensity: 0.00214,
   },
   fog: {
-    ambientColor: 0x3d88a8,
+    ambientColor: 0x1aa0c8,
     ambientIntensity: 0.95,
     sunColor: 0x40c8f0,
     sunIntensity: 0.5,
     godRayIntensity: 0.35,
-    fogColor: 0x002244,
+    fogColor: 0x06304e,
     fogDensity: 0.00408,
   },
 };
@@ -72,10 +72,10 @@ export class Lighting {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    scene.fog = new THREE.FogExp2(0x002244, 0.00220);
-    scene.background = new THREE.Color(0x002244);
+    scene.fog = new THREE.FogExp2(0x0a4a6e, 0.00220);
+    scene.background = new THREE.Color(0x0a4a6e);
 
-    this.ambientLight = new THREE.AmbientLight(0x061e3a, 0.15);
+    this.ambientLight = new THREE.AmbientLight(0x082840, 0.15);
     scene.add(this.ambientLight);
 
     this.hemisphereLight = new THREE.HemisphereLight(0x1a90d0, 0x0a88bc, 1.0);
