@@ -25,14 +25,14 @@ export class GodRayPass extends Pass {
         uLightPos: { value: new THREE.Vector2(0.5, 1.05) }, // 수면(상단) 방향 기본값
         uDensity: { value: 0.85 },   // 광원 쪽으로 얼마나 멀리 샘플하나 (0~1)
         uWeight: { value: 1.0 },     // 샘플당 가중치
-        uDecay: { value: 0.93 },     // 샘플당 감쇠 (스트리크 길이)
+        uDecay: { value: 0.88 },     // 샘플당 감쇠 (스트리크 길이)
         uExposure: { value: 24.0 },   // 전체 세기 (SceneManager가 매 프레임 갱신)
         uThreshold: { value: 0.015 }, // 이 밝기 이상만 광선에 기여 (물고기 등 어두운 것 배제)
         uColor: { value: new THREE.Color(0.72, 0.86, 1.0) }, // 연청색 틴트
         uTime: { value: 0 },         // 밴드 천천히 흐르게
-        uBandCount: { value: 4.0 },  // 광원 기준 각도 밴드 개수 (갈래 수, 적을수록 넓은 광선)
+        uBandCount: { value: 6.0 },  // 광원 기준 각도 밴드 개수 (갈래 수, 적을수록 넓은 광선)
         uBandSharp: { value: 2.2 },  // 밴드 대비 (클수록 또렷, 낮을수록 부드러움)
-        uBandStrength: { value: 0.85 }, // 밴딩 강도 (0=균일 글로우, 1=완전 갈래)
+        uBandStrength: { value: 0.75 }, // 밴딩 강도 (0=균일 글로우, 1=완전 갈래)
       },
       vertexShader: /* glsl */`
         varying vec2 vUv;
@@ -81,8 +81,8 @@ export class GodRayPass extends Pass {
           band *= 0.7 + 0.3 * sin(a * 0.41 + 1.7);
           band = pow(max(0.0, band), uBandSharp);
           // 광원에서 멀어질수록 옅어짐(농담).
-          float distFade = 1.0 - smoothstep(0.05, 0.95, length(dir));
-          rays *= mix(1.0, band, uBandStrength) * (0.35 + 0.65 * distFade);
+          float distFade = 1.0 - smoothstep(0.0, 0.85, length(dir));
+          rays *= mix(1.0, band, uBandStrength) * max(0.05, distFade);
 
           vec3 scene = texture2D(tDiffuse, vUv).rgb;
           gl_FragColor = vec4(scene + rays * uColor, 1.0);

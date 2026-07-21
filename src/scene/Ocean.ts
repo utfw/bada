@@ -103,9 +103,12 @@ export class Ocean {
       { x:  8, z:  0 },
       { x:  0, z: -8 },
       { x:  0, z:  8 },
+      { x: -5, z: -5 },
+      { x:  5, z: -5 },
+      { x:  0, z:  6 },
     ];
     for (const pos of spotPositions) {
-      const spot = new THREE.SpotLight(0x1ec0e0, 5.0, 30, Math.PI / 18, 0.8);
+      const spot = new THREE.SpotLight(0x1ec0e0, 12.0, 30, Math.PI / 10, 0.5);
       spot.position.set(pos.x, 10, pos.z);
       spot.target.position.set(pos.x, -10, pos.z);
       scene.add(spot);

@@ -368,9 +368,9 @@
 
 - [x] Fish.ts:91 schoolDefs[2]의 yBase을 -4에서 -7로 변경 (원본 def: [-6, 8, -4, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
 - [x] `src/scene/Ocean.ts` `addGodRays()` — `SpotLight` color를 `#1ec0e0`(코발트 청록)으로, `SceneManager`의 `GodRayPass` uniform `uExposure`를 현재 대비 1.5~2× 상향하고 `uBandCount`를 줄여(예: 12→8) 개별 광선을 두껍게 만들고, `uThreshold`를 낮춰 광선 하단으로 갈수록 falloff가 생기도록 조정
-- [ ] `src/scene/SceneManager.ts` `GodRayPass` uniform — `uDecay`(또는 falloff 계수)를 추가/증가시켜 광선이 아래로 갈수록 자연스럽게 퍼지며 옅어지는 부피감을 부여; 현재 균일 직선 띠인 원인은 decay 없이 일정 opacity가 유지되기 때문
-- [ ] **배경 채도 상향** — `src/scene/SceneManager.ts` 또는 `src/scene/Ocean.ts`의 fog color 및 배경 clearColor를 `#1a6080`→`#0d6e99` 수준으로 채도를 높이고, 하단 fog color를 `#0a3050`(회갈색 제거)으로 조정해 심해 색조를 코발트 계열로 교체.
-- [ ] `src/entities/Ocean.ts` `addGodRays()` 내 SpotLight/빌보드 메시의 `baseOpacity`를 0.005→0.08~0.12로 상향하고, 광선 수(rayCount)를 6~8개, 너비(width)를 현재의 1.5~2배로 늘려 GodRayPass 스크린스페이스 scattering이 또렷한 입력 광원을 받을 수 있게 한다.
+- [x] `src/scene/SceneManager.ts` `GodRayPass` uniform — `uDecay`(또는 falloff 계수)를 추가/증가시켜 광선이 아래로 갈수록 자연스럽게 퍼지며 옅어지는 부피감을 부여; 현재 균일 직선 띠인 원인은 decay 없이 일정 opacity가 유지되기 때문
+- [x] **배경 채도 상향** — `src/scene/SceneManager.ts` 또는 `src/scene/Ocean.ts`의 fog color 및 배경 clearColor를 `#1a6080`→`#0d6e99` 수준으로 채도를 높이고, 하단 fog color를 `#0a3050`(회갈색 제거)으로 조정해 심해 색조를 코발트 계열로 교체.
+- [x] `src/entities/Ocean.ts` `addGodRays()` 내 SpotLight/빌보드 메시의 `baseOpacity`를 0.005→0.08~0.12로 상향하고, 광선 수(rayCount)를 6~8개, 너비(width)를 현재의 1.5~2배로 늘려 GodRayPass 스크린스페이스 scattering이 또렷한 입력 광원을 받을 수 있게 한다.
 - [ ] `src/scene/Lighting.ts` `setWeather()` 내 fog 색(THREE.FogExp2 color)을 `#8fb8c8` → `#0d9fcc`(채도 높은 청록)로, AmbientLight color를 `#6e8fa0` → `#0a6fa0`으로 교체해 배경 채도를 끌어올린다.
 - [ ] `src/scene/Ocean.ts` `addGodRays()` — `baseOpacity`를 현재 0.005~0.007에서 **0.04~0.06**으로 상향하고, `PlaneGeometry` 대신 `ConeGeometry(radius_top=0.1, radius_bottom=2.5, height=18)`로 교체해 아래로 갈수록 퍼지는 부피감 부여; 각 ray의 material에 `depthWrite: false, transparent: true, side: THREE.DoubleSide` 유지
 - [ ] `src/scene/SceneManager.ts` 또는 `src/scene/Lighting.ts` — 씬 ambient/fog 색을 현재 회색 혼입 값에서 `new THREE.Color(0x0a78cc)`(코발트) 계열로 조정하고, fog density를 약 10~15% 낮춰 하단 심해색이 `#0a1a3a` 이상 짙게 유지되도록 설정해 채도를 끌어올림
