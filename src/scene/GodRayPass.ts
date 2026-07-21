@@ -26,13 +26,13 @@ export class GodRayPass extends Pass {
         uDensity: { value: 0.85 },   // 광원 쪽으로 얼마나 멀리 샘플하나 (0~1)
         uWeight: { value: 1.0 },     // 샘플당 가중치
         uDecay: { value: 0.93 },     // 샘플당 감쇠 (스트리크 길이)
-        uExposure: { value: 8.0 },   // 전체 세기 (SceneManager가 매 프레임 갱신)
-        uThreshold: { value: 0.05 }, // 이 밝기 이상만 광선에 기여 (물고기 등 어두운 것 배제)
+        uExposure: { value: 24.0 },   // 전체 세기 (SceneManager가 매 프레임 갱신)
+        uThreshold: { value: 0.015 }, // 이 밝기 이상만 광선에 기여 (물고기 등 어두운 것 배제)
         uColor: { value: new THREE.Color(0.72, 0.86, 1.0) }, // 연청색 틴트
         uTime: { value: 0 },         // 밴드 천천히 흐르게
-        uBandCount: { value: 6.0 },  // 광원 기준 각도 밴드 개수 (갈래 수, 적을수록 넓은 광선)
-        uBandSharp: { value: 1.5 },  // 밴드 대비 (클수록 또렷, 낮을수록 부드러움)
-        uBandStrength: { value: 0.70 }, // 밴딩 강도 (0=균일 글로우, 1=완전 갈래)
+        uBandCount: { value: 4.0 },  // 광원 기준 각도 밴드 개수 (갈래 수, 적을수록 넓은 광선)
+        uBandSharp: { value: 2.2 },  // 밴드 대비 (클수록 또렷, 낮을수록 부드러움)
+        uBandStrength: { value: 0.85 }, // 밴딩 강도 (0=균일 글로우, 1=완전 갈래)
       },
       vertexShader: /* glsl */`
         varying vec2 vUv;
