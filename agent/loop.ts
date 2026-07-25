@@ -21,6 +21,7 @@ import {
   SUGGESTION_SUPPRESS_THRESHOLD,
   AESTHETIC_SUGGEST_THRESHOLD,
   MAX_GOALS_PER_RUN,
+  EVALUATOR_EVERY_N_GOALS,
   RATE_LIMIT_SIGNAL_FILE,
   type Goal,
   type GoalResult,
@@ -43,6 +44,7 @@ import {
 import {
   runPlanner,
   extractPlan,
+  extractAbandon,
   runImplementer,
   runReviewer,
   logAndCheck,
@@ -57,6 +59,7 @@ import {
   generateGoalsFromChecklist,
   generateGoalsFromReview,
   getChangedFiles,
+  revertSrcFiles,
   warnUncommittedAgentChanges,
   archiveVisualMilestone,
   extractCommitMsg,
@@ -179,6 +182,17 @@ function writeRateLimitSignal(stageOutput: string): void {
 }
 
 function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget): GoalResult {
+  const filesBefore = new Set(getChangedFiles());
+  const result = executeGoal(goal, goalIndex, log, budget);
+  if (result !== "completed") {
+    // 미완료(실패/포기/rate-limit/budget)한 goal이 남긴 src 변경은 되돌린다 —
+    // 그대로 두면 다음 완료 goal의 autoCommit(git add src/)에 섞여 push된다(관찰된 버그).
+    revertSrcFiles(getChangedFiles().filter((f) => !filesBefore.has(f)));
+  }
+  return result;
+}
+
+function executeGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget): GoalResult {
   console.log(`\n${"═".repeat(60)}`);
   console.log(`목표 ${goalIndex + 1}: ${goal.text}`);
   console.log("═".repeat(60));
@@ -257,9 +271,9 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
       evolutionSummary = `\n## 진화 지표 (Evolver)\n- dramaScore: ${drama.total.toFixed(3)} (peakSum=${drama.components.peakSum.toFixed(2)}, varianceSum=${drama.components.varianceSum.toFixed(2)}, balance=${drama.components.balance.toFixed(2)})\n- 학교별 drama: [${drama.perSchool.map((v) => v.toFixed(2)).join(", ")}]\n- 정체 여부: ${evo.stagnant ? "정체" : "변화 중"}${evo.proposedGoal ? `\n- 변이 제안: ${evo.proposedGoal}` : ""}`;
     }
 
-    // ── 0.5. Aesthetic Evaluator — cycle 0에서만, 비용·중복 방지 ──
+    // ── 0.5. Aesthetic Evaluator + Vision Judge — cycle 0 & 매 N goal마다만 (claude 비용 절감) ──
     let fullObservationSummary = observationSummary;
-    if (cycle === 0) {
+    if (cycle === 0 && goalIndex % EVALUATOR_EVERY_N_GOALS === 0) {
       console.log(`\n🎨 [1.5/4] Aesthetic Evaluator — 객관 채점 (5항목 × 2점)`);
       const aestheticEval = evaluateAesthetic(observation);
       if (aestheticEval.score >= 0) {
@@ -281,6 +295,8 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
 
       // 측정된 vision judge(승격 축)를 라이브 프레임에 병렬 판정 → awkward면 SUGGESTIONS
       appendVisionSuggestions(observation);
+    } else if (cycle === 0) {
+      console.log(`\n🎨 평가자 게이팅 — goal #${goalIndex}은 Aesthetic/Vision 건너뜀 (매 ${EVALUATOR_EVERY_N_GOALS} goal마다 실행, 비용 절감)`);
     }
 
     // Evolver 결과는 모든 cycle에서 Planner에게 전달 (cycle 0 미적 평가와 독립)
@@ -301,6 +317,14 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
       markGoal(goal.lineIndex, "pending");
       log.goalEnd(false, []);
       return stageFailureResult(planResult, "Planner");
+    }
+    const abandonReason = extractAbandon(planResult.output);
+    if (abandonReason) {
+      console.log(`\n⛔ Planner 판단: 실행 불가/불변식 위반 — 목표 포기(Implementer 재시도 안 함)\n   사유: ${abandonReason}`);
+      markGoal(goal.lineIndex, "abandoned");
+      log.goalEnd(false, []);
+      log.save();
+      return "abandoned";
     }
     const plan = extractPlan(planResult.output);
 
@@ -381,7 +405,13 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
       log.goalEnd(true, newlyChanged);
       log.save();
       markGoal(goal.lineIndex, "done");
-      recordCompletedGoal(goal.text, passedCommitMsg, goalMetrics);
+      // 변경된 src 파일이 있을 때만 커밋 대기열에 등록 — 변경 0인 no-op 완료가
+      // 가짜 커밋 메시지(안 한 일 주장)로 이력을 오염시키는 것을 방지.
+      if (newlyChanged.some((f) => f.startsWith("src/"))) {
+        recordCompletedGoal(goal.text, passedCommitMsg, goalMetrics);
+      } else {
+        console.log(`  ⓘ 변경된 src 없음 — no-op 완료로 커밋 메시지 큐잉 생략(이력 오염 방지)`);
+      }
       archiveVisualMilestone(newlyChanged, goal.text, passedCommitMsg);
       console.log(`\n✓ 완료: ${goal.text}`);
       if (checklistUpdated) {

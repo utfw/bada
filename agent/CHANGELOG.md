@@ -7,6 +7,22 @@
 
 ---
 
+## [2026-07-26] 러너 첫 실행 로그 분석 → 커밋 무결성 4종 + 평가자 게이팅
+
+### 배경
+러너 첫 실전 완주(`fdad78c`: 3 goal 자동 커밋·push, rate-limit exit 75 실전 발동)의 로그를 분석해 커밋 무결성 버그 4종을 발견. 근본은 "autoCommit이 `git add src/`로 완료 여부와 무관하게 모든 src 변경을 stage"하는 데서 옴.
+
+### 변경
+- **P1 실패 goal 변경 누출 차단** (loop.ts + `revertSrcFiles`): `runGoal`을 래퍼로 감싸, 결과가 `completed`가 아니면 그 goal이 새로 건드린 `src/` 파일을 HEAD로 revert. goal2(REVIEW_FAIL)가 `Ocean.ts`에 남긴 **빈 줄 2개**가 다음 완료 goal의 autoCommit에 섞여 push된 실제 사례를 차단.
+- **P2 커밋 본문 무결성** (goals.ts `autoCommitAndPush`): 커밋 본문에 실제 staged 파일 목록(`Changed: ...`)을 기록. bullet 문구가 부정확해도 무엇이 바뀌었는지는 사실로 남는다.
+- **P3 no-op 완료 커밋 큐잉 금지** (loop.ts): REVIEW_PASS라도 `src/` 변경이 0이면 `recordCompletedGoal` 호출 안 함. 변경 0인데 `perf(Lighting): shift fog/ambient to cobalt`처럼 **안 한 일을 주장**하는 가짜 COMMIT_MSG가 이력을 오염시키던 문제 제거.
+- **P4 불변식 위반 goal 즉시 포기** (stages.ts + loop.ts): Planner가 씬 불변식 위반/대상 부재 goal에 `PLAN_ABANDON: <사유>`를 출력(`extractAbandon`)하면 loop가 Implementer 재시도 없이 `[-]`(abandoned)로 마킹·종료. goal2가 **impl 3회 재시도 후 실패**하며 태운 비용을 없앤다. `markGoal`에 `abandoned` 상태 추가, `parsePendingGoals`는 `[-]`를 재선택하지 않는다.
+- **P5 평가자 게이팅** (loop.ts + `EVALUATOR_EVERY_N_GOALS`=3): Aesthetic/Vision Judge(claude 호출)를 매 goal이 아니라 `goalIndex % 3 === 0`일 때만 실행 — 3 goal에 $2.75, "extra usage" 소진→4h 대기였던 rate-limit 압박 완화.
+- `agent/REVIEW_CHECKLIST.md` §11(커밋 무결성) 신설 — `@src: revertSrcFiles/executeGoal/extractAbandon` 바인딩 + 갱신 로그.
+
+### 검증
+`npm run check:checklist` 11 바인딩 정상, 양쪽 tsconfig(`--noEmit` / `-p tsconfig.agent.json`) 0에러.
+
 ## [2026-07-25] 러너 프로젝트 밖 이전 + 헤드리스 auth(setup-token) 배선
 
 ### 배경

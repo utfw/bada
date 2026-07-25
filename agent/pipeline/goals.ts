@@ -190,11 +190,28 @@ export function parsePendingGoals(): Goal[] {
   });
 }
 
-export function markGoal(lineIndex: number, status: "done" | "in-progress" | "pending"): void {
+export function markGoal(lineIndex: number, status: "done" | "in-progress" | "pending" | "abandoned"): void {
   const lines = fs.readFileSync(GOALS_FILE, "utf-8").split("\n");
-  const marker = { done: "- [x] ", "in-progress": "- [~] ", pending: "- [ ] " }[status];
-  lines[lineIndex] = lines[lineIndex].replace(/^- \[[ ~x]\] /, marker);
+  // abandoned([-])는 실행 불가/불변식 위반으로 Planner가 포기한 목표 — parsePendingGoals가 재선택하지 않음.
+  const marker = { done: "- [x] ", "in-progress": "- [~] ", pending: "- [ ] ", abandoned: "- [-] " }[status];
+  lines[lineIndex] = lines[lineIndex].replace(/^- \[[ ~x-]\] /, marker);
   fs.writeFileSync(GOALS_FILE, lines.join("\n"));
+}
+
+/**
+ * 지정한 파일 중 src/ 항목을 HEAD 상태로 되돌린다(작업트리 변경 폐기).
+ * 미완료/실패/포기 goal이 남긴 src 변경이 다음 완료 goal의 autoCommit(git add src/)에
+ * 섞여 push되는 누출을 막기 위해 loop가 호출한다.
+ */
+export function revertSrcFiles(files: string[]): void {
+  const targets = files.filter((f) => f.startsWith("src/"));
+  if (targets.length === 0) return;
+  try {
+    execFileSync("git", ["checkout", "HEAD", "--", ...targets], { cwd: ROOT, stdio: "pipe" });
+    console.log(`  ↩ 미완료 goal 변경 되돌림(autoCommit 누출 방지): ${targets.join(", ")}`);
+  } catch (e) {
+    console.warn(`  ⚠ 되돌리기 실패(무시): ${String(e).slice(0, 150)}`);
+  }
 }
 
 // ── 자동 커밋 ────────────────────────────────────────────────────────────────
@@ -287,12 +304,19 @@ function autoCommitAndPush(entries: CommitEntry[]): void {
     const totalOut = withMetrics.reduce((s, e) => s + (e.metrics?.outputTokens ?? 0), 0);
     metricsBlock = `\n\nMetrics: ${(totalDur / 1000).toFixed(1)}s, $${totalCost.toFixed(4)}, in=${totalIn}, out=${totalOut}`;
   }
-  const message = title + body + metricsBlock;
   try {
     execFileSync("git", ["add", "src/", "goals.md", "agent/REVIEW_CHECKLIST.md"], {
       cwd: ROOT,
       stdio: "inherit",
     });
+    // 실제 staged 파일 목록을 본문에 사실로 기록 — bullet 문구가 부정확해도 무엇이 바뀌었는지는 남긴다.
+    let changedBlock = "";
+    try {
+      const staged = execFileSync("git", ["diff", "--cached", "--name-only"], { cwd: ROOT, encoding: "utf-8" })
+        .split("\n").map((s) => s.trim()).filter((f) => f.length > 0 && f !== "goals.md");
+      if (staged.length > 0) changedBlock = `\n\nChanged: ${staged.join(", ")}`;
+    } catch { /* ignore */ }
+    const message = title + body + changedBlock + metricsBlock;
     execFileSync("git", ["commit", "-m", message], { cwd: ROOT, stdio: "inherit" });
     execFileSync("git", ["push"], { cwd: ROOT, stdio: "inherit" });
     console.log(`\n📦 자동 커밋·푸시 완료 (${entries.length}개 목표)`);

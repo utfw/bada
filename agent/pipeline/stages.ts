@@ -58,6 +58,14 @@ ${observationSummary}
 - 마크다운 테이블, 중첩 리스트(들여쓰기 ≥ 2단계), 인용 블록 금지.
 - "이 변경이 왜 안전한가" 같은 자기 검증 서술 금지 — 그건 Reviewer 일.
 
+## 목표 실행 불가 → 즉시 포기 (재시도 낭비 방지)
+목표가 다음 중 하나면 **PLAN_START 블록을 만들지 말고, 첫 줄에 \`PLAN_ABANDON: <한 줄 사유>\`만** 출력하고 끝내라. (Implementer 재시도 없이 목표를 포기 처리한다.)
+- CLAUDE.md/REVIEW_CHECKLIST.md의 **씬 불변식을 위반해야만** 달성되는 목표 (예: Ocean/Lighting에 지오메트리 god ray(cone/plane/billboard) 메시 추가, 해저 바닥·수면 평면 메시 추가, 카메라 위치 이동)
+- 목표가 전제하는 코드(함수·상수·필드)가 **이미 제거돼 존재하지 않아** 구현 대상이 없는 목표
+- 위 ⛔ 금지 목록(Fish lookTarget/rotation, WhaleShark lookAt 수식)을 **건드려야만** 달성되는 목표
+
+위에 해당하지 않으면 아래 형식으로 정상 계획을 세운다.
+
 출력 형식:
 
 PLAN_START
@@ -87,6 +95,12 @@ PLAN_END
 export function extractPlan(output: string): string {
   const match = output.match(/PLAN_START([\s\S]*?)PLAN_END/);
   return match ? match[1].trim() : output.trim();
+}
+
+/** Planner가 목표를 실행 불가(불변식 위반·대상 부재 등)로 판정하면 `PLAN_ABANDON: <사유>` 한 줄만 출력한다. */
+export function extractAbandon(output: string): string | null {
+  const m = output.match(/^\s*PLAN_ABANDON:\s*(.+)$/m);
+  return m ? m[1].trim() : null;
 }
 
 export function runImplementer(

@@ -38,6 +38,8 @@ export const RETRY_BASE_MS = 4000;
 export const CHECKLIST_LOG_MAX_ENTRIES = 30;
 export const AGENT_COMMIT_SUFFIX = " [agent]";
 export const MAX_GOALS_PER_RUN = 30;
+// Aesthetic/Vision 평가자(claude 호출)는 매 goal이 아니라 goalIndex가 이 값의 배수일 때만 실행 — 비용 절감.
+export const EVALUATOR_EVERY_N_GOALS = 3;
 
 // 렌더링 결과(픽셀)에 영향을 주는 소스 파일. 이 중 하나라도 바뀐 목표가 완료되면
 // 그 시점 대표 스크린샷을 history에 보존해 "시각 변화 마일스톤"을 남긴다.
@@ -75,7 +77,7 @@ export interface Goal {
   lineIndex: number;
 }
 
-export type GoalResult = "completed" | "failed" | "interrupted" | "rate-limited" | "budget-exhausted";
+export type GoalResult = "completed" | "failed" | "interrupted" | "rate-limited" | "budget-exhausted" | "abandoned";
 // "completed"        — Reviewer REVIEW_PASS
 // "failed"           — REVIEW_FAIL 최대 재시도 초과 (코드 문제)
 // "interrupted"      — 단계 자체가 예기치 않게 실패 (CLI 오류, 타임아웃 등)

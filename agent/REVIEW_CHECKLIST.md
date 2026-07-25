@@ -207,6 +207,14 @@
 
 - **[코드 검증] `getWorldDirection()` 꼬리-머리 방향 및 현재 스폰 의도**: `_sharkFwd` 기본값은 `(0,0,−1)`. 부호 규칙: `sharkPos − sharkFwd * dist`(`−` 부호) = 머리(입) 앞 스폰; `sharkPos + sharkFwd * dist`(`+` 부호) = 꼬리 후방 스폰. *(근거: 기본값 `(0,0,−1)`로 `−` 부호 적용 시 `sharkPos.z + dist`가 되어 양의 Z = 머리 방향 편향; screenshot-1~4, whaleshark-front/side/surface-up 5개 이상에서 `-` 부호 → 머리 앞 집중 시각 확인됨.)* **현재 의도(2026-06-16 목표 변경)**: 버블은 입 앞(`mouthDist=1.5`)에서 스폰되어야 하므로 **`−` 부호가 정상**. Reviewer는 `Ocean.ts`의 `createBubbles()` 및 `update()` 리스폰 두 위치 모두에서 `_sharkFwd` 오프셋 부호가 **`−`** 인지 확인할 것. 어느 한 곳이라도 `+`이면 꼬리 후방 스폰으로 역행하므로 **실패**.
 
+## 11. 커밋·파이프라인 무결성 (Commit Integrity)
+
+에이전트 자동 커밋이 이력을 오염시키거나 미검토 변경을 push하지 않도록 — 대부분 loop.ts/goals.ts가 코드로 강제하지만(2026-07-26 도입), Reviewer도 다음을 확인한다:
+
+- **[코드 검증] 미완료 goal 잔여 변경 누출 금지**: REVIEW_FAIL/포기한 goal이 `src/`에 남긴 변경은 종료 시 HEAD로 되돌려져, 다음 완료 goal의 autoCommit(`git add src/`)에 섞여 push되면 안 된다. <!-- @src: agent/pipeline/goals.ts:revertSrcFiles -->
+- **[코드 검증] 변경 0 no-op 완료는 커밋 큐잉 금지**: goal이 REVIEW_PASS인데 `src/` 변경이 0이면 커밋 대기열에 등록하지 않는다(안 한 일을 주장하는 가짜 COMMIT_MSG 방지). Reviewer는 변경 0 완료가 정당한 no-op인지 impl 사유에 명시됐는지 확인. <!-- @src: agent/loop.ts:executeGoal -->
+- **[코드 검증] 실행 불가/불변식 위반 goal은 Planner가 즉시 포기**: 씬 불변식(§5)을 위반해야만 달성되는 목표는 Planner가 `PLAN_ABANDON`으로 포기하고 `[-]`로 마킹 — Implementer 재시도로 비용 낭비하지 않는다. <!-- @src: agent/pipeline/stages.ts:extractAbandon -->
+
 ---
 
 ## 체크리스트 갱신 로그
@@ -248,3 +256,4 @@
 - (2026-07-07) [reviewer] §3 수정: 가슴지느러미 rotation.x 규칙에 예외 추가 — geometry 버텍스 y값이 모두 동일 상수이면 XZ 수평이 이미 보장되므로 rotation.x=0이어도 통과. |rotation.x|<0.5 단순 코드 탐색이 오탐하는 패턴(Fish.ts pectoral 구현)에서 발견.
 - (2026-07-10) [human] §3-1 추가: 꼬리지느러미 방향 결정적 검증 — `tailGeo.rotateZ` 부호는 음수(−Math.PI/2) 필수. 기준점은 머리=inner +X(눈 position.x=1.0), 꼬리=−X. 넓은 base가 −X(꼬리 끝)로 벌어지고 apex가 +X(머리 쪽)로 묻혀야 `(몸통)<`. 양수(+π/2)면 apex가 뒤로 가 `(몸통)>` 화살촉 꼬리로 실패. 스샷으로 삼각형 방향 판별 불가해 사람이 발견, §3 등지느러미 rotation.y 부호 검증과 동일 패턴으로 자동화.
 - (2026-07-14) [human] §10 대개편: god ray가 후처리(GodRayPass, 커밋 dc75eb2)로 일원화됨에 따라 stale 지오메트리 항목 5개 제거(갓레이 존재 A/B/C 구현, rotation.x 수직, ConeGeometry height 0, nearRay opacity 일관성, nearRayMesh 스트라이프) → "후처리 배선(씬 불변식)" 항목으로 교체(@src: GodRayPass.ts, 자동 수치 검증 "GodRayPass 배선"이 커버). 수면 항목 2개도 수면 평면 제거 불변식(2026-07)에 맞게 교체("수면 애니메이션"→"수면 평면 없음 불변식", "surface-up 수면 투시"→"상단 광원 투시"). godray 자연스러움 항목에 재교정 실험(precision 80%, 사람↔judge 경계 불일치) 반영 — 2회 연속 동일 원인 awkward면 사람 검토로 이관.
+- (2026-07-26) [human] §11 신설 — 러너 첫 실전 실행(fdad78c) 로그 분석에서 발견한 커밋 무결성 버그 4종 반영: ① 실패 goal의 잔여 src 변경이 autoCommit에 누출(goal2 Ocean.ts 빈줄 2개가 커밋됨) → loop가 미완료 goal 변경 revert ② 변경 0 no-op 완료가 가짜 COMMIT_MSG로 이력 오염(안 한 일 주장) → src 변경 있을 때만 큐잉 ③ 커밋 본문 bullet이 실제 diff와 불일치(GodRayPass 누락·Ocean 허위 서술) → 본문에 실제 staged 파일 `Changed:` 기록 ④ 불변식 위반 goal이 impl 3회 재시도 후 실패(비용 낭비) → Planner `PLAN_ABANDON` 즉시 포기. 별건: 평가자(Aesthetic/Vision) `EVALUATOR_EVERY_N_GOALS` 게이팅으로 claude 호출 비용 절감.
