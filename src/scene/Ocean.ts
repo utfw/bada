@@ -114,6 +114,7 @@ export class Ocean {
       scene.add(spot);
       scene.add(spot.target);
       this.godRaySpots.push(spot);
+
     }
   }
 
@@ -279,5 +280,6 @@ export class Ocean {
       spot.dispose();
     }
     this.godRaySpots = [];
+
   }
 }

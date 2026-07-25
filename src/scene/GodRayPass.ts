@@ -26,11 +26,11 @@ export class GodRayPass extends Pass {
         uDensity: { value: 0.85 },   // 광원 쪽으로 얼마나 멀리 샘플하나 (0~1)
         uWeight: { value: 1.0 },     // 샘플당 가중치
         uDecay: { value: 0.88 },     // 샘플당 감쇠 (스트리크 길이)
-        uExposure: { value: 24.0 },   // 전체 세기 (SceneManager가 매 프레임 갱신)
+        uExposure: { value: 12.0 },   // 전체 세기 (SceneManager가 매 프레임 갱신)
         uThreshold: { value: 0.015 }, // 이 밝기 이상만 광선에 기여 (물고기 등 어두운 것 배제)
         uColor: { value: new THREE.Color(0.72, 0.86, 1.0) }, // 연청색 틴트
         uTime: { value: 0 },         // 밴드 천천히 흐르게
-        uBandCount: { value: 6.0 },  // 광원 기준 각도 밴드 개수 (갈래 수, 적을수록 넓은 광선)
+        uBandCount: { value: 5.0 },  // 광원 기준 각도 밴드 개수 (갈래 수, 적을수록 넓은 광선)
         uBandSharp: { value: 2.2 },  // 밴드 대비 (클수록 또렷, 낮을수록 부드러움)
         uBandStrength: { value: 0.75 }, // 밴딩 강도 (0=균일 글로우, 1=완전 갈래)
       },
@@ -71,6 +71,8 @@ export class GodRayPass extends Pass {
             illuminationDecay *= uDecay;
           }
           rays = rays / float(NUM_SAMPLES) * uExposure;
+          // 수직 감쇠: 광원 근처(상단)에서 강하고 하단으로 갈수록 옅어져 기둥 부피감
+          rays *= pow(clamp(1.0 - vUv.y, 0.0, 1.0), 1.5);
 
           // 광원 기준 각도 밴딩 — 균일 글로우를 태양에서 갈라지는 광선으로.
           // 폭이 제각각이고(여러 주파수 합성) 부드러운 대비로 부피감.
@@ -81,7 +83,7 @@ export class GodRayPass extends Pass {
           band *= 0.7 + 0.3 * sin(a * 0.41 + 1.7);
           band = pow(max(0.0, band), uBandSharp);
           // 광원에서 멀어질수록 옅어짐(농담).
-          float distFade = 1.0 - smoothstep(0.0, 0.85, length(dir));
+          float distFade = 1.0 - smoothstep(0.0, 0.7, length(dir));
           rays *= mix(1.0, band, uBandStrength) * max(0.05, distFade);
 
           vec3 scene = texture2D(tDiffuse, vUv).rgb;

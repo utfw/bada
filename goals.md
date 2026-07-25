@@ -371,10 +371,17 @@
 - [x] `src/scene/SceneManager.ts` `GodRayPass` uniform — `uDecay`(또는 falloff 계수)를 추가/증가시켜 광선이 아래로 갈수록 자연스럽게 퍼지며 옅어지는 부피감을 부여; 현재 균일 직선 띠인 원인은 decay 없이 일정 opacity가 유지되기 때문
 - [x] **배경 채도 상향** — `src/scene/SceneManager.ts` 또는 `src/scene/Ocean.ts`의 fog color 및 배경 clearColor를 `#1a6080`→`#0d6e99` 수준으로 채도를 높이고, 하단 fog color를 `#0a3050`(회갈색 제거)으로 조정해 심해 색조를 코발트 계열로 교체.
 - [x] `src/entities/Ocean.ts` `addGodRays()` 내 SpotLight/빌보드 메시의 `baseOpacity`를 0.005→0.08~0.12로 상향하고, 광선 수(rayCount)를 6~8개, 너비(width)를 현재의 1.5~2배로 늘려 GodRayPass 스크린스페이스 scattering이 또렷한 입력 광원을 받을 수 있게 한다.
-- [ ] `src/scene/Lighting.ts` `setWeather()` 내 fog 색(THREE.FogExp2 color)을 `#8fb8c8` → `#0d9fcc`(채도 높은 청록)로, AmbientLight color를 `#6e8fa0` → `#0a6fa0`으로 교체해 배경 채도를 끌어올린다.
+- [x] `src/scene/Lighting.ts` `setWeather()` 내 fog 색(THREE.FogExp2 color)을 `#8fb8c8` → `#0d9fcc`(채도 높은 청록)로, AmbientLight color를 `#6e8fa0` → `#0a6fa0`으로 교체해 배경 채도를 끌어올린다.
 - [ ] `src/scene/Ocean.ts` `addGodRays()` — `baseOpacity`를 현재 0.005~0.007에서 **0.04~0.06**으로 상향하고, `PlaneGeometry` 대신 `ConeGeometry(radius_top=0.1, radius_bottom=2.5, height=18)`로 교체해 아래로 갈수록 퍼지는 부피감 부여; 각 ray의 material에 `depthWrite: false, transparent: true, side: THREE.DoubleSide` 유지
-- [ ] `src/scene/SceneManager.ts` 또는 `src/scene/Lighting.ts` — 씬 ambient/fog 색을 현재 회색 혼입 값에서 `new THREE.Color(0x0a78cc)`(코발트) 계열로 조정하고, fog density를 약 10~15% 낮춰 하단 심해색이 `#0a1a3a` 이상 짙게 유지되도록 설정해 채도를 끌어올림
-- [ ] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [x] `src/scene/SceneManager.ts` 또는 `src/scene/Lighting.ts` — 씬 ambient/fog 색을 현재 회색 혼입 값에서 `new THREE.Color(0x0a78cc)`(코발트) 계열로 조정하고, fog density를 약 10~15% 낮춰 하단 심해색이 `#0a1a3a` 이상 짙게 유지되도록 설정해 채도를 끌어올림
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
 
 - [ ] Fish.ts:91 schoolDefs[2]의 yBase을 -7에서 -4로 변경 (원본 def: [-6, 8, -7, 6, 5, 1.5]) — school 2 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
 - [ ] `src/scene/Ocean.ts` `addGodRays()` — `baseOpacity`를 현재 0.005~0.007에서 **0.04~0.06**으로 상향하고 `PlaneGeometry` 대신 `ConeGeometry(radius상단=0.1, radius하단=1.5, height=20)`로 교체해 아래로 갈수록 퍼지는 부피감 부여. 측면 샷에서도 광선이 인지되어야 함.
+- [ ] `src/scene/Ocean.ts` `addGodRays()` 함수에서 각 god ray 스트립의 `baseOpacity`를 0.005→0.04~0.06으로 올리고, 스트립 너비(`rayWidth`)를 1.2→2.5 이상으로 넓혀 측면 뷰에서 빛 줄기가 또렷이 보이도록 할 것. (surface-up 비가시 → ① opacity/폭 상향이 우선)
+- [ ] **god ray 부피감** — `GodRayPass`(SceneManager.ts)에서 `uExposure`를 현재 값에서 0.6~0.8로 낮추고, fragment shader에 `falloff = 1.0 - pow(dist / maxDist, 0.5)` 형태의 방사 감쇠를 추가해 중심 과노출을 줄이고 아래로 퍼지는 부피감 있는 기둥 형태로 교체할 것
+- [ ] `src/scene/Ocean.ts` `addGodRays()` — `baseOpacity`를 0.005→0.12~0.18 로 상향, 광선 plane의 `width`도 현재 대비 2~3배 확대하여 줄기가 surface-up에서 뚜렷이 보이도록 수정
+- [ ] `src/scene/Lighting.ts` `update()` / `src/scene/SceneManager.ts` fog 설정 — `scene.fog = new THREE.FogExp2(0x0a4a6e, 0.018)` 처럼 fog 색을 진한 코발트 청록(#0a4a6e~#0d6fa0)으로, ambient light color도 `0x1a6080` 이상 채도로 올려 전체 배경 채도를 높임
+- [ ] `src/scene/SceneManager.ts` `GodRayPass` uniform — `uExposure` 값을 현재보다 1.5~2× 상향하고 `uBandCount`를 늘려 광선 줄기 수와 밝기를 동시에 보강
+- [ ] `src/scene/SceneManager.ts`의 GodRayPass uniform에서 `uExposure`를 현재값 대비 0.5~0.6배로 낮추고, `uBandCount`를 줄여 광선 가닥 수를 8→5로 축소; 동시에 fragment shader에 `falloff = pow(1.0 - vUv.y, 2.0)` 방식의 아래쪽 감쇠를 추가해 부피감 있는 기둥 형태로 개선
+- [ ] `src/scene/Lighting.ts`의 ambient light 색상을 현재 회백색(#c0c8d0 수준)에서 채도 높은 청록(`#0a78aa`, intensity 0.6)으로 교체하고, fog color를 `#1a6080`으로 설정해 하단 회갈색 영역을 심해 남색으로 대체
