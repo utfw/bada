@@ -21,6 +21,7 @@ import {
   SUGGESTION_SUPPRESS_THRESHOLD,
   AESTHETIC_SUGGEST_THRESHOLD,
   MAX_GOALS_PER_RUN,
+  RATE_LIMIT_SIGNAL_FILE,
   type Goal,
   type GoalResult,
   type GoalMetrics,
@@ -31,7 +32,8 @@ import {
   type RunBudget,
 } from "./pipeline/types.js";
 import { AgentLog, readChecklistHash } from "./pipeline/logging.js";
-import { OllamaError } from "./pipeline/runner.js";
+import { parseRateLimitReset } from "./pipeline/runner.js";
+import * as fs from "fs";
 import {
   runObserver,
   summarizeObservation,
@@ -144,7 +146,37 @@ function appendAndRun(goals: string[], headerLabel: string, log: AgentLog, budge
   runGoals(log, budget);
 }
 
-// ── 목표별 파이프라인 실행 ─────────────────────────────────────────────────────
+// 한 실행(main) 전체에서 마지막으로 관측된 종료 사유.
+// runGoals는 appendAndRun을 통해 재귀적으로 중첩 호출될 수 있어, 반환값으로
+// 전파하면 모든 경로를 엮어야 한다. 대신 이 모듈 스코프 변수에 기록해두면
+// 어느 depth에서 rate-limit이 나든 main()이 종료 시 읽어 exit code를 정할 수 있다.
+// rate-limit은 다른 어떤 사유보다 우선(bash 래퍼가 "리셋까지 대기"로 분기하는 신호).
+type StopReason = "rate-limit" | "interrupted" | "budget" | "iteration-cap" | "clean";
+let lastStopReason: StopReason = "clean";
+function recordStop(reason: StopReason): void {
+  // rate-limit이 한 번이라도 관측되면 계속 유지 — 이후 clean 종료가 덮어쓰지 않게.
+  if (lastStopReason === "rate-limit") return;
+  lastStopReason = reason;
+}
+
+/**
+ * rate-limit으로 중단될 때, 단계 출력에서 추정한 리셋 시각(ISO)을 신호 파일에 쓴다.
+ * bash 래퍼가 이를 읽어 정확히 그 시각까지 sleep한다. 시각을 못 뽑으면 파일을
+ * 만들지 않고(래퍼가 고정 폴백 대기 사용), 이전 잔재는 caller가 지운다.
+ */
+function writeRateLimitSignal(stageOutput: string): void {
+  const reset = parseRateLimitReset(stageOutput);
+  if (!reset) {
+    console.log(`  ⓘ 리셋 시각을 파싱하지 못함 — 래퍼가 고정 폴백 대기를 사용합니다`);
+    return;
+  }
+  try {
+    fs.writeFileSync(RATE_LIMIT_SIGNAL_FILE, reset.toISOString(), "utf-8");
+    console.log(`  ⏰ 추정 리셋 시각 기록: ${reset.toLocaleString()} → ${RATE_LIMIT_SIGNAL_FILE}`);
+  } catch (e) {
+    console.log(`  ⚠ 리셋 신호 파일 쓰기 실패: ${String(e).slice(0, 120)}`);
+  }
+}
 
 function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget): GoalResult {
   console.log(`\n${"═".repeat(60)}`);
@@ -260,6 +292,7 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
     accumulate(`plan-c${cycle}`, planResult.metrics);
     const planCheck = logAndCheck(planResult, log, goalIndex, "plan", cycle, "Planner");
     if (planCheck === "rate-limited") {
+      writeRateLimitSignal(planResult.output);
       markGoal(goal.lineIndex, "pending");
       log.goalEnd(false, []);
       return "rate-limited";
@@ -285,6 +318,7 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
       accumulate(`impl-c${cycle}-a${attempt}`, implResult.metrics);
       const implCheck = logAndCheck(implResult, log, goalIndex, "impl", cycle * (MAX_REVIEW_RETRIES + 1) + attempt, `Implementer${cycleLabel}${attemptLabel}`);
       if (implCheck === "rate-limited") {
+        writeRateLimitSignal(implResult.output);
         markGoal(goal.lineIndex, "pending");
         log.goalEnd(false, getChangedFiles().filter((f) => !filesBefore.has(f)));
         return "rate-limited";
@@ -311,6 +345,7 @@ function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget
       const checklistAfter = readChecklistHash();
       const reviewCheck = logAndCheck(reviewResult, log, goalIndex, "review", cycle * (MAX_REVIEW_RETRIES + 1) + attempt, `Reviewer${cycleLabel}${attemptLabel}`);
       if (reviewCheck === "rate-limited") {
+        writeRateLimitSignal(reviewResult.output);
         markGoal(goal.lineIndex, "pending");
         log.goalEnd(false, changedSoFar);
         return "rate-limited";
@@ -495,6 +530,10 @@ function runGoals(log: AgentLog, budget: RunBudget): void {
     stoppedReason = "iteration-cap";
   }
 
+  // main()이 종료 시 exit code를 정할 수 있도록 사유를 모듈 스코프에 기록.
+  // null(정상 소진)은 "clean"으로 매핑.
+  recordStop(stoppedReason ?? "clean");
+
   log.summary(processed, completed);
 
   console.log(`\n${"═".repeat(60)}`);
@@ -538,6 +577,10 @@ function main() {
   const reviewOnly = args.includes("--review");
   const budget = parseRunBudget(args);
 
+  // 이전 실행이 남긴 리셋 신호를 제거 — 이번 실행이 rate-limit 없이 끝나면
+  // 래퍼가 옛 타임스탬프를 읽고 불필요하게 대기하는 일을 막는다.
+  try { fs.rmSync(RATE_LIMIT_SIGNAL_FILE, { force: true }); } catch { /* 무시 */ }
+
   if (Number.isFinite(budget.total)) {
     console.log(`⚙  파이프라인 한도: ${budget.total}회 (Observer→Planner→Impl→Reviewer 1 cycle = 1회)`);
   }
@@ -571,20 +614,21 @@ function main() {
   console.log(`로그: ${summaryPath}`);
 }
 
-try {
-  main();
-} catch (e: unknown) {
-  if (e instanceof OllamaError) {
-    console.error(`\n${"═".repeat(60)}`);
-    console.error(`🛑 Ollama(${e.model}) 호출 실패 — 에이전트 전체 중단`);
-    console.error("═".repeat(60));
-    console.error(`사유: ${e.message}\n`);
-    console.error(`확인 사항:`);
-    console.error(`  1. Ollama 서버 동작:  curl http://localhost:11434/api/tags`);
-    console.error(`  2. 모델 설치 확인:    ollama list`);
-    console.error(`  3. 모델 직접 호출:    ollama run ${e.model}`);
-    console.error(`  4. 모델이 출력 포맷(GOALS_START/END)을 따르지 않으면 프롬프트 점검`);
-    process.exit(2);
+/**
+ * 종료 사유를 exit code로 변환한다. bash 래퍼(agent/run-loop.sh)가 이 코드로
+ * "리셋까지 대기 후 재실행"과 "그냥 다음 iteration" 등을 분기한다.
+ *   0  — 정상 소진(clean) / iteration-cap / budget: 할 일을 다 했거나 이번 몫을 다 씀
+ *  75  — rate-limit: API 한도 도달. 래퍼는 리셋 시각까지 sleep 후 재실행.
+ *        (75 = EX_TEMPFAIL, "일시적 실패, 재시도하라"는 관용적 sysexits 코드)
+ *   1  — interrupted: 예기치 않은 단계 실패. 래퍼는 멈추고 사람 개입을 기다린다.
+ */
+function stopReasonToExitCode(reason: StopReason): number {
+  switch (reason) {
+    case "rate-limit": return 75;
+    case "interrupted": return 1;
+    default: return 0; // clean | budget | iteration-cap
   }
-  throw e;
 }
+
+main();
+process.exit(stopReasonToExitCode(lastStopReason));

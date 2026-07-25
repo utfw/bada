@@ -4,7 +4,9 @@
  *
  * - findClaude/CLAUDE_BIN: claude 바이너리 탐색 (setGoals·vision/judge도 재사용)
  * - runClaude: 일시 과부하(overload/5xx)에 지수 백오프 재시도하는 견고한 CLI 호출
- * - runOllama: localhost:11434 Ollama 단발 텍스트 생성
+ * - runOllama: 로컬 Ollama(localhost:11434) 단발 텍스트 생성
+ * - runText: 경량 텍스트 생성 — Ollama 우선, 실패/형식부적합 시 claude(haiku) 폴백
+ * - runClaudeText: claude CLI 전용 텍스트 생성 (runText의 폴백 경로)
  */
 
 import { execSync, execFileSync } from "child_process";
@@ -65,6 +67,28 @@ export function parseClaudeJson(raw: string): { output: string; metrics?: StageM
 // ("You've hit your limit · resets …") HTTP 코드 외에 실제 메시지 문구도 포함한다.
 export function isRateLimitMessage(text: string): boolean {
   return /rate.?limit|too many requests|429|usage.?limit|quota|hit your limit|reset(s)?\s+\d{1,2}:\d{2}\s?(am|pm)/i.test(text);
+}
+
+/**
+ * rate-limit 메시지에서 리셋 시각을 추출해 다음 리셋의 절대 시각(Date)으로 변환한다.
+ * CLI는 "resets 3:00pm" / "resets 15:00" 같은 로컬 시각 문구로 한도 회복 시점을 알린다.
+ * 파싱된 시:분이 현재보다 과거면 다음 날 같은 시각으로 넘긴다(하루 경계 처리).
+ * 문구를 못 찾으면 null — 호출부는 고정 폴백 대기를 쓴다.
+ */
+export function parseRateLimitReset(text: string, now: Date = new Date()): Date | null {
+  const m = text.match(/reset(?:s)?\s+(\d{1,2}):(\d{2})\s?(am|pm)?/i);
+  if (!m) return null;
+  let hour = Number.parseInt(m[1], 10);
+  const minute = Number.parseInt(m[2], 10);
+  const meridiem = m[3]?.toLowerCase();
+  if (Number.isNaN(hour) || Number.isNaN(minute) || minute > 59) return null;
+  if (meridiem === "pm" && hour < 12) hour += 12;
+  if (meridiem === "am" && hour === 12) hour = 0;
+  if (hour > 23) return null;
+  const reset = new Date(now);
+  reset.setHours(hour, minute, 0, 0);
+  if (reset.getTime() <= now.getTime()) reset.setDate(reset.getDate() + 1);
+  return reset;
 }
 
 // 서버 일시 과부하(529/overloaded) 또는 일시적 서버 오류 — 재시도하면 대개 풀린다.
@@ -152,7 +176,7 @@ export function runClaude(
 
 // ── Ollama 로컬 API 호출 ──────────────────────────────────────────────────────
 // localhost:11434의 Ollama 서버에 직접 HTTP 요청. Tool use 없이 단발 텍스트 생성.
-// 실패 시 OllamaError를 throw해서 파이프라인 전체를 중단시킨다.
+// 실패 시 OllamaError를 throw한다 — runText가 이를 잡아 claude로 폴백한다.
 
 export class OllamaError extends Error {
   constructor(message: string, public model: string) {
@@ -208,11 +232,44 @@ export function runOllama(model: string, prompt: string): string {
   }
 }
 
-export function assertGoalsFormat(output: string, model: string, context: string): void {
+// ── 경량 텍스트 생성 (Ollama 우선 + claude 폴백) ──────────────────────────────
+// 목표 생성·중복 판정·커밋 제목 합성처럼 판단 위주의 단발 텍스트 작업에 사용.
+// 상시 러너에 Ollama가 있으면 무료/로컬로 처리해 claude 구독 사용량(rate-limit
+// 창)을 아끼고, Ollama가 없거나 죽거나 형식을 어기면 claude(haiku)로 자동
+// 이어받아 파이프라인이 죽지 않는다. Ollama 모델은 OLLAMA_TEXT_MODEL(env)로 교체.
+const OLLAMA_TEXT_MODEL = process.env.OLLAMA_TEXT_MODEL ?? "qwen2.5-coder:7b";
+
+export function runText(prompt: string, validate?: (out: string) => boolean): string {
+  try {
+    const out = runOllama(OLLAMA_TEXT_MODEL, prompt);
+    if (validate && !validate(out)) {
+      throw new OllamaError("출력 형식 부적합 (기대 마커 누락)", OLLAMA_TEXT_MODEL);
+    }
+    return out;
+  } catch (e) {
+    if (e instanceof OllamaError) {
+      console.warn(
+        `  ⚠ Ollama(${OLLAMA_TEXT_MODEL}) 불가/부적합 → claude 폴백: ${e.message.slice(0, 200)}`
+      );
+      return runClaudeText(prompt);
+    }
+    throw e;
+  }
+}
+
+// claude CLI 전용 텍스트 생성 — runText의 폴백 경로. 저비용 모델(haiku)+low effort.
+export function runClaudeText(prompt: string): string {
+  const result = runClaude(prompt, "", 1, { model: "haiku", effort: "low" });
+  if (!result.success) {
+    throw new Error(`claude 텍스트 생성 실패: ${result.output.slice(0, 300)}`);
+  }
+  return result.output;
+}
+
+export function assertGoalsFormat(output: string, context: string): void {
   if (!/GOALS_START[\s\S]*?GOALS_END/.test(output)) {
-    throw new OllamaError(
-      `${context}: 응답에 GOALS_START/END 마커가 없습니다. 모델이 출력 포맷을 따르지 않았습니다.\n응답 발췌:\n${output.slice(0, 800)}`,
-      model
+    throw new Error(
+      `${context}: 응답에 GOALS_START/END 마커가 없습니다. 모델이 출력 포맷을 따르지 않았습니다.\n응답 발췌:\n${output.slice(0, 800)}`
     );
   }
 }

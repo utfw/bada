@@ -7,6 +7,30 @@
 
 ---
 
+## [2026-07-25] 자율 루프 상시 자동화 — self-hosted runner + 내부 bash 루프
+
+### 배경
+에이전트 루프를 사람 트리거 없이 상시 돌리기 위한 인프라. CI(매 실행 새 VM)는 ① threshold 미달로 큐에 남은 완료 커밋 유실 ② rate-limit으로 프로세스가 죽으면 재기동 불가 ③ push→재트리거에 PAT 필요(GITHUB_TOKEN은 재트리거 차단) 문제가 있어, **상시 머신의 self-hosted runner + 한 프로세스 안의 bash 루프**를 택함. 상시 프로세스라 "다시 트리거"가 불필요하고, rate-limit은 "다음 실행을 못 깨우는 문제"에서 "리셋까지 sleep하면 되는 문제"로 바뀐다. 러너에 이미 로그인된 claude 세션을 재사용해 OAuth 시크릿도 불요.
+
+### 변경
+- `agent/run-loop.sh`(신규) — `npm run agent -- -n N`을 반복 실행하는 상시 래퍼. 종료 코드로 분기: `0`(clean/budget/iteration-cap)→IDLE_SLEEP 후 다음 iteration, `75`(rate-limit)→리셋 시각까지 sleep 후 재실행, 그 외→루프 종료. `agent/STOP` 파일로 중지(현재 iteration 후 `agent:flush`로 큐 flush 뒤 종료).
+- `agent/loop.ts` — `stopReasonToExitCode` 종료 코드 계약(0/75/1), rate-limit 리셋 시각을 `agent/rate-limit-reset`에 ISO로 기록, 시작 시 이전 실행의 stale 신호 파일 제거.
+- `agent/pipeline/runner.ts` — 단계 출력에서 리셋 시각을 파싱하는 `parseRateLimitReset` 추가. `runText`(신규) — **Ollama 우선 + 실패/형식부적합 시 claude(haiku) 폴백**. `runOllama`/`OllamaError`는 유지하되, 던진 에러를 `runText`가 흡수해 폴백한다.
+- `agent/pipeline/goals.ts` — 텍스트 생성 5곳(목표 생성 2 + 중복 판정/커밋 제목 3)을 `runText`로 전환(목표 생성은 GOALS 마커 검증자 전달 → Ollama가 형식 어기면 claude로 재생성) + `flushPendingCommits`(threshold 미달 큐 강제 push).
+- `agent/pipeline/types.ts` — `RATE_LIMIT_SIGNAL_FILE` 상수.
+- `agent/flushCommits.ts`(신규) + `npm run agent:flush` — STOP 시 threshold 미달 대기열 강제 push.
+- `.github/workflows/agent-loop.yml`(신규) — `runs-on: self-hosted`, run-loop.sh를 한 번 띄우는 얇은 래퍼.
+- `.gitignore` — `agent/rate-limit-reset`, `agent/STOP`, `agent/evolution/`, `actions-runner/`(러너 등록 시크릿 유출 방지), 테스트 출력.
+- 상세 운영 문서: `agent/AUTOMATION.md`.
+
+**Ollama 폴백으로 바꾼 이유**: 기존엔 `generateGoalsFromChecklist`/`generateGoalsFromReview`가 `runOllama`의 `OllamaError`를 안 잡아, pending goal 소진 시 로컬 Ollama 없는 러너에서 파이프라인 전체가 죽었음. **전면 제거 대신 "Ollama 우선 + claude 폴백"**으로 처리 — 상시 러너에 Ollama가 있으면 값싼 텍스트 생성(목표 생성·중복 판정)을 무료/로컬로 돌려 claude 구독 사용량(rate-limit 창)을 아끼고, 없거나 죽거나 형식을 어기면 claude(haiku)가 자동으로 이어받아 죽지 않는다. Ollama 모델은 `OLLAMA_TEXT_MODEL`(env)로 교체 가능(기본 `qwen2.5-coder:7b`).
+
+### 검증 (2026-07-25 live)
+- `npm run agent -- -n 1` 실제 1회 완주: Observer(Playwright 32샘플, 콘솔에러 0)→Evolver→Aesthetic→Vision Judge→Planner→Implementer→Reviewer 전 단계 실행, **exit 0**.
+- 뽑힌 목표가 씬 불변식 위반(Ocean에 ConeGeometry 갓레이 재추가)이라 Planner·Implementer·Reviewer 3단계 모두 정확히 거부 → no-op REVIEW_PASS(가드레일 실전 확인).
+- 커밋 대기열 2/3(threshold 미달)로 push 없음, `warnUncommittedAgentChanges`가 미커밋 `agent/**` 6파일 경고+stage 제외 확인.
+- `compute_rl_wait`의 BSD `date -u` UTC 파싱 4케이스(미래/과거/무파일/손상) 전부 기대치 통과. 실제 rate-limit exit 75 경로는 러너 첫 자연 발생 시 확인 예정.
+
 ## [2026-07-16] Implementer 예산 캡 상향 + 예산 초과가 전체 실행을 멈추지 않게
 
 ### 배경

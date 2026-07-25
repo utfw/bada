@@ -22,6 +22,9 @@ export const OBSERVE_SCRIPT = path.join(ROOT, "agent", "observe.ts");
 export const CHECKLIST_FILE = path.join(ROOT, "agent", "REVIEW_CHECKLIST.md");
 export const PENDING_COMMIT_FILE = path.join(ROOT, "agent", "pending-commit.json");
 export const HISTORY_DIR = path.join(OBS_DIR, "history");
+// rate-limit 종료 시 loop.ts가 추정 리셋 시각(ISO)을 여기 기록한다.
+// bash 래퍼(agent/run-loop.sh)가 읽어 "그 시각까지 sleep 후 재실행"으로 분기.
+export const RATE_LIMIT_SIGNAL_FILE = path.join(ROOT, "agent", "rate-limit-reset");
 
 // ── 임계값·튜닝 상수 ──────────────────────────────────────────────────────────
 export const MAX_REVIEW_RETRIES = 2;

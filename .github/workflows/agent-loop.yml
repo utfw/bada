@@ -1,0 +1,50 @@
+name: Autonomous Agent Loop
+
+# self-hosted runner에서 상시 루프를 돈다. 반복·중지·rate-limit 대기는 모두
+# agent/run-loop.sh(한 프로세스 안의 bash 루프)가 담당하므로, 이 워크플로는 그 스크립트를
+# 한 번 띄우는 얇은 래퍼다. 상시 머신이라 CI(새 VM)의 flush-hack·push 재트리거·PAT가
+# 전부 불필요하고, 러너에 이미 로그인된 claude 세션을 그대로 재사용한다(OAuth 시크릿 불요).
+#
+# 중지: 러너의 작업 디렉터리에서 `touch agent/STOP`(현재 iteration 후 종료) 또는 Actions UI Cancel.
+on:
+  workflow_dispatch:
+    inputs:
+      iter_goals:
+        description: 'iteration당 목표 수 (-n). run-loop.sh의 AGENT_ITER_GOALS로 전달'
+        required: false
+        default: '5'
+
+# 같은 러너에서 루프가 둘 겹치면 git/goals.md 상태가 꼬인다 — 취소 대신 대기열.
+concurrency:
+  group: agent-loop
+  cancel-in-progress: false
+
+# autoCommitAndPush가 기본 GITHUB_TOKEN으로 같은 repo에 push할 수 있게 쓰기 권한 부여.
+# (self-hosted 내부 루프 방식이라 push→재트리거 연쇄에 의존하지 않으므로 PAT 불필요)
+permissions:
+  contents: write
+
+jobs:
+  agent:
+    runs-on: self-hosted
+    # 상시 루프이므로 job 타임아웃을 길게 둔다. 실제 종료는 STOP 파일 또는 Cancel.
+    timeout-minutes: 4320 # 3일
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # self-hosted 러너에 Node/npm/claude CLI/Playwright 브라우저가 러너 셋업 시
+      # 1회 설치되어 있다고 가정한다. Playwright 브라우저가 없으면 아래 주석 해제:
+      # - run: npx playwright install --with-deps chromium
+      - run: npm ci
+
+      - name: Configure git identity for auto-commit
+        run: |
+          git config user.name "project-bada-agent"
+          git config user.email "agent@users.noreply.github.com"
+
+      - name: Run autonomous loop
+        env:
+          AGENT_ITER_GOALS: ${{ github.event.inputs.iter_goals || '5' }}
+        run: bash agent/run-loop.sh

@@ -5,7 +5,7 @@
  * - 목표 파싱·마킹·추가·중복제거 (goals.md 읽기/쓰기)
  * - 커밋 대기열 + 자동 커밋·푸시 (pending-commit.json)
  * - git 변경 감지·시각 마일스톤 아카이브·사람 커밋 추출
- * - Ollama 기반 목표 생성 (체크리스트/리뷰 결과로부터)
+ * - claude(haiku) 기반 목표 생성 (체크리스트/리뷰 결과로부터)
  */
 
 import { execSync, execFileSync } from "child_process";
@@ -28,7 +28,7 @@ import {
   type GoalMetrics,
   type CommitEntry,
 } from "./types.js";
-import { runOllama, assertGoalsFormat } from "./runner.js";
+import { runText, assertGoalsFormat } from "./runner.js";
 
 // ── git 변경 감지 ─────────────────────────────────────────────────────────────
 
@@ -216,7 +216,7 @@ function withAgentSuffix(title: string): string {
 }
 
 /**
- * 여러 COMMIT_MSG를 Ollama에 보내 통합 conventional commit 제목을 생성한다.
+ * 여러 COMMIT_MSG를 claude(haiku)에 보내 통합 conventional commit 제목을 생성한다.
  * 실패 시 기본 제목 fallback.
  */
 function summarizeCommitTitle(msgLines: string[]): string {
@@ -247,9 +247,9 @@ TITLE_END
 
   let output: string;
   try {
-    output = runOllama("qwen2.5-coder:7b", prompt);
+    output = runText(prompt);
   } catch (e) {
-    console.log(`  ⚠ 커밋 제목 합성 실패 (Ollama) — 기본값 사용: ${String(e).slice(0, 200)}`);
+    console.log(`  ⚠ 커밋 제목 합성 실패 — 기본값 사용: ${String(e).slice(0, 200)}`);
     return withAgentSuffix(fallback);
   }
   const match = output.match(/TITLE_START\s*\n?(.+?)\n?\s*TITLE_END/);
@@ -320,6 +320,25 @@ export function recordCompletedGoal(goalText: string, commitMsg: string, metrics
   }
 }
 
+/**
+ * AUTO_COMMIT_THRESHOLD 미달이어도 대기열을 즉시 push한다.
+ *
+ * 로컬 실행은 같은 워킹트리를 계속 재사용하므로 threshold 미달 대기열이
+ * 다음 실행까지 디스크에 자연히 남아 문제가 없지만, CI(GitHub Actions 등)는
+ * 매 실행이 완전히 새 checkout이라 push되지 않은 대기열은 job 종료와 함께
+ * 통째로 유실된다(이미 지불한 API 비용까지). CI job 종료 직전에 호출해
+ * 그 유실을 막는다 — 정상 종료든 rate-limit 중단이든 항상 실행할 것.
+ */
+export function flushPendingCommits(): void {
+  const entries = loadPendingCommit();
+  if (entries.length === 0) {
+    console.log(`  커밋 대기열 없음 — flush할 것 없음`);
+    return;
+  }
+  console.log(`\n📦 대기 중인 커밋 ${entries.length}개 flush (threshold 미달이어도 CI 종료 전 강제 push)`);
+  autoCommitAndPush(entries);
+}
+
 // ── 목표 생성·중복제거 ────────────────────────────────────────────────────────
 
 function filterForbiddenGoals(goals: string[]): string[] {
@@ -382,9 +401,9 @@ GOALS_START
 GOALS_END
 `.trim();
 
-  console.log(`  → Ollama(qwen2.5-coder:7b)로 체크리스트 기반 목표 생성 중...`);
-  const output = runOllama("qwen2.5-coder:7b", prompt);
-  assertGoalsFormat(output, "qwen2.5-coder:7b", "generateGoalsFromChecklist");
+  console.log(`  → 체크리스트 기반 목표 생성 중 (Ollama 우선, 폴백 claude)...`);
+  const output = runText(prompt, (o) => /GOALS_START[\s\S]*?GOALS_END/.test(o));
+  assertGoalsFormat(output, "generateGoalsFromChecklist");
   return filterForbiddenGoals(parseGoalOutput(output));
 }
 
@@ -417,9 +436,9 @@ GOALS_START
 GOALS_END
 `.trim();
 
-  console.log(`  → Ollama(llama3.1:8b)로 리뷰 기반 목표 생성 중...`);
-  const output = runOllama("llama3.1:8b", prompt);
-  assertGoalsFormat(output, "llama3.1:8b", "generateGoalsFromReview");
+  console.log(`  → 리뷰 기반 목표 생성 중 (Ollama 우선, 폴백 claude)...`);
+  const output = runText(prompt, (o) => /GOALS_START[\s\S]*?GOALS_END/.test(o));
+  assertGoalsFormat(output, "generateGoalsFromReview");
   return filterForbiddenGoals(parseGoalOutput(output));
 }
 
@@ -432,7 +451,7 @@ function parseGoalOutput(output: string): string[] {
     .filter((l) => l.length > 0);
 }
 
-function deduplicateGoalsWithOllama(newGoals: string[], existing: string[]): string[] {
+function deduplicateGoalsWithClaude(newGoals: string[], existing: string[]): string[] {
   if (newGoals.length === 0 || existing.length === 0) return newGoals;
 
   const prompt = `
@@ -460,9 +479,9 @@ DUPS_END
 
   let output: string;
   try {
-    output = runOllama("qwen2.5-coder:7b", prompt);
+    output = runText(prompt);
   } catch (e) {
-    console.log(`  ⚠ 중복 검사 실패 (Ollama) — 전체 통과: ${String(e).slice(0, 200)}`);
+    console.log(`  ⚠ 중복 검사 실패 — 전체 통과: ${String(e).slice(0, 200)}`);
     return newGoals;
   }
 
@@ -490,11 +509,11 @@ DUPS_END
 }
 
 export function appendGoals(goals: string[]): void {
-  // 어떤 경로(Reviewer/Aesthetic SUGGESTIONS, Ollama 생성)로 들어와도 절대 금지
+  // 어떤 경로(Reviewer/Aesthetic SUGGESTIONS, claude 생성)로 들어와도 절대 금지
   // 주제는 여기서 한 번 더 잘라낸다. 단일 chokepoint 방어.
   const allowed = filterForbiddenGoals(goals);
   const existing = parsePendingGoals().map((g) => g.text);
-  const filtered = deduplicateGoalsWithOllama(allowed, existing);
+  const filtered = deduplicateGoalsWithClaude(allowed, existing);
   if (filtered.length === 0) {
     console.log(`  → 추가할 신규 목표 없음 (모두 중복 또는 절대 금지)`);
     return;
@@ -506,9 +525,9 @@ export function appendGoals(goals: string[]): void {
 
 /**
  * 기존 미완료 목표 목록 자체의 중복을 점검해 정리한다.
- * Ollama에게 의미상 같은 그룹을 식별하게 하고, 각 그룹의 첫 항목만 남기고
+ * claude에게 의미상 같은 그룹을 식별하게 하고, 각 그룹의 첫 항목만 남기고
  * 나머지 줄은 goals.md에서 완전히 삭제한다.
- * Ollama 실패 시 그대로 진행 (안전 fallback).
+ * claude 호출 실패 시 그대로 진행 (안전 fallback).
  */
 export function deduplicateExistingGoals(): void {
   const goals = parsePendingGoals();
@@ -541,9 +560,9 @@ GROUPS_END
 
   let output: string;
   try {
-    output = runOllama("qwen2.5-coder:7b", prompt);
+    output = runText(prompt);
   } catch (e) {
-    console.log(`  ⚠ 중복 점검 실패 (Ollama) — 그대로 진행: ${String(e).slice(0, 200)}`);
+    console.log(`  ⚠ 중복 점검 실패 — 그대로 진행: ${String(e).slice(0, 200)}`);
     return;
   }
 

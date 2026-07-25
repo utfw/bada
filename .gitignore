@@ -7,6 +7,14 @@ agent/observations/
 agent/pending-commit.json
 agent/metrics.jsonl
 agent/vision/judgments.jsonl
+agent/rate-limit-reset
+agent/STOP
+agent/evolution/
+agent/.ollama-tmp.json
+actions-runner/
+tests/report/
+tests/screenshots/
+.DS_Store
 .vscode/
 .claude/
 docs
