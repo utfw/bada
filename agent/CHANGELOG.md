@@ -7,6 +7,21 @@
 
 ---
 
+## [2026-07-25] 러너 프로젝트 밖 이전 + 헤드리스 auth(setup-token) 배선
+
+### 배경
+9a03453로 러너를 launchd 서비스로 띄우고 첫 dispatch를 돌렸더니 두 문제로 실패:
+1. **auth**: claude가 구독 토큰을 macOS 키체인(`Claude Code-credentials`)에 저장하는데, **launchd 서비스는 로그인 키체인을 헤드리스로 못 읽어** Planner/Vision Judge가 `Not logged in · Please run /login`으로 즉시 실패 → 단계 실패 → run-loop.sh exit 1. (대화형 쉘의 `-n 1` 검증이 통과했던 건 그 쉘이 키체인에 접근 가능했기 때문 — 헤드리스에선 성립 안 함.)
+2. **구조**: 러너가 프로젝트 안(`project_bada/actions-runner/`)에 있어 ① 상위 `type:module` package.json이 러너의 CommonJS 부트스트랩(`bin/RunnerService.js`)에 적용돼 `require is not defined` 크래시(임시로 `actions-runner/package.json` `{type:commonjs}` shim으로 회피) ② `_work/bada/bada`에 프로젝트 전체(111MB)가 재checkout되는 중첩 구조.
+
+### 변경
+- **러너를 `~/actions-runner`(프로젝트 밖)로 이전** — 중첩 체크아웃·ESM 상속 두 문제 동시 해소. svc stop/uninstall → mv → 새 위치에서 install/start, 재연결·Listening 확인. (러너 디렉터리는 머신 로컬/비공개라 코드 커밋 아님.)
+- `.github/workflows/agent-loop.yml`: run 스텝 env에 `CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}` 추가. 상단 주석의 "로그인 세션 재사용 → 시크릿 불요"를 setup-token 방식으로 정정.
+- `agent/AUTOMATION.md`: "이미 로그인된 세션 재사용 → 시크릿 불요"라는 **틀린 설계 가정**을 헤드리스 auth(setup-token/secret)로 정정, 러너 이전·가동·트리거 상태 갱신.
+
+### 남은 수동 단계 (사람만 가능)
+`claude setup-token` 실행(대화형·구독 인증) → 출력 토큰을 repo secret `CLAUDE_CODE_OAUTH_TOKEN`으로 등록(GitHub → Settings → Secrets and variables → Actions → New repository secret) → Actions UI에서 재-dispatch. 그 전까진 헤드리스 실행이 `Not logged in`으로 실패한다.
+
 ## [2026-07-25] 자율 루프 상시 자동화 — self-hosted runner + 내부 bash 루프
 
 ### 배경

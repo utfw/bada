@@ -9,7 +9,7 @@
 
 - **왜 self-hosted**: CI(매번 새 VM)는 ① 완료했지만 threshold 미달로 push 안 된 커밋 유실 ② rate-limit으로 프로세스가 죽으면 재기동 불가 ③ push→재트리거에 PAT 필요(GITHUB_TOKEN은 재트리거 차단) 같은 문제가 있음. 상시 머신이면 이 셋이 전부 사라짐.
 - **왜 내부 루프**: 프로세스가 안 죽으니 "다시 트리거"가 필요 없음. rate-limit은 "다음 실행을 못 깨우는 문제"가 아니라 "지금 프로세스가 리셋 시각까지 sleep하면 되는 문제"로 바뀜.
-- 러너에 **이미 로그인된 claude 세션 재사용** → OAuth 시크릿 발급 불필요.
+- **auth 주의(중요)**: 대화형 쉘에선 claude가 macOS 키체인의 로그인 세션을 쓰지만, **launchd 서비스(헤드리스)는 로그인 키체인을 못 읽어** `Not logged in`으로 죽는다. 따라서 "로그인 세션 재사용 → 시크릿 불요"는 **헤드리스에선 거짓**. `claude setup-token`으로 장기 토큰(`CLAUDE_CODE_OAUTH_TOKEN`)을 발급해 repo secret으로 주입해야 한다.
 
 ## 동작
 
@@ -66,7 +66,13 @@ rm agent/STOP                   # 재개
 - `compute_rl_wait`의 BSD `date -u` UTC 파싱 4케이스(미래/과거/무파일/손상) 전부 기대치 통과.
 - 타입체크 양쪽 tsconfig 통과(`npx tsc --noEmit` / `-p tsconfig.agent.json`).
 
-## 아직 안 한 것 / 확인 필요
+## 러너 가동 상태 (2026-07-25)
 
-1. **self-hosted runner 상시 가동** — 러너 등록은 완료(`actions-runner/`, agentName `loop`). 상시로 돌리려면 `cd actions-runner && ./svc.sh install && ./svc.sh start`(서비스) 또는 `./run.sh`(foreground). 러너 머신에 Node/npm/로그인된 `claude`/Playwright 브라우저 필요. `actions-runner/`는 등록 시크릿을 포함하므로 gitignore됨.
-2. **실제 rate-limit exit 75 경로** — 단위 검증(`compute_rl_wait` 4/4)은 마쳤으나, 실제 rate-limit이 exit 75로 나가 리셋까지 대기하는 전 과정은 러너 첫 자연 발생 시 최종 확인 권장.
+- **위치**: 프로젝트 **밖** `~/actions-runner`로 이전함. 처음엔 프로젝트 안에 뒀다가 ① Node가 상위 `type:module` package.json을 러너의 CommonJS 부트스트랩에 적용해 `require is not defined` 크래시 ② `_work/bada/bada`에 프로젝트 전체가 다시 checkout되는 중첩 구조 — 이 둘 때문에 밖으로 뺐다(밖으로 빼면 둘 다 사라짐). 등록 시크릿(`.credentials`) 포함하므로 어디 두든 비공개.
+- **서비스**: `cd ~/actions-runner && ./svc.sh install && ./svc.sh start` (launchd, sudo 불필요). 서비스명 `actions.runner.utfw-bada.loop`, 로그 `~/Library/Logs/actions.runner.utfw-bada.loop/`. 러너 머신에 Node/npm/`claude`/Playwright 브라우저 필요. 현재 상태: 연결됨·Listening.
+- **트리거**: 러너는 대기만 하고, 루프는 Actions UI "Autonomous Agent Loop" → Run workflow로 dispatch해야 시작(이 머신엔 `gh`/토큰 없어 CLI dispatch 불가).
+- **⛔ auth (필수 선행)**: 헤드리스라 `claude setup-token` 발급 토큰을 repo secret `CLAUDE_CODE_OAUTH_TOKEN`으로 등록해야 함. 안 하면 Planner/Vision 단계가 `Not logged in`으로 exit 1(2026-07-25 첫 dispatch가 이걸로 실패). 워크플로가 이 secret을 `CLAUDE_CODE_OAUTH_TOKEN` env로 넘긴다.
+
+## 아직 확인 필요
+
+- **실제 rate-limit exit 75 경로** — 단위 검증(`compute_rl_wait` 4/4)은 마쳤으나, 실제 rate-limit이 exit 75로 나가 리셋까지 대기하는 전 과정은 러너 첫 자연 발생 시 최종 확인 권장.
