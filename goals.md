@@ -380,9 +380,14 @@
 - [-] `src/scene/Ocean.ts` `addGodRays()` 함수에서 각 god ray 스트립의 `baseOpacity`를 0.005→0.04~0.06으로 올리고, 스트립 너비(`rayWidth`)를 1.2→2.5 이상으로 넓혀 측면 뷰에서 빛 줄기가 또렷이 보이도록 할 것. (surface-up 비가시 → ① opacity/폭 상향이 우선)
 - [x] **god ray 부피감** — `GodRayPass`(SceneManager.ts)에서 `uExposure`를 현재 값에서 0.6~0.8로 낮추고, fragment shader에 `falloff = 1.0 - pow(dist / maxDist, 0.5)` 형태의 방사 감쇠를 추가해 중심 과노출을 줄이고 아래로 퍼지는 부피감 있는 기둥 형태로 교체할 것
 - [x] `src/scene/Lighting.ts` `update()` / `src/scene/SceneManager.ts` fog 설정 — `scene.fog = new THREE.FogExp2(0x0a4a6e, 0.018)` 처럼 fog 색을 진한 코발트 청록(#0a4a6e~#0d6fa0)으로, ambient light color도 `0x1a6080` 이상 채도로 올려 전체 배경 채도를 높임
-- [ ] `src/scene/SceneManager.ts` `GodRayPass` uniform — `uExposure` 값을 현재보다 1.5~2× 상향하고 `uBandCount`를 늘려 광선 줄기 수와 밝기를 동시에 보강
-- [ ] `src/scene/Lighting.ts`의 ambient light 색상을 현재 회백색(#c0c8d0 수준)에서 채도 높은 청록(`#0a78aa`, intensity 0.6)으로 교체하고, fog color를 `#1a6080`으로 설정해 하단 회갈색 영역을 심해 남색으로 대체
-- [ ] `SceneManager.ts` 또는 `Lighting.ts`의 fog/배경 색상 — `scene.fog` color와 배경 gradient 하단 색을 현재 회청색(~#7a9ab0)에서 **채도 높은 남색(#0a2a6e~#0d3580)** 으로 변경해 하단 깊이 채도를 끌어올릴 것.
-- [ ] `src/scene/SceneManager.ts` GodRayPass uniform — `uExposure`를 현재값 대비 1.5~2배 상향하고 `uThreshold`를 낮춰(0.3 → 0.15) 광선 가시 임계값을 낮춤; 동시에 `src/scene/Lighting.ts`의 ambient light color를 하단 fog 색상(`#6a8fa8` 수준)에서 채도 높은 `#1a6fa0`으로 교체해 하단 탈채도 개선
+- [x] `src/scene/SceneManager.ts` `GodRayPass` uniform — `uExposure` 값을 현재보다 1.5~2× 상향하고 `uBandCount`를 늘려 광선 줄기 수와 밝기를 동시에 보강
+- [x] `src/scene/Lighting.ts`의 ambient light 색상을 현재 회백색(#c0c8d0 수준)에서 채도 높은 청록(`#0a78aa`, intensity 0.6)으로 교체하고, fog color를 `#1a6080`으로 설정해 하단 회갈색 영역을 심해 남색으로 대체
+- [-] `SceneManager.ts` 또는 `Lighting.ts`의 fog/배경 색상 — `scene.fog` color와 배경 gradient 하단 색을 현재 회청색(~#7a9ab0)에서 **채도 높은 남색(#0a2a6e~#0d3580)** 으로 변경해 하단 깊이 채도를 끌어올릴 것.
+- [-] `src/scene/SceneManager.ts` GodRayPass uniform — `uExposure`를 현재값 대비 1.5~2배 상향하고 `uThreshold`를 낮춰(0.3 → 0.15) 광선 가시 임계값을 낮춤; 동시에 `src/scene/Lighting.ts`의 ambient light color를 하단 fog 색상(`#6a8fa8` 수준)에서 채도 높은 `#1a6fa0`으로 교체해 하단 탈채도 개선
+- [-] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] `GodRayPass.ts`: screenshot-1~4 측면 앵글에서 god ray가 비가시 — `uExposure`를 0.7→1.0으로 소폭 상향하거나 `uBandStrength`를 0.75→0.5로 낮춰 균일 글로우 면적을 넓혀 측면 앵글에서도 광선이 인지되도록 조정
+- [-] `Ocean.ts` `addGodRays()`의 `baseOpacity` 값을 현재 0.005~0.007에서 **0.04~0.07**로 상향하고, 각 ray 메시의 `MeshBasicMaterial.opacity`도 동일 비율로 올릴 것. god ray가 surface-up에서도 완전 비가시이므로 opacity 상향이 최우선.
+- [-] `Lighting.ts` 또는 `SceneManager.ts`의 ambient light 색온도를 현재보다 청록 쪽으로 이동(예: `0x0a78cc` → `0x00b4d8`)하고 fog color도 `#0077b6` 계열로 채도를 높여 배경 회청색 탁함을 제거할 것.
+- [x] `Fish.ts` Boids 파라미터 — `separationDistance` 또는 카메라 기준 z-depth 하한을 높여 물고기 군집이 카메라 근처(z < -5 이내)로 과도하게 접근하지 않도록 제한, 고래상어가 중심 피사체로 유지되도록 할 것.
 - [ ] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
-- [ ] `GodRayPass.ts`: screenshot-1~4 측면 앵글에서 god ray가 비가시 — `uExposure`를 0.7→1.0으로 소폭 상향하거나 `uBandStrength`를 0.75→0.5로 낮춰 균일 글로우 면적을 넓혀 측면 앵글에서도 광선이 인지되도록 조정
+- [ ] `src/scene/Lighting.ts`의 ambient/hemisphere light 색상을 `#0a78cc`(채도 높은 코발트) 계열로 상향 조정하고, fog color를 현재보다 채도 높은 `#0e6faa`로 변경하여 배경 전반의 채도를 끌어올림.

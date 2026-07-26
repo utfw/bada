@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
-const CAMERA_EXCLUSION_RADIUS = 3.0;
-const CAMERA_REPULSION_WEIGHT = 2.0;
+const CAMERA_EXCLUSION_RADIUS = 8.0;
+const CAMERA_REPULSION_WEIGHT = 4.0;
 
 import {
   OCEAN_DEPTH,
@@ -514,7 +514,7 @@ export class FishSchool {
       }
 
       // 카메라 근접 컬링: 5 unit 이내 물고기를 숨겨 surface-up 시점 화면 점유 해소
-      fi.mesh.visible = pos.distanceTo(this._cameraPos) >= 5.0;
+      fi.mesh.visible = pos.distanceTo(this._cameraPos) >= 8.0;
     }
 
     // ── 학교별 후처리: centroid, 거리, dispersion, smoothed flee intensity ──
