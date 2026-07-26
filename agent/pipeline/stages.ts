@@ -103,6 +103,12 @@ export function extractAbandon(output: string): string | null {
   return m ? m[1].trim() : null;
 }
 
+/** Implementer가 코드를 바꾸지 않기로 판단하면 `IMPL_NOOP: <이유>` 한 줄만 출력한다(가짜 완료 방지). */
+export function extractImplNoop(output: string): string | null {
+  const m = output.match(/^\s*IMPL_NOOP:\s*(.+)$/m);
+  return m ? m[1].trim() : null;
+}
+
 export function runImplementer(
   goalText: string,
   plan: string,
@@ -125,12 +131,19 @@ ${plan}
 1. TypeScript strict 모드, any 타입 금지 (불명확할 땐 unknown + 타입 가드)
 2. Three.js 객체는 dispose() 필수
 3. 구현 후 반드시 Bash로 "npx tsc --noEmit" 실행, 에러 있으면 수정 후 재실행
-4. 타입 체크 통과 시 출력 마지막에 아래 두 줄을 정확히 이 순서로 출력:
+4. 실제로 파일을 수정했다면, 타입 체크 통과 후 출력 마지막에 아래 두 줄을 정확히 이 순서로 출력:
    COMMIT_MSG: <conventional commit 한 줄>
    IMPL_COMPLETE
    - COMMIT_MSG 형식: "feat(WhaleShark): sync dorsal rotation with body wave" — 수정한 파일/함수를 scope로, 동사로 시작하는 영문 50자 이내
    - type은 feat / fix / perf 중 선택 (refactor 금지). 실제로 구현 완료한 내용만 반영
-5. 계획에 없는 파일을 만지지 말 것 (꼭 필요하면 이유 남기고 진행)
+   - ⚠️ IMPL_COMPLETE는 **파일을 실제로 바꿨을 때만** 출력한다. 변경이 0인데 IMPL_COMPLETE·가짜 COMMIT_MSG를 쓰지 말 것.
+5. 코드를 바꾸지 않기로 판단하면 IMPL_COMPLETE 대신 아래 한 줄만 출력한다 (완료 위장 금지):
+   IMPL_NOOP: <이유 한 줄>
+   - 다음이면 파일을 만지지 말고 IMPL_NOOP로 이유를 밝혀라:
+     · 목표가 요구하는 값이 이미 반영돼 있어 바꿀 게 없음
+     · 요구가 무효/오도됨 — 예: 다른 곳에서 매 프레임 덮어써지는 값(uExposure는 SceneManager가 GODRAY_EXPOSURE로 덮음)을 고치라는 목표. 이때 진짜 노브를 이유에 명시
+     · 변경이 씬을 오히려 해치거나 씬 불변식과 충돌
+6. 계획에 없는 파일을 만지지 말 것 (꼭 필요하면 이유 남기고 진행)
 `.trim();
 
   return runClaude(prompt, "Bash,Edit,Write,Read,Glob,Grep", 30, {

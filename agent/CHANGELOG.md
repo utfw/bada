@@ -7,6 +7,21 @@
 
 ---
 
+## [2026-07-26] Implementer 정직한 보류(IMPL_NOOP) — 가짜 완료·재생성 루프 차단
+
+### 배경
+러너 로그(2026-07-26_03-41-01)에서 godray exposure/fog 목표가 반복 "✅완료·변경 0". 코드 확인 결과 `GODRAY_EXPOSURE`는 0.7 그대로인데(목표는 계속 1.0~2배 상향 요구) Implementer가 변경을 안 하면서도 **가짜** `COMMIT_MSG: boost exposure...` + `IMPL_COMPLETE`를 뱉었다. 게다가 목표가 가리키는 `uExposure`는 SceneManager가 매 프레임 `GODRAY_EXPOSURE`로 덮어써 수정해도 무효 — 즉 "안 바꾸는 게 맞다"는 판단을 숨기고 완료로 위장했고, vision judge는 여전히 어두운 갓레이를 보고 같은 목표를 재생성 → **무한 no-op 루프 + 진짜 병목이 사람에게 안 보임**.
+
+### 변경
+- **Implementer `IMPL_NOOP: <이유>` 경로** (stages.ts 프롬프트 + `extractImplNoop`): 코드를 바꾸지 않기로 판단하면(이미 반영됨 / 요구가 무효·오도됨 / 씬을 해침) 가짜 COMMIT_MSG 대신 `IMPL_NOOP: 이유`를 출력하도록 지시. `IMPL_COMPLETE`는 "실제로 파일을 바꿨을 때만".
+- **loop.ts 처리**: `IMPL_NOOP`(이유 있음) 또는 `IMPL_COMPLETE인데 src 변경 0`(silent no-op) 둘 다 → 이유와 함께 `[-]`(abandoned) 마킹, Reviewer 스킵, 커밋 없음, pending 재선택 안 함. P4(`PLAN_ABANDON`)와 대칭. 직전(580ac22)의 "변경 0이면 done 처리"를 **"이유 있는 보류"**로 대체 — 재생성 루프를 끊고 병목(예: "uExposure는 GODRAY_EXPOSURE로 덮임")을 로그로 노출.
+
+### 검증
+agent tsconfig 0에러, `npm run check:checklist` 바인딩 정상.
+
+### 남은 판단 (사람 몫, 메커니즘으로 해결 불가)
+judge↔Implementer 교착("갓레이 어두움" vs "0.7이 맞음")은 사람이 정할 문제 — `IMPL_NOOP` 이유가 그 결정 지점을 드러내준다.
+
 ## [2026-07-26] no-op Reviewer 스킵(토큰 절감) + 목표 문자열 sanitize
 
 ### 배경

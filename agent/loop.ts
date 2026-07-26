@@ -45,6 +45,7 @@ import {
   runPlanner,
   extractPlan,
   extractAbandon,
+  extractImplNoop,
   runImplementer,
   runReviewer,
   logAndCheck,
@@ -352,20 +353,31 @@ function executeGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBu
         log.goalEnd(false, getChangedFiles().filter((f) => !filesBefore.has(f)));
         return stageFailureResult(implResult, "Implementer");
       }
+      // Implementer가 코드를 바꾸지 않기로 명시(IMPL_NOOP: 이유)했거나, IMPL_COMPLETE인데
+      // src 변경이 0(=silent no-op)이면 검토할 변경이 없다. 재생성 루프를 막고 병목을
+      // 사람에게 드러내기 위해, 이유와 함께 "보류([-] abandoned)"로 마킹하고 가장 비싼
+      // Reviewer 단계를 건너뛴다(커밋 없음). 두 no-op 모두 pending에서 재선택되지 않는다.
+      const implNoopReason = extractImplNoop(implResult.output);
+      if (implNoopReason) {
+        console.log(`\n⏭  Implementer 변경 안 함(IMPL_NOOP) → 보류, Reviewer 건너뜀\n   이유: ${implNoopReason}`);
+        markGoal(goal.lineIndex, "abandoned");
+        log.goalEnd(false, []);
+        log.save();
+        return "abandoned";
+      }
+
       if (!implResult.output.includes("IMPL_COMPLETE")) {
         reviewFeedback = "이전 구현이 IMPL_COMPLETE를 출력하지 않았습니다. 원인을 파악하고 다시 시도하세요.";
         continue;
       }
 
-      // Implementer가 src 변경 0으로 완료를 선언하면(목표가 이미 충족돼 바꿀 게 없는 경우)
-      // 검토할 변경이 없으므로 가장 비싼 Reviewer 단계를 건너뛴다 — no-op에 드는 토큰 낭비 차단.
-      // (변경 0이므로 P3 가드가 커밋 큐잉도 생략하고 목표만 done 처리)
       const implChangedSrc = getChangedFiles().filter((f) => !filesBefore.has(f) && f.startsWith("src/"));
       if (implChangedSrc.length === 0) {
-        console.log(`\n⏭  Implementer가 src 변경 0으로 IMPL_COMPLETE — 검토할 변경 없음, Reviewer 건너뜀(no-op)`);
-        passed = true;
-        passedCommitMsg = "";
-        break;
+        console.log(`\n⏭  IMPL_COMPLETE인데 src 변경 0 (silent no-op) → 보류, Reviewer 건너뜀. Implementer는 IMPL_NOOP:<이유>로 밝혀야 함.`);
+        markGoal(goal.lineIndex, "abandoned");
+        log.goalEnd(false, []);
+        log.save();
+        return "abandoned";
       }
 
       console.log(`\n🔍 [4/4] Reviewer${cycleLabel}${attemptLabel}`);
