@@ -7,6 +7,18 @@
 
 ---
 
+## [2026-07-26] no-op Reviewer 스킵(토큰 절감) + 목표 문자열 sanitize
+
+### 배경
+러너 반복 실행 로그(2026-07-26_03-41-01) 분석: godray/fog 조정 목표가 연속으로 "✅완료·변경 0"이었다. 씬이 이미 목표 값이라 Implementer가 `IMPL_COMPLETE`+COMMIT_MSG만 뱉고 파일은 미변경. **검토할 변경이 없는데도 매 no-op마다 가장 비싼 Reviewer까지 돌아 토큰을 낭비**(goal 1~4 각 3KB+ 리뷰 생성). 또한 LLM 생성 목표가 마커/개행이 섞인 채 goals.md에 들어갈 여지.
+
+### 변경
+- **no-op Reviewer 스킵** (loop.ts): Implementer가 `IMPL_COMPLETE`인데 `src/` 변경이 0이면 Reviewer를 건너뛰고 no-op 완료 처리(`passed`, 빈 커밋 메시지). P3(변경 0이면 커밋 큐잉 생략)와 결합. Reviewer는 파이프라인에서 가장 비싼 단계라 no-op마다 이를 절약한다.
+- **목표 문자열 sanitize** (goals.ts `sanitizeGoalText`): `appendGoals` 단일 chokepoint에서 앞머리 체크박스(`[x]`)/리스트(`-*+`)/헤딩(`#`~`######`)/인용(`>`) 마커·코드펜스·개행을 제거해 한 줄로 강제, 500자 상한. 마커가 섞여 goals.md 파싱(`- [ ] `)이 깨지거나 멀티라인이 주입되는 것을 방지. 색코드(`#RRGGBB`)·inline code 등 **중간** 내용은 보존.
+
+### 검증
+`sanitizeGoalText` 스모크(정상·색코드 보존 / 체크박스·h1~h6·리스트 마커 제거 / 개행 접힘) 통과, agent tsconfig 0에러. **시크릿 유출 검사**: 토큰 **값**은 커밋·관찰·로그 어디에도 없음(변수명 `CLAUDE_CODE_OAUTH_TOKEN`만 문서/워크플로에 존재 — 정상). → 시크릿 sanitization 불요.
+
 ## [2026-07-26] 러너 첫 실행 로그 분석 → 커밋 무결성 4종 + 평가자 게이팅
 
 ### 배경

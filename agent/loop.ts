@@ -357,6 +357,17 @@ function executeGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBu
         continue;
       }
 
+      // Implementer가 src 변경 0으로 완료를 선언하면(목표가 이미 충족돼 바꿀 게 없는 경우)
+      // 검토할 변경이 없으므로 가장 비싼 Reviewer 단계를 건너뛴다 — no-op에 드는 토큰 낭비 차단.
+      // (변경 0이므로 P3 가드가 커밋 큐잉도 생략하고 목표만 done 처리)
+      const implChangedSrc = getChangedFiles().filter((f) => !filesBefore.has(f) && f.startsWith("src/"));
+      if (implChangedSrc.length === 0) {
+        console.log(`\n⏭  Implementer가 src 변경 0으로 IMPL_COMPLETE — 검토할 변경 없음, Reviewer 건너뜀(no-op)`);
+        passed = true;
+        passedCommitMsg = "";
+        break;
+      }
+
       console.log(`\n🔍 [4/4] Reviewer${cycleLabel}${attemptLabel}`);
       const changedSoFar = getChangedFiles().filter((f) => !filesBefore.has(f));
       const checklistBefore = readChecklistHash();

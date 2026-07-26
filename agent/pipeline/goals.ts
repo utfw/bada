@@ -532,10 +532,27 @@ DUPS_END
   return filtered;
 }
 
+/**
+ * LLM이 생성한 목표 문자열을 goals.md에 안전하게 넣기 위해 정규화한다.
+ * 앞머리 체크박스/리스트/헤딩 마커·코드펜스·개행을 제거해 한 줄로 강제하고 길이를 제한 —
+ * 마커가 섞여 goals.md 파싱(`- [ ] `)이 깨지거나 멀티라인이 주입되는 것을 막는 chokepoint 방어.
+ */
+function sanitizeGoalText(raw: string): string {
+  return raw
+    .replace(/`{3,}/g, "")                              // 코드펜스 제거
+    .replace(/[\r\n\t]+/g, " ")                         // 개행·탭 → 공백 (한 줄 강제)
+    .replace(/^\s*(?:[-*+]\s+)?\[[ xX~-]\]\s*/, "")     // 앞머리 체크박스 마커 제거
+    .replace(/^\s*(?:#{1,6}|[-*+>])\s+/, "")            // 앞머리 리스트/헤딩(#~######)/인용 마커 제거
+    .replace(/\s{2,}/g, " ")                            // 연속 공백 접기
+    .trim()
+    .slice(0, 500);                                     // 길이 상한 (런어웨이 방어; 정상 목표는 ~250자)
+}
+
 export function appendGoals(goals: string[]): void {
   // 어떤 경로(Reviewer/Aesthetic SUGGESTIONS, claude 생성)로 들어와도 절대 금지
   // 주제는 여기서 한 번 더 잘라낸다. 단일 chokepoint 방어.
-  const allowed = filterForbiddenGoals(goals);
+  const cleaned = goals.map(sanitizeGoalText).filter((g) => g.length > 0);
+  const allowed = filterForbiddenGoals(cleaned);
   const existing = parsePendingGoals().map((g) => g.text);
   const filtered = deduplicateGoalsWithClaude(allowed, existing);
   if (filtered.length === 0) {
