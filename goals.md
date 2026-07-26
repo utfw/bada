@@ -389,5 +389,9 @@
 - [-] `Ocean.ts` `addGodRays()`의 `baseOpacity` 값을 현재 0.005~0.007에서 **0.04~0.07**로 상향하고, 각 ray 메시의 `MeshBasicMaterial.opacity`도 동일 비율로 올릴 것. god ray가 surface-up에서도 완전 비가시이므로 opacity 상향이 최우선.
 - [-] `Lighting.ts` 또는 `SceneManager.ts`의 ambient light 색온도를 현재보다 청록 쪽으로 이동(예: `0x0a78cc` → `0x00b4d8`)하고 fog color도 `#0077b6` 계열로 채도를 높여 배경 회청색 탁함을 제거할 것.
 - [x] `Fish.ts` Boids 파라미터 — `separationDistance` 또는 카메라 기준 z-depth 하한을 높여 물고기 군집이 카메라 근처(z < -5 이내)로 과도하게 접근하지 않도록 제한, 고래상어가 중심 피사체로 유지되도록 할 것.
-- [ ] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
-- [ ] `src/scene/Lighting.ts`의 ambient/hemisphere light 색상을 `#0a78cc`(채도 높은 코발트) 계열로 상향 조정하고, fog color를 현재보다 채도 높은 `#0e6faa`로 변경하여 배경 전반의 채도를 끌어올림.
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [x] `src/scene/Lighting.ts`의 ambient/hemisphere light 색상을 `#0a78cc`(채도 높은 코발트) 계열로 상향 조정하고, fog color를 현재보다 채도 높은 `#0e6faa`로 변경하여 배경 전반의 채도를 끌어올림.
+- [-] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] `Ocean.ts` `addGodRays()` 내 SpotLight 기반 god ray 메시의 `baseOpacity`를 0.005→0.08~0.12로 상향하고, `GodRayPass.ts`의 `uExposure` uniform 값을 현재보다 2~3배 높여(예: 0.3→0.7) 광선이 surface-up 앵글에서 육안으로 식별되도록 조정
+- [x] `Lighting.ts` 또는 `SceneManager.ts`의 fog 색상을 현재 짙은 네이비(`#0a1628` 계열)에서 `#0d4a7a` 수준의 채도 높은 청색으로 올려 하단 암부 영역의 채도를 높임

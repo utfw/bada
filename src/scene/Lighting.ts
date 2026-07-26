@@ -14,48 +14,48 @@ interface LightingPreset {
 
 const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
   clear: {
-    ambientColor: 0x00b4d8,
+    ambientColor: 0x0a78cc,
     ambientIntensity: 0.75,
     sunColor: 0x40c8f0,
     sunIntensity: 3.2,
     godRayIntensity: 2.8,
-    fogColor: 0x0077b6,
+    fogColor: 0x0e6faa,
     fogDensity: 0.00255,
   },
   cloudy: {
-    ambientColor: 0x00b4d8,
+    ambientColor: 0x0a78cc,
     ambientIntensity: 1.05,
     sunColor: 0x40c8f0,
     sunIntensity: 1.2,
     godRayIntensity: 1.8,
-    fogColor: 0x005f8e,
+    fogColor: 0x0a5f99,
     fogDensity: 0.00222,
   },
   rain: {
-    ambientColor: 0x00b4d8,
+    ambientColor: 0x0a78cc,
     ambientIntensity: 1.10,
     sunColor: 0x40c8f0,
     sunIntensity: 0.8,
     godRayIntensity: 0.85,
-    fogColor: 0x005f8e,
+    fogColor: 0x0a5f99,
     fogDensity: 0.00290,
   },
   snow: {
-    ambientColor: 0x00b4d8,
+    ambientColor: 0x0a78cc,
     ambientIntensity: 1.20,
     sunColor: 0x40c8f0,
     sunIntensity: 1.4,
     godRayIntensity: 2.5,
-    fogColor: 0x0077b6,
+    fogColor: 0x0e6faa,
     fogDensity: 0.00188,
   },
   fog: {
-    ambientColor: 0x00b4d8,
+    ambientColor: 0x0a78cc,
     ambientIntensity: 0.95,
     sunColor: 0x40c8f0,
     sunIntensity: 0.5,
     godRayIntensity: 0.35,
-    fogColor: 0x004e7a,
+    fogColor: 0x0d4a7a,
     fogDensity: 0.00359,
   },
 };
@@ -72,13 +72,13 @@ export class Lighting {
 
   constructor(scene: THREE.Scene) {
     this.scene = scene;
-    scene.fog = new THREE.FogExp2(0x0077b6, 0.00255);
-    scene.background = new THREE.Color(0x0077b6);
+    scene.fog = new THREE.FogExp2(0x0e6faa, 0.00255);
+    scene.background = new THREE.Color(0x0e6faa);
 
-    this.ambientLight = new THREE.AmbientLight(0x00b4d8, 0.6);
+    this.ambientLight = new THREE.AmbientLight(0x0a78cc, 0.6);
     scene.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x00c8e8, 0x0a88bc, 1.0);
+    this.hemisphereLight = new THREE.HemisphereLight(0x0a78cc, 0x0a88bc, 1.0);
     scene.add(this.hemisphereLight);
 
     this.sunLight = new THREE.DirectionalLight(0x40c8f0, 2.8);
