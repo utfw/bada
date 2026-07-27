@@ -16,5 +16,6 @@ tests/report/
 tests/screenshots/
 .DS_Store
 .vscode/
-.claude/
+.claude/*
+!.claude/commands/
 docs
