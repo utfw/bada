@@ -54,6 +54,15 @@ export const VISUAL_SOURCE_FILES = [
 // 11장 전부가 아니라 변화가 가장 잘 드러나는 대표 프레임만 보존.
 export const ARCHIVE_SHOTS = ["screenshot-1.png", "surface-up.png"];
 
+// 완료 게이트에서 "의미 있는 구현 산출물"로 인정하는 비-src 파일.
+// 문서 전용 목표(README/CHANGELOG 업데이트)가 src 변경 0이라는 이유로
+// silent no-op abandoned로 폐기되던 문제를 막는다. 시각 리뷰(탑뷰 등)는
+// 스킵하되 타입체크/lint 게이트는 여전히 통과해야 한다.
+// autoCommit이 실제로 stage하는 경로와 일치해야 커밋되므로, 사람이 검토 없이
+// push돼도 안전한 사용자 대상 문서(README·루트 CHANGELOG)만 포함한다.
+// agent/** 인프라(loop/observe 등)는 제외 — 가드레일 유지.
+export const COMPLETION_DOC_FILES = ["README.md", "CHANGELOG.md"];
+
 export const GOAL_GENERATION_EXCLUSIONS = `
 ⛔ 절대 생성 금지: 물고기/고래상어 진행 방향 관련 코드 수정 목표
   (방향 문제는 사람만 판단·수정 가능. 어떤 표현으로 우회해도 금지.)

@@ -21,6 +21,7 @@ import {
   AUTO_COMMIT_THRESHOLD,
   AGENT_COMMIT_SUFFIX,
   VISUAL_SOURCE_FILES,
+  COMPLETION_DOC_FILES,
   ARCHIVE_SHOTS,
   GOAL_GENERATION_EXCLUSIONS,
   FORBIDDEN_GOAL_PATTERNS,
@@ -55,6 +56,52 @@ export function getChangedFiles(): string[] {
   } catch {
     return [];
   }
+}
+
+/**
+ * 현재 워킹트리의 파일별 내용 지문(blob hash)을 스냅샷한다.
+ * goal 시작 시점에 한 번 잡아두고, impl 후 다시 잡아 비교하면
+ * "이 goal이 실제로 내용을 바꾼 파일"을 알 수 있다.
+ *
+ * getChangedFiles()의 경로-집합 차분(filesBefore.has(f))은 선행 완료 goal이
+ * 이미 dirty하게 남긴 파일을 후행 goal이 "더" 바꿔도 감지하지 못한다(관찰된 버그).
+ * 경로가 아니라 내용 해시를 비교해야 진짜 델타를 잡는다.
+ *
+ * 값은 워킹트리 실제 내용의 blob hash(추적/미추적 무관, `git hash-object -w` 아님).
+ * 추적되지 않거나 hash 실패한 파일은 map에서 생략 → 이후 등장 시 "변경"으로 취급됨.
+ */
+export function snapshotBlobs(files: string[]): Map<string, string> {
+  const snap = new Map<string, string>();
+  for (const f of files) {
+    try {
+      const h = execFileSync("git", ["hash-object", f], {
+        cwd: ROOT,
+        encoding: "utf-8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+      if (h.length > 0) snap.set(f, h);
+    } catch {
+      // 삭제/접근불가 파일: 스냅샷에서 생략(이후 존재하면 변경으로 판정됨)
+    }
+  }
+  return snap;
+}
+
+/**
+ * before 스냅샷 대비 내용이 바뀐(또는 새로 나타난) 파일 목록을 반환한다.
+ * 현재 워킹트리에서 다시 hash를 떠 before의 hash와 다르면 변경으로 본다.
+ */
+export function changedSinceSnapshot(before: Map<string, string>): string[] {
+  const now = getChangedFiles();
+  const nowBlobs = snapshotBlobs(now);
+  const changed: string[] = [];
+  for (const f of now) {
+    const beforeHash = before.get(f);
+    const nowHash = nowBlobs.get(f);
+    // before에 없던 파일이거나(신규 dirty), hash가 달라졌으면(내용 변경) 실변경.
+    if (beforeHash === undefined || beforeHash !== nowHash) changed.push(f);
+  }
+  return changed;
 }
 
 /**
@@ -199,15 +246,32 @@ export function markGoal(lineIndex: number, status: "done" | "in-progress" | "pe
 }
 
 /**
- * 지정한 파일 중 src/ 항목을 HEAD 상태로 되돌린다(작업트리 변경 폐기).
- * 미완료/실패/포기 goal이 남긴 src 변경이 다음 완료 goal의 autoCommit(git add src/)에
+ * 지정한 파일 중 autoCommit이 stage하는 대상(src/ + 사용자 대상 문서)을
+ * HEAD 상태로 되돌린다(작업트리 변경 폐기).
+ * 미완료/실패/포기 goal이 남긴 변경이 다음 완료 goal의 autoCommit(git add src/ 등)에
  * 섞여 push되는 누출을 막기 위해 loop가 호출한다.
+ * 추적되지 않는 신규 파일(예: 새로 만든 루트 CHANGELOG.md)은 checkout으로 지울 수 없어
+ * 별도로 삭제한다.
  */
 export function revertSrcFiles(files: string[]): void {
-  const targets = files.filter((f) => f.startsWith("src/"));
+  const isRevertTarget = (f: string) =>
+    f.startsWith("src/") || COMPLETION_DOC_FILES.includes(f);
+  const targets = files.filter(isRevertTarget);
   if (targets.length === 0) return;
+  // 추적 중인 파일은 HEAD로 되돌리고, 미추적(신규) 파일은 삭제한다.
+  let tracked: string[] = [];
   try {
-    execFileSync("git", ["checkout", "HEAD", "--", ...targets], { cwd: ROOT, stdio: "pipe" });
+    tracked = execFileSync("git", ["ls-files", "--", ...targets], { cwd: ROOT, encoding: "utf-8" })
+      .split("\n").map((s) => s.trim()).filter((f) => f.length > 0);
+  } catch { /* ignore — 전부 미추적으로 취급 */ }
+  const untracked = targets.filter((f) => !tracked.includes(f));
+  try {
+    if (tracked.length > 0) {
+      execFileSync("git", ["checkout", "HEAD", "--", ...tracked], { cwd: ROOT, stdio: "pipe" });
+    }
+    for (const f of untracked) {
+      try { fs.rmSync(path.join(ROOT, f), { force: true }); } catch { /* ignore */ }
+    }
     console.log(`  ↩ 미완료 goal 변경 되돌림(autoCommit 누출 방지): ${targets.join(", ")}`);
   } catch (e) {
     console.warn(`  ⚠ 되돌리기 실패(무시): ${String(e).slice(0, 150)}`);
@@ -305,7 +369,9 @@ function autoCommitAndPush(entries: CommitEntry[]): void {
     metricsBlock = `\n\nMetrics: ${(totalDur / 1000).toFixed(1)}s, $${totalCost.toFixed(4)}, in=${totalIn}, out=${totalOut}`;
   }
   try {
-    execFileSync("git", ["add", "src/", "goals.md", "agent/REVIEW_CHECKLIST.md"], {
+    // src/·goals.md·REVIEW_CHECKLIST 외에 사용자 대상 문서(README·루트 CHANGELOG)도
+    // stage한다 — 문서 전용 완료 목표가 실제로 커밋되게. agent/** 인프라는 여전히 제외(가드레일).
+    execFileSync("git", ["add", "src/", "goals.md", "agent/REVIEW_CHECKLIST.md", ...COMPLETION_DOC_FILES], {
       cwd: ROOT,
       stdio: "inherit",
     });

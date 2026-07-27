@@ -7,6 +7,21 @@
 
 ---
 
+## [2026-07-28] 완료 게이트 오탐 수정 — blob 델타 판정 + 문서 전용 목표 완료 허용
+
+### 배경
+러너 로그(2026-07-27_11-10-58) 진단에서 두 가지 오탐 발견. goal-01(WhaleShark/Fish perf)이 정상 완료 후 변경을 워킹트리에 남긴(threshold 미달로 큐잉) 상태에서:
+- **goal-02**(makeFinMaterial 추출)는 `IMPL_COMPLETE`로 실제 `WhaleShark.ts`를 바꿨는데도 summary는 "미완료/변경없음", review.md 없음. 원인: 완료 게이트가 파일 **경로 집합 차분**(`filesBefore.has(f)`)이라, goal-01이 이미 dirty하게 만든 `WhaleShark.ts`를 goal-02가 "더" 바꿔도 `!filesBefore.has(f)`가 false → 실변경 0으로 오탐 → silent no-op abandoned로 정상 완료본이 폐기·revert됨.
+- **goal-03**(README/CHANGELOG 업데이트)은 `src/` 변경이 0이라 게이트의 `f.startsWith("src/")` 필터에 걸려 **문서 전용 목표는 구조적으로 완료 불가**. 매 실행 impl 비용만 낭비.
+
+### 변경
+- **blob hash 델타 판정** (goals.ts `snapshotBlobs`/`changedSinceSnapshot`, loop.ts `executeGoal`): goal 시작 시점에 dirty 파일들의 `git hash-object` 스냅샷을 잡고, impl 후 hash가 바뀐(또는 새로 나타난) 파일을 "실변경"으로 판정. 경로 멤버십 대신 내용 비교라 선행 goal이 남긴 dirty 상태와 무관하게 후행 goal의 변경을 잡는다.
+- **문서 전용 완료 경로** (loop.ts `runDocGate` + types.ts `COMPLETION_DOC_FILES`): `src/` 변경 0이고 `README.md`/루트 `CHANGELOG.md`만 바뀐 완료는 시각 Reviewer(탑뷰 등)를 스킵하고 `tsc --noEmit`만 통과시켜 완료로 인정. autoCommit의 `git add` 목록에 문서 2개 추가해 실제 커밋. agent/** 인프라는 여전히 stage 제외(가드레일 유지).
+- **revertSrcFiles 확장**: 미완료 goal이 남긴 문서 변경도 되돌리도록(추적 파일은 checkout, 신규 파일은 삭제) — 문서를 stage 대상에 넣은 만큼 누출 방지도 대칭 확장.
+
+### 검증
+main tsc·agent tsconfig 0에러, `npm run check:checklist` 바인딩 정상(신규 @src 2개 changedSinceSnapshot/runDocGate 포함).
+
 ## [2026-07-26] Implementer 정직한 보류(IMPL_NOOP) — 가짜 완료·재생성 루프 차단
 
 ### 배경

@@ -15,6 +15,7 @@
  * 로그: agent/logs/YYYY-MM-DD_HH-mm-ss/*.md
  */
 
+import { execFileSync } from "child_process";
 import {
   MAX_REVIEW_RETRIES,
   MAX_CHECKLIST_CYCLES,
@@ -23,6 +24,8 @@ import {
   MAX_GOALS_PER_RUN,
   EVALUATOR_EVERY_N_GOALS,
   RATE_LIMIT_SIGNAL_FILE,
+  COMPLETION_DOC_FILES,
+  ROOT,
   type Goal,
   type GoalResult,
   type GoalMetrics,
@@ -60,6 +63,8 @@ import {
   generateGoalsFromChecklist,
   generateGoalsFromReview,
   getChangedFiles,
+  snapshotBlobs,
+  changedSinceSnapshot,
   revertSrcFiles,
   warnUncommittedAgentChanges,
   archiveVisualMilestone,
@@ -182,6 +187,23 @@ function writeRateLimitSignal(stageOutput: string): void {
   }
 }
 
+/**
+ * 문서 전용 완료 목표의 검증 게이트. 시각 Reviewer(탑뷰 관찰 등)는 문서 변경과
+ * 무관하므로 건너뛰고, 프로젝트 타입체크(tsc --noEmit)만 통과시켜 Implementer가
+ * 문서 외에 코드를 건드려 빌드를 깨지 않았음을 확인한다. 통과 시 true.
+ */
+function runDocGate(): boolean {
+  try {
+    execFileSync("npx", ["tsc", "--noEmit"], { cwd: ROOT, stdio: "pipe" });
+    console.log(`  📐 문서 게이트: tsc --noEmit 통과`);
+    return true;
+  } catch (e) {
+    const out = e && typeof e === "object" && "stdout" in e ? String((e as { stdout?: unknown }).stdout ?? "") : "";
+    console.log(`  ⛔ 문서 게이트 실패: tsc --noEmit 에러\n${out.slice(0, 800)}`);
+    return false;
+  }
+}
+
 function runGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBudget): GoalResult {
   const filesBefore = new Set(getChangedFiles());
   const result = executeGoal(goal, goalIndex, log, budget);
@@ -202,6 +224,10 @@ function executeGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBu
   markGoal(goal.lineIndex, "in-progress");
 
   const filesBefore = new Set(getChangedFiles());
+  // 완료 게이트용 내용 지문 스냅샷. filesBefore(경로 집합)는 선행 완료 goal이
+  // dirty하게 남긴 파일을 후행 goal이 "더" 바꿔도 !has(f)가 false라 감지 못 한다.
+  // blob hash 비교로 이 goal이 실제로 내용을 바꾼 파일을 잡는다(관찰된 오탐 수정).
+  const blobsBefore = snapshotBlobs(getChangedFiles());
 
   const goalMetrics: GoalMetrics = {
     durationMs: 0,
@@ -371,17 +397,36 @@ function executeGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBu
         continue;
       }
 
-      const implChangedSrc = getChangedFiles().filter((f) => !filesBefore.has(f) && f.startsWith("src/"));
-      if (implChangedSrc.length === 0) {
-        console.log(`\n⏭  IMPL_COMPLETE인데 src 변경 0 (silent no-op) → 보류, Reviewer 건너뜀. Implementer는 IMPL_NOOP:<이유>로 밝혀야 함.`);
+      // 완료 게이트: 경로 집합 차분(filesBefore)이 아니라 blob hash 델타로 "이 goal이
+      // 실제로 내용을 바꾼 파일"을 잡는다. 선행 완료 goal이 dirty하게 남긴 파일을
+      // 이 goal이 "더" 바꿔도 감지된다(관찰된 오탐 수정).
+      const implChanged = changedSinceSnapshot(blobsBefore);
+      const implChangedSrc = implChanged.filter((f) => f.startsWith("src/"));
+      const implChangedDocs = implChanged.filter((f) => COMPLETION_DOC_FILES.includes(f));
+      if (implChangedSrc.length === 0 && implChangedDocs.length === 0) {
+        console.log(`\n⏭  IMPL_COMPLETE인데 실변경 0 (silent no-op) → 보류, Reviewer 건너뜀. Implementer는 IMPL_NOOP:<이유>로 밝혀야 함.`);
         markGoal(goal.lineIndex, "abandoned");
         log.goalEnd(false, []);
         log.save();
         return "abandoned";
       }
 
+      // 문서 전용 완료(src 변경 0, 문서만 변경): 시각 Reviewer(탑뷰 등)를 건너뛰고
+      // 타입체크/lint 게이트만 통과시키면 완료로 인정한다. 문서 목표가 src 변경 0이라는
+      // 이유로 abandoned로 폐기되던 구조적 문제를 막는다.
+      if (implChangedSrc.length === 0) {
+        console.log(`\n📄 문서 전용 변경(${implChangedDocs.join(", ")}) → 시각 리뷰 스킵, 타입체크/lint만 검증`);
+        if (!runDocGate()) {
+          reviewFeedback = "문서 변경이 타입체크/lint 게이트를 통과하지 못했습니다. 원인을 파악하고 다시 시도하세요.";
+          continue;
+        }
+        passed = true;
+        passedCommitMsg = extractCommitMsg(implResult.output);
+        break;
+      }
+
       console.log(`\n🔍 [4/4] Reviewer${cycleLabel}${attemptLabel}`);
-      const changedSoFar = getChangedFiles().filter((f) => !filesBefore.has(f));
+      const changedSoFar = changedSinceSnapshot(blobsBefore);
       const checklistBefore = readChecklistHash();
       const numericResults = runNumericChecks();
       const numericFailed = numericResults.filter((r) => !r.ok && r.severity === "fail");
@@ -424,16 +469,19 @@ function executeGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBu
     }
 
     if (passed) {
-      const newlyChanged = getChangedFiles().filter((f) => !filesBefore.has(f));
+      const newlyChanged = changedSinceSnapshot(blobsBefore);
       log.goalEnd(true, newlyChanged);
       log.save();
       markGoal(goal.lineIndex, "done");
-      // 변경된 src 파일이 있을 때만 커밋 대기열에 등록 — 변경 0인 no-op 완료가
-      // 가짜 커밋 메시지(안 한 일 주장)로 이력을 오염시키는 것을 방지.
-      if (newlyChanged.some((f) => f.startsWith("src/"))) {
+      // src 또는 사용자 대상 문서(README/CHANGELOG)가 실제로 바뀐 완료만 커밋 대기열에 등록 —
+      // 변경 0인 no-op 완료가 가짜 커밋 메시지(안 한 일 주장)로 이력을 오염시키는 것을 방지.
+      const enqueuable = newlyChanged.some(
+        (f) => f.startsWith("src/") || COMPLETION_DOC_FILES.includes(f),
+      );
+      if (enqueuable) {
         recordCompletedGoal(goal.text, passedCommitMsg, goalMetrics);
       } else {
-        console.log(`  ⓘ 변경된 src 없음 — no-op 완료로 커밋 메시지 큐잉 생략(이력 오염 방지)`);
+        console.log(`  ⓘ 커밋 대상 변경 없음 — no-op 완료로 커밋 메시지 큐잉 생략(이력 오염 방지)`);
       }
       archiveVisualMilestone(newlyChanged, goal.text, passedCommitMsg);
       console.log(`\n✓ 완료: ${goal.text}`);
@@ -456,7 +504,7 @@ function executeGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBu
     console.log(`  → 갱신된 체크리스트 기반으로 Observer부터 다시 실행합니다`);
   }
 
-  const newlyChanged = getChangedFiles().filter((f) => !filesBefore.has(f));
+  const newlyChanged = changedSinceSnapshot(blobsBefore);
   log.goalEnd(false, newlyChanged);
   log.save();
 
