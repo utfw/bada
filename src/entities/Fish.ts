@@ -86,9 +86,9 @@ export class FishSchool {
     // Centers spread across all 4 quadrants at varied depths for a rich 360° scene.
     // [cx, cz, yBase, semi_a, semi_b, yWave]
     this.schoolDefs = [
-      [ -4,  -8,  -4,  6,  3, 3.5],  // 0: Q3(-,-) shallow  cz -9→-8, semi_a 7→6, semi_b 4→3
-      [  6, -10,  -8,  6,  4, 2.0],  // 1: Q1→Q3   cz -12→-10, semi_b 5→4 (reduce shark path overlap)
-      [ -6,   8,  -4,  6,  5, 1.5],  // 2: Q2(-,+) mid
+      [ -4,  -8,  -4,  6,  3, 3.5],  // 0: Q3(-,-) shallow
+      [  6, -10,  -8,  6,  4, 2.0],  // 1: Q1→Q3   mid-depth
+      [ -6,   8,  -7,  6,  5, 1.5],  // 2: Q2(-,+) mid  yBase -4→-7 (drama depth adjustment)
       [ 30,   5,  -7,  8,  4, 4.0],  // 3: deep zone — cx/cz moved to keep ≥21 units from all shark path points
       [  3,   2,  -3,  5,  3, 5.0],  // 4: Q4(+,-) surface  tall vertical sweep
     ];
@@ -347,7 +347,7 @@ export class FishSchool {
     }
 
     const halfWidth = OCEAN_WIDTH / 2;
-    const yMin = -OCEAN_DEPTH;
+    const yMin = -15;
     const yMax = SURFACE_HEIGHT - 2;
     const separation = this._separation;
     const intraAvoid = this._intraAvoid;

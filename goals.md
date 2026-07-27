@@ -395,3 +395,16 @@
 - [-] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
 - [-] `Ocean.ts` `addGodRays()` 내 SpotLight 기반 god ray 메시의 `baseOpacity`를 0.005→0.08~0.12로 상향하고, `GodRayPass.ts`의 `uExposure` uniform 값을 현재보다 2~3배 높여(예: 0.3→0.7) 광선이 surface-up 앵글에서 육안으로 식별되도록 조정
 - [x] `Lighting.ts` 또는 `SceneManager.ts`의 fog 색상을 현재 짙은 네이비(`#0a1628` 계열)에서 `#0d4a7a` 수준의 채도 높은 청색으로 올려 하단 암부 영역의 채도를 높임
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] `src/scene/GodRayPass.ts` `uExposure` 기본값과 `SceneManager.ts` `GODRAY_EXPOSURE`를 현재값 대비 2~3배 상향하여 screenshot-1~4 및 surface-up에서 수직 광선 줄기가 가시화되도록 개선 — 현재 4장 모두에서 갓레이 미식별(미적 평가 광선 효과 0/2)
+- [-] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] `src/entities/Fish.ts` — Boids 군집의 y축 경계 하한(`minY` 또는 유사 상수)을 올려 물고기가 카메라 근처 하단에 밀집하지 않도록 하고, `separation` 반경을 늘려 군집이 화면 한 구역을 압도하지 않게 분산
+- [-] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [x] `src/entities/Fish.ts` Boids cohesion/separation의 수직 경계를 조정해 물고기 군집이 y축으로 더 분산되도록 — `boundaryForce` 또는 `FISH_DEPTH_MIN` 상수를 현재보다 15~20 units 위로 올려 하단 밀집을 완화.
+- [-] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] Fish.ts: schoolDefs의 yBase를 이전 값(-4, -8)으로 되돌리고 flee 후 회복 기능을 먼저 회복합니다.
+- [-] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [ ] schoolDefs school 0과 school 1의 cz 값을 조정하여 shark 궤적과 중복을 피하도록 하여 flee intensity 최대치 도달 후 복귀가 가능하게 수정.
+- [x] `src/scene/Lighting.ts` 또는 `SceneManager.ts`의 ambient/fog 색상을 현재 회청색(~#0d2a3a)에서 채도 높은 코발트(~#0a5a8a)로 조정하여 전체 씬 채도를 끌어올릴 것
