@@ -371,7 +371,11 @@ function autoCommitAndPush(entries: CommitEntry[]): void {
   try {
     // src/·goals.md·REVIEW_CHECKLIST 외에 사용자 대상 문서(README·루트 CHANGELOG)도
     // stage한다 — 문서 전용 완료 목표가 실제로 커밋되게. agent/** 인프라는 여전히 제외(가드레일).
-    execFileSync("git", ["add", "src/", "goals.md", "agent/REVIEW_CHECKLIST.md", ...COMPLETION_DOC_FILES], {
+    // ⚠ 존재하지 않는 pathspec을 git add에 넘기면 `fatal: pathspec ... did not match`로
+    // 전체가 exit 128 → catch로 빠져 커밋·push가 통째로 무산된다(관찰된 회귀).
+    // COMPLETION_DOC_FILES는 아직 안 만들어졌을 수 있으므로 실제 존재하는 것만 add한다.
+    const existingDocs = COMPLETION_DOC_FILES.filter((f) => fs.existsSync(path.join(ROOT, f)));
+    execFileSync("git", ["add", "src/", "goals.md", "agent/REVIEW_CHECKLIST.md", ...existingDocs], {
       cwd: ROOT,
       stdio: "inherit",
     });
