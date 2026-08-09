@@ -406,5 +406,15 @@
 - [-] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
 - [-] Fish.ts: schoolDefs의 yBase를 이전 값(-4, -8)으로 되돌리고 flee 후 회복 기능을 먼저 회복합니다.
 - [-] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
-- [ ] schoolDefs school 0과 school 1의 cz 값을 조정하여 shark 궤적과 중복을 피하도록 하여 flee intensity 최대치 도달 후 복귀가 가능하게 수정.
+- [x] schoolDefs school 0과 school 1의 cz 값을 조정하여 shark 궤적과 중복을 피하도록 하여 flee intensity 최대치 도달 후 복귀가 가능하게 수정.
 - [x] `src/scene/Lighting.ts` 또는 `SceneManager.ts`의 ambient/fog 색상을 현재 회청색(~#0d2a3a)에서 채도 높은 코발트(~#0a5a8a)로 조정하여 전체 씬 채도를 끌어올릴 것
+- [x] `src/scene/SceneManager.ts` 또는 `src/scene/Lighting.ts`의 fog 색상(`scene.fog` color)을 현재 추정값 `#0a1a2e` → `#063d6b` 수준으로 채도를 높여 배경 수중 색감을 코발트 계열로 끌어올릴 것.
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [x] **surface-up 핑크/노랑 블룸 제거 또는 억제** — `src/scene/SceneManager.ts`의 `GodRayPass` uniform 중 `uExposure`가 과대하거나, surface-up 앵글에서 별도 bloom 패스가 과노출되는 경우 `uExposure`를 **0.3 → 0.15** 수준으로 낮춰 비수중 색 번짐을 억제한다.
+- [x] `GodRayPass.ts` uDensity 0.85→1.0 상향 + uDecay 0.96→0.97 상향으로 샘플 스텝 범위를 넓혀, 측면(screenshot-1~4) 앵글에서도 상단 배경 픽셀까지 ray가 도달해 쐐기형 광선이 가시화되도록 개선 (현재 측면 4장 모두 미가시 — §10 가시성 트리거)
+
+- [x] Fish.ts:89 schoolDefs[0]의 yBase을 -4에서 -7로 변경 (원본 def: [-4, 10, -4, 6, 3, 3.5]) — school 0 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
+- [-] `surface-up.png`에서 물고기 군집이 카메라 근접 렌더링되어 화면 상단 40% 이상 점거 — `Fish.ts` `update()` 루프 내 카메라까지 거리 < 2.0인 물고기 `mesh.visible = false` 처리로 고래상어 주체 인식 방해 해소
+- [x] `Ocean.ts` `addGodRays()` 내 SpotLight 기반 광원의 실제 가시 효과가 없으므로, `GodRayPass.ts`의 `uExposure` uniform을 현재값에서 **3~5배 상향**(예: 0.005 → 0.02~0.03), `uBandCount`를 6→10으로, 각 밴드 opacity를 0.006→0.025 수준으로 올려 surface-up 앵글에서 수직 광선이 또렷이 보이도록 조정
+- [x] `Lighting.ts` 또는 `SceneManager.ts`의 fog 색상/밀도 설정에서 하단 깊이 영역의 fog color를 순수 검정(#000000)에서 짙은 청남색(#050a20 → #081830)으로 교체해 하단 무채색 영역에 청색 채도를 부여
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)

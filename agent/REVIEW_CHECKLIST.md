@@ -228,7 +228,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-05-07) [reviewer] §10 정정: 갓레이 메시 생성 위치를 "Ocean.ts에"에서 "Lighting.ts의 constructor에"로 수정 — 실제 구현이 Lighting.ts에 있으며 Ocean.ts에는 god ray 관련 코드 없음. 미정정 시 미래 Reviewer가 잘못된 파일을 점검할 위험.
 - (2026-05-07) [reviewer] §10 갓레이 opacity 감소 후 시각 검증: GOD_RAY_MAX_OPACITY 0.18→0.11 + godRayFragmentShader smoothstep 0.3→0.4 조합으로 whaleshark-front 기준 과노출 기둥 형태 해소 확인. wide 앵글(screenshot-1~4)에서 갓레이가 미세해지는 것은 의도된 결과이므로 실패 미해당.
 - (2026-05-10) [reviewer] §10 갱신: ConeGeometry → PlaneGeometry+ShaderMaterial 교체 반영. GOD_RAY_MAX_OPACITY=0.11, SpotLight(angle=0.18, penumbra=0.7, intensity=3.0) 파라미터 확인. whaleshark-front/side에서 기둥형 갓레이 가시성 확인. wide 앵글 미세화는 2026-05-07 선례와 동일하게 실패 미해당.
 - (2026-05-10) [정정: MeshBasicMaterial 기재 오류] 갓레이 재질은 ShaderMaterial(animated uTime uniform)이며 MeshBasicMaterial이 아님 — §10 명시 규칙과 실제 코드 모두 ShaderMaterial 사용.
