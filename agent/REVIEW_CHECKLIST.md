@@ -88,6 +88,8 @@
 
 - **[코드 검증] 궤도 중심 분산**: orbit path 제어점들의 평균 X, Z가 모두 ±5 이내(사실상 원점 집중)이면 카메라 360° 시야 중 좁은 구역에만 물고기가 몰린다. Reviewer는 `FishSchool` 생성자에서 orbit center(들)의 XZ 좌표를 확인. 모든 경로 중심이 원점(0,0) 반경 5 이내면 **실패**. 이 경우 SUGGESTIONS에 학교별 궤도 중심 분산 목표 추가.
 
+- **[코드 검증] 학교 간 orbit center 최소 거리**: 두 학교의 orbit center(cx, cz) 간 XZ 수평 거리가 **8 units 미만**이면, 두 학교의 타원 궤도(semi_a≈6)가 대부분 겹쳐 군집 독립성이 붕괴된다. Reviewer는 `Fish.ts`의 `schoolDefs` 배열에서 모든 school 쌍의 center 간 거리(√((cx_i-cx_j)²+(cz_i-cz_j)²))를 계산해 8 미만인 쌍이 있으면 **실패**. schoolDefs를 수정한 경우 반드시 새 center 좌표 기준으로 재계산할 것 — 이전 center 기준으로 계획한 분리 거리가 다른 school 이동 후에도 유지되는지 교차 확인 필수(2026-08-11 실측: school1을 cz+22 이동하면서 school2도 cz+6 이동했는데, 새 두 center가 2.83 units로 근접해 주석 "최소 8 units 분리"가 허위가 된 사례).
+
 <!-- @src: src/utils/constants.ts:FISH_ORBIT_WEIGHT -->
 - **[코드 수치 검증] FISH_ORBIT_WEIGHT 과다**: `FISH_ORBIT_WEIGHT`가 너무 크면 orbit 인력이 boids separation·alignment를 압도해 모든 물고기가 동일 앵커로 수렴한다. Reviewer는 `constants.ts`에서 `FISH_ORBIT_WEIGHT` 값을 확인. `BOID_SEPARATION_WEIGHT`보다 클 경우 군집이 뭉칠 가능성이 높으므로 **실패** 징후로 기록. `FISH_ORBIT_WEIGHT`는 boids가 자연스럽게 퍼질 수 있도록 `BOID_SEPARATION_WEIGHT`의 절반 이하여야 한다.
 
@@ -228,7 +230,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-05-07) [reviewer] §10 갓레이 opacity 감소 후 시각 검증: GOD_RAY_MAX_OPACITY 0.18→0.11 + godRayFragmentShader smoothstep 0.3→0.4 조합으로 whaleshark-front 기준 과노출 기둥 형태 해소 확인. wide 앵글(screenshot-1~4)에서 갓레이가 미세해지는 것은 의도된 결과이므로 실패 미해당.
 - (2026-05-10) [reviewer] §10 갱신: ConeGeometry → PlaneGeometry+ShaderMaterial 교체 반영. GOD_RAY_MAX_OPACITY=0.11, SpotLight(angle=0.18, penumbra=0.7, intensity=3.0) 파라미터 확인. whaleshark-front/side에서 기둥형 갓레이 가시성 확인. wide 앵글 미세화는 2026-05-07 선례와 동일하게 실패 미해당.
 - (2026-05-10) [정정: MeshBasicMaterial 기재 오류] 갓레이 재질은 ShaderMaterial(animated uTime uniform)이며 MeshBasicMaterial이 아님 — §10 명시 규칙과 실제 코드 모두 ShaderMaterial 사용.
 - (2026-05-15) [reviewer] §3 가슴지느러미 접합 기준 보완: group pivot이 body 반지름보다 안쪽(gap-hiding 설계)이더라도 shape X extent가 body 반지름의 2배를 초과하면 tip이 충분히 노출된 것으로 허용. rotation.x 검증에서 geometry.rotateX(-π/2) 패턴은 mesh.rotation.x 탐색으로 탐지 불가 — 시각 확인으로 보완.
@@ -258,3 +259,4 @@
 - (2026-07-14) [human] §10 대개편: god ray가 후처리(GodRayPass, 커밋 dc75eb2)로 일원화됨에 따라 stale 지오메트리 항목 5개 제거(갓레이 존재 A/B/C 구현, rotation.x 수직, ConeGeometry height 0, nearRay opacity 일관성, nearRayMesh 스트라이프) → "후처리 배선(씬 불변식)" 항목으로 교체(@src: GodRayPass.ts, 자동 수치 검증 "GodRayPass 배선"이 커버). 수면 항목 2개도 수면 평면 제거 불변식(2026-07)에 맞게 교체("수면 애니메이션"→"수면 평면 없음 불변식", "surface-up 수면 투시"→"상단 광원 투시"). godray 자연스러움 항목에 재교정 실험(precision 80%, 사람↔judge 경계 불일치) 반영 — 2회 연속 동일 원인 awkward면 사람 검토로 이관.
 - (2026-07-26) [human] §11 신설 — 러너 첫 실전 실행(fdad78c) 로그 분석에서 발견한 커밋 무결성 버그 4종 반영: ① 실패 goal의 잔여 src 변경이 autoCommit에 누출(goal2 Ocean.ts 빈줄 2개가 커밋됨) → loop가 미완료 goal 변경 revert ② 변경 0 no-op 완료가 가짜 COMMIT_MSG로 이력 오염(안 한 일 주장) → src 변경 있을 때만 큐잉 ③ 커밋 본문 bullet이 실제 diff와 불일치(GodRayPass 누락·Ocean 허위 서술) → 본문에 실제 staged 파일 `Changed:` 기록 ④ 불변식 위반 goal이 impl 3회 재시도 후 실패(비용 낭비) → Planner `PLAN_ABANDON` 즉시 포기. 별건: 평가자(Aesthetic/Vision) `EVALUATOR_EVERY_N_GOALS` 게이팅으로 claude 호출 비용 절감.
 - (2026-07-28) [human] §11 완료 게이트 오탐 2종 수정(러너 로그 2026-07-27_11-10-58 진단): ① 완료 판정이 파일 경로 집합 차분(`filesBefore.has`)이라, 선행 완료 goal이 워킹트리에 남긴 파일(goal-01 WhaleShark.ts)을 후행 goal(goal-02 makeFinMaterial)이 더 바꿔도 "변경 0"으로 오탐 → silent no-op abandoned로 정상 완료본이 폐기됨. blob hash 델타(`changedSinceSnapshot`)로 판정하도록 교체. ② 문서 전용 목표(goal-03 README/CHANGELOG)가 `src/` 필터 때문에 구조적으로 완료 불가 → `runDocGate`(tsc만) 통과 시 완료 인정, autoCommit이 README·루트 CHANGELOG를 stage. 두 항목 신규 추가(@src: changedSinceSnapshot, runDocGate), 기존 no-op 큐잉 항목 문구를 "src·문서 실변경 0"으로 갱신, revertSrcFiles도 문서까지 되돌리도록 확장.
+- (2026-08-11) [reviewer] §3-2 추가: 학교 간 orbit center 최소 거리 8 units 미만이면 타원 궤도 중첩으로 군집 독립성 붕괴 — schoolDefs 수정 시 다른 school 이동 후 새 좌표 기준 교차 확인 필수(school1 cz 이동 + school2 cz 이동 시 서로 2.83 units까지 근접한 실측 사례).

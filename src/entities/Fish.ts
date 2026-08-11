@@ -87,8 +87,8 @@ export class FishSchool {
     // [cx, cz, yBase, semi_a, semi_b, yWave]
     this.schoolDefs = [
       [ -4,  -8,  -7,  6,  3, 3.5],  // 0
-      [  6, -10,  -8,  6,  4, 2.0],  // 1
-      [ -6,   8,  -7,  6,  5, 1.5],  // 2: Q2(-,+) mid  yBase -4→-7 (drama depth adjustment)
+      [ -8,  12,  -8,  6,  4, 2.0],  // 1: Q3(-,+) — 상어 경로(+x,-z)와 반대 사분면으로 이동해 flee 고착 방지
+      [  6,  20,  -7,  6,  5, 1.5],  // 2: Q1(+,+) — school1(-8,12)까지 ≈16 units, 상어 경로와 반대 방향
       [ 30,   5,  -7,  8,  4, 4.0],  // 3: deep zone — cx/cz moved to keep ≥21 units from all shark path points
       [  3,   2,  -3,  5,  3, 5.0],  // 4: Q4(+,-) surface  tall vertical sweep
     ];
