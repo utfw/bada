@@ -429,4 +429,7 @@
 - [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
 - [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
 - [x] `src/entities/Fish.ts`의 물고기 군집 색상 팔레트를 청록/코발트 계열(예: `0x1a8fc0`, `0x0d6e9e`)로 제한해 배경과 색조를 통일시키고, surface-up 앵글에서 고래상어 주변에 군집이 너무 근접하지 않도록 `separationDistance` 또는 `cohesionRadius`를 5~10% 확대
-- [ ] `GodRayPass` uniform 조정 — `uExposure`/`uThreshold` 상향으로 쐐기형 광선 줄기 가시성 확보(screenshot-1~4 모두에서 미식별). ⛔ 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [x] `GodRayPass` uniform 조정 — `uExposure`/`uThreshold` 상향으로 쐐기형 광선 줄기 가시성 확보(screenshot-1~4 모두에서 미식별). ⛔ 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [x] `src/scene/Ocean.ts` `addGodRays()` — `baseOpacity`를 0.005→0.08~0.15로 상향, 광선 `width`도 1.5~2배 확대하여 surface-up 앵글에서 빛 기둥이 또렷이 보이게 할 것
+- [ ] `src/scene/Lighting.ts` — 하단 심해 fog color를 현재 거의 검정(#000a1a 근사)에서 짙은 코발트(#051a3a)로 올려 하단 채도를 개선할 것
