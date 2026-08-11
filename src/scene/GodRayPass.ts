@@ -27,8 +27,8 @@ export class GodRayPass extends Pass {
         uWeight: { value: 1.0 },     // 샘플당 가중치
         uDecay: { value: 0.97 },     // 샘플당 감쇠 (스트리크 길이)
         uExposure: { value: 1.5 },   // 전체 세기 (SceneManager가 매 프레임 갱신)
-        uThreshold: { value: 0.20 },  // 이 밝기 이상만 광선에 기여 (물고기 등 어두운 것 배제)
-        uColor: { value: new THREE.Color(1.0, 1.0, 1.0) }, // 순백 틴트 (상단 광원 밝기 증폭)
+        uThreshold: { value: 0.26 },  // 이 밝기 이상만 광선에 기여 (물고기 등 어두운 것 배제)
+        uColor: { value: new THREE.Color(0.92, 0.95, 1.0) }, // 청백 틴트 (hot pink 과포화 억제)
         uTime: { value: 0 },         // 밴드 천천히 흐르게
         uBandCount: { value: 10.0 }, // 광원 기준 각도 밴드 개수 (갈래 수, 적을수록 넓은 광선)
         uBandSharp: { value: 8.0 },  // 밴드 대비 (클수록 또렷, 낮을수록 부드러움)

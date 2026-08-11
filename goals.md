@@ -421,6 +421,9 @@
 - [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
 - [x] school0·school1이 flee 후 recoveryTimeSec=-1로 지속 미회복 — schoolDefs의 semi_a/semi_b가 BOID_BOUNDARY_MARGIN(=8) 근처인지, PREDATOR_FLEE_RANGE 범위 내에서 orbit 복귀 인력(`FISH_ORBIT_WEIGHT`)이 flee force를 충분히 상회하는지 별도 목표로 진단 (`Fish.ts schoolDefs` 및 `constants.ts FISH_ORBIT_WEIGHT` 대조)
 - [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
-- [ ] `src/entities/Fish.ts` school0(cx=-4, cz=-8, semi_b=3) 궤도 이탈 — school0이 whale shark 경로(z≈-22~-12) 인접 구간에서 flee 후 궤도 미복귀(recoveryTimeSec=-1, peakIntensity=0.51); school0 cz를 -15~-18로 이동하거나 semi_b를 2로 축소해 whale shark 경로와의 중첩 구간을 줄이고, 다른 school과의 최소 8 units 분리를 재확인
-- [ ] `src/scene/SceneManager.ts` 또는 `src/scene/Lighting.ts`에서 ambient light 또는 fog의 far 값을 줄여 하단 심해 영역의 색상이 순수 검정(#000)이 아닌 채도 있는 심청(#050a1a → #071428 수준)으로 유지되도록 fog color를 `0x071428`로 조정할 것.
-- [ ] `surface-up.png`에서 hot pink 과포화가 지속됨 — `GodRayPass.ts` `uColor`를 약간 냉각(`new THREE.Color(0.92, 0.95, 1.0)`, 청백 틴트)하거나 `uThreshold`를 0.25~0.28로 소폭 상향해 가장 밝은(포화) 픽셀만 선택적으로 기여하도록 조정
+- [x] `src/entities/Fish.ts` school0(cx=-4, cz=-8, semi_b=3) 궤도 이탈 — school0이 whale shark 경로(z≈-22~-12) 인접 구간에서 flee 후 궤도 미복귀(recoveryTimeSec=-1, peakIntensity=0.51); school0 cz를 -15~-18로 이동하거나 semi_b를 2로 축소해 whale shark 경로와의 중첩 구간을 줄이고, 다른 school과의 최소 8 units 분리를 재확인
+- [x] `src/scene/SceneManager.ts` 또는 `src/scene/Lighting.ts`에서 ambient light 또는 fog의 far 값을 줄여 하단 심해 영역의 색상이 순수 검정(#000)이 아닌 채도 있는 심청(#050a1a → #071428 수준)으로 유지되도록 fog color를 `0x071428`로 조정할 것.
+- [x] `surface-up.png`에서 hot pink 과포화가 지속됨 — `GodRayPass.ts` `uColor`를 약간 냉각(`new THREE.Color(0.92, 0.95, 1.0)`, 청백 틴트)하거나 `uThreshold`를 0.25~0.28로 소폭 상향해 가장 밝은(포화) 픽셀만 선택적으로 기여하도록 조정
+
+- [ ] Fish.ts:90 schoolDefs[1]의 yBase을 -8에서 -5로 변경 (원본 def: [-8, 12, -8, 6, 4, 2]) — school 1 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
+- [ ] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)

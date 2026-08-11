@@ -19,7 +19,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x40c8f0,
     sunIntensity: 3.2,
     godRayIntensity: 2.8,
-    fogColor: 0x081830,
+    fogColor: 0x071428,
     fogDensity: 0.00255,
   },
   cloudy: {
@@ -28,7 +28,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x40c8f0,
     sunIntensity: 1.2,
     godRayIntensity: 1.8,
-    fogColor: 0x061428,
+    fogColor: 0x071428,
     fogDensity: 0.00222,
   },
   rain: {
@@ -37,7 +37,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x40c8f0,
     sunIntensity: 0.8,
     godRayIntensity: 0.85,
-    fogColor: 0x050a20,
+    fogColor: 0x071428,
     fogDensity: 0.00290,
   },
   snow: {
@@ -46,7 +46,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x40c8f0,
     sunIntensity: 1.4,
     godRayIntensity: 2.5,
-    fogColor: 0x070f25,
+    fogColor: 0x071428,
     fogDensity: 0.00188,
   },
   fog: {
@@ -55,7 +55,7 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     sunColor: 0x40c8f0,
     sunIntensity: 0.5,
     godRayIntensity: 0.35,
-    fogColor: 0x050a20,
+    fogColor: 0x071428,
     fogDensity: 0.00359,
   },
 };

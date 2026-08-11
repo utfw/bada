@@ -9,7 +9,7 @@ export const CAMERA_NEAR = 0.1;
 export const CAMERA_FAR = 200;
 export const MAX_PIXEL_RATIO = 2;
 export const DEFAULT_FOG_DENSITY = 0.00222;
-export const DEFAULT_FOG_COLOR = 0x081830;
+export const DEFAULT_FOG_COLOR = 0x071428;
 export const DEFAULT_BG_COLOR = 0x0077b6;
 export const TONE_MAPPING_EXPOSURE = 1.4;
 
