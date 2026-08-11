@@ -222,13 +222,13 @@ export class FishSchool {
     const hue = Math.random();
     let color: number;
     if (hue < 0.3) {
-      color = 0x4488aa;
+      color = 0x1a8fc0;
     } else if (hue < 0.5) {
-      color = 0x2ec4e0;
+      color = 0x0d6e9e;
     } else if (hue < 0.7) {
       color = 0x1a7ab5;
     } else {
-      color = 0x99aabb;
+      color = 0x1dbfcf;
     }
 
     const gradientData = new Uint8Array([0, 0, 0, 128, 128, 128, 128, 255, 255, 255]);

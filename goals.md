@@ -425,5 +425,8 @@
 - [x] `src/scene/SceneManager.ts` 또는 `src/scene/Lighting.ts`에서 ambient light 또는 fog의 far 값을 줄여 하단 심해 영역의 색상이 순수 검정(#000)이 아닌 채도 있는 심청(#050a1a → #071428 수준)으로 유지되도록 fog color를 `0x071428`로 조정할 것.
 - [x] `surface-up.png`에서 hot pink 과포화가 지속됨 — `GodRayPass.ts` `uColor`를 약간 냉각(`new THREE.Color(0.92, 0.95, 1.0)`, 청백 틴트)하거나 `uThreshold`를 0.25~0.28로 소폭 상향해 가장 밝은(포화) 픽셀만 선택적으로 기여하도록 조정
 
-- [ ] Fish.ts:90 schoolDefs[1]의 yBase을 -8에서 -5로 변경 (원본 def: [-8, 12, -8, 6, 4, 2]) — school 1 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
-- [ ] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] Fish.ts:90 schoolDefs[1]의 yBase을 -8에서 -5로 변경 (원본 def: [-8, 12, -8, 6, 4, 2]) — school 1 peakFleeIntensity=0.00 — yBase 조정으로 수심 변경
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [x] `src/entities/Fish.ts`의 물고기 군집 색상 팔레트를 청록/코발트 계열(예: `0x1a8fc0`, `0x0d6e9e`)로 제한해 배경과 색조를 통일시키고, surface-up 앵글에서 고래상어 주변에 군집이 너무 근접하지 않도록 `separationDistance` 또는 `cohesionRadius`를 5~10% 확대
+- [ ] `GodRayPass` uniform 조정 — `uExposure`/`uThreshold` 상향으로 쐐기형 광선 줄기 가시성 확보(screenshot-1~4 모두에서 미식별). ⛔ 지오메트리 god ray 메시 추가 금지(씬 불변식)
