@@ -432,4 +432,17 @@
 - [x] `GodRayPass` uniform 조정 — `uExposure`/`uThreshold` 상향으로 쐐기형 광선 줄기 가시성 확보(screenshot-1~4 모두에서 미식별). ⛔ 지오메트리 god ray 메시 추가 금지(씬 불변식)
 - [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
 - [x] `src/scene/Ocean.ts` `addGodRays()` — `baseOpacity`를 0.005→0.08~0.15로 상향, 광선 `width`도 1.5~2배 확대하여 surface-up 앵글에서 빛 기둥이 또렷이 보이게 할 것
-- [ ] `src/scene/Lighting.ts` — 하단 심해 fog color를 현재 거의 검정(#000a1a 근사)에서 짙은 코발트(#051a3a)로 올려 하단 채도를 개선할 것
+- [x] `src/scene/Lighting.ts` — 하단 심해 fog color를 현재 거의 검정(#000a1a 근사)에서 짙은 코발트(#051a3a)로 올려 하단 채도를 개선할 것
+- [-] Remove redundant reviewer checks in autoCommit to prevent unnecessary resets.
+- [-] Refine the goal completion mechanism to avoid early aborts due to blob delta discrepancies.
+- [-] Ensure that all commits are made with proper documentation and commit integrity measures.
+- [-] Simplify the vision judge implementation by focusing on single-axis recall/precision metrics.
+- [-] Introduce a more robust cost CV evaluation system for better reproducibility of vision labels.
+
+- [x] Fish.ts:90 schoolDefs[1]의 cz을 12에서 7.2로 변경 (원본 def: [-8, 12, -5, 6, 4, 2]) — school 1 encounterRate=0 (minDist=28.1) — orbit center cz 원점 쪽으로 이동
+- [x] `src/scene/Ocean.ts` addGodRays 내 SpotLight 빔 메시(또는 GodRayPass uniform) — `uExposure`를 현재값 대비 3~5배 상향(예: 0.006 → 0.025), `uThreshold`를 0.15 이하로 낮춰 광선이 측면 앵글에서도 육안 식별 가능하게 만들 것; baseOpacity가 별도 존재하면 0.03~0.06 범위로 올릴 것
+- [ ] `src/scene/Lighting.ts` 또는 `src/utils/constants.ts` — 씬 하단 fog 색상(fogColor / ambientLight 하단 색)을 순수 검정(#000000)에서 채도 있는 남색(#051530 → #0a2050 계열)으로 교체해 하단 암부에도 청색 채도를 유지할 것
+- [ ] `src/scene/Ocean.ts` `addGodRays()` 내 SpotLight 보조 광원의 `baseOpacity` (또는 개별 광선 메시의 `material.opacity`) 를 현재 0.005~0.007에서 **0.04~0.08**로 상향하고, GodRayPass uniform `uExposure`를 **0.18→0.28**, `uThreshold`를 **0.15→0.08**로 낮춰 광선이 수면 위에서도 또렷이 인지되도록 조정.
+- [ ] `src/scene/Lighting.ts`에서 AmbientLight 또는 fog color의 하단 색을 현재 `#000a14` 수준에서 **`#0a2a50`** 이상으로 올려 심해 영역 채도를 높이고, fog density를 약 10~15% 줄여 화면 하단이 무채색으로 뭉치지 않도록 수정.
+- [ ] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [ ] `src/scene/SceneManager.ts` `GodRayPass` uniform 중 `uExposure`를 현재 값에서 **1.5~2.0배** 증가시키고, `uThreshold`를 **0.05~0.1** 낮춰 희미한 광원도 god ray scattering에 기여하도록 임계값을 완화할 것

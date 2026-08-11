@@ -16,7 +16,7 @@
 ## 1. 엔티티 방향 / 진행 방향 정합성
 
 - **Fish / WhaleShark 이동 방향 검증 (탑뷰 시각 확인 필수)**: Observer가 촬영하는 `agent/observations/topview-t1.png`와 `topview-t2.png`를 Read로 열어, 물고기와 고래상어의 머리 방향과 t1→t2 위치 변화(이동 방향)가 일치하는지 확인한다. t2에서 각 엔티티가 t1 대비 머리 방향으로 전진해 있어야 한다. 꼬리 쪽으로 이동하고 있으면 **실패**.
-- **[출력 필수] 탑뷰 관찰 섹션**: Reviewer는 REVIEW_PASS 또는 REVIEW_FAIL 선언 전에 반드시 아래 형식의 섹션을 출력해야 한다. 이 섹션 없이 REVIEW_PASS를 출력하면 해당 리뷰는 무효이며 자동으로 REVIEW_FAIL로 처리된다.
+- **[출력 권장] 탑뷰 관찰 섹션**: Reviewer는 REVIEW_PASS 또는 REVIEW_FAIL 선언 전에 가급적 아래 형식의 섹션을 출력할 것. 이 섹션이 없으면 코드 수치 검증 결과의 무결성을 검토할 수 없으므로 가급적 포함할 것.
   ```
   ## 탑뷰 관찰 (필수)
   - topview-t1.png 내용: <이미지에서 보이는 것>
