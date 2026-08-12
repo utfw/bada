@@ -34,6 +34,7 @@ Three.js · TypeScript · Vite
          │
          ├─ 1.5. Aesthetic Evaluator + Vision Judge [Claude · 3 goal마다]
          │    스크린샷 객관 채점(5×2) + 갓레이/버블 축 판정 → 저점수 시 개선 목표 생성
+         │    (`EVALUATOR_EVERY_N_GOALS` 게이팅으로 비용 절감)
          │
          ├─ 2. Planner [Claude sonnet]
          │    REVIEW_CHECKLIST.md + 관찰 결과 + 코드 분석 → 수정 계획
@@ -52,7 +53,10 @@ Three.js · TypeScript · Vite
        완료 시점:
          ├─ 단계 중단 (CLI 오류·타임아웃) → 전체 파이프라인 정지
          ├─ Rate-limit 도달 → 전체 정지, 한도 리셋 후 재실행 가능
-         └─ 누적 3개 완료 → autoCommit(통합 제목 합성 + 실제 변경 파일 기록) + push
+         ├─ 누적 3개 완료 → autoCommit(통합 제목 합성 + 실제 변경 파일 기록) + push
+         └─ 문서 전용 완료 (src/ 변경 0, README.md·CHANGELOG.md만 수정)
+              → 시각 Reviewer 스킵, runDocGate(tsc --noEmit)만 통과하면 완료 인정
+              → autoCommit이 문서 파일을 stage해 실제 커밋
 ```
 
 ### 핵심 메커니즘
@@ -64,6 +68,7 @@ Three.js · TypeScript · Vite
 - **커밋 무결성** — 자동 커밋은 `src/`·`goals.md`·`agent/REVIEW_CHECKLIST.md`만 stage(에이전트 자체 코드 제외). 실패·미완료 목표가 남긴 변경은 되돌리고, 변경 0인 no-op 완료는 커밋하지 않으며, 본문에 실제 변경 파일 목록을 기록
 - **실행 불가 목표 조기 포기** — 씬 불변식을 위반해야만 달성되는 목표는 Planner가 `PLAN_ABANDON`으로 즉시 포기(`[-]` 마킹)해 Implementer 재시도 비용을 없앰
 - **텍스트 생성 하이브리드** — 가벼운 작업(목표 생성·dedup·커밋 제목)은 로컬 Ollama 우선, 없거나 실패·형식 오류면 Claude(haiku)로 폴백. 상시 루프의 Claude 사용량(rate-limit)을 아낀다
+- **문서 전용 완료 경로** — `README.md`·`CHANGELOG.md`만 바꾸는 목표는 시각 Reviewer(탑뷰 스크린샷 등)를 스킵하고 `tsc --noEmit`(`runDocGate`) 통과만으로 완료 인정. autoCommit의 `git add` 목록에 두 파일이 포함되어 실제 커밋됨. agent/** 인프라 파일은 여전히 stage 제외(가드레일 유지)
 
 ### 옵션
 

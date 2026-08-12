@@ -7,7 +7,6 @@ interface LightingPreset {
   ambientIntensity: number;
   sunColor: number;
   sunIntensity: number;
-  godRayIntensity: number;
   fogColor: number;
   fogDensity: number;
 }
@@ -18,7 +17,6 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     ambientIntensity: 0.75,
     sunColor: 0x40c8f0,
     sunIntensity: 3.2,
-    godRayIntensity: 2.8,
     fogColor: 0x0a2a50,
     fogDensity: 0.00217,
   },
@@ -27,7 +25,6 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     ambientIntensity: 1.05,
     sunColor: 0x40c8f0,
     sunIntensity: 1.2,
-    godRayIntensity: 1.8,
     fogColor: 0x0a2a50,
     fogDensity: 0.00189,
   },
@@ -36,7 +33,6 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     ambientIntensity: 1.10,
     sunColor: 0x40c8f0,
     sunIntensity: 0.8,
-    godRayIntensity: 0.85,
     fogColor: 0x082040,
     fogDensity: 0.00247,
   },
@@ -45,7 +41,6 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     ambientIntensity: 1.20,
     sunColor: 0x40c8f0,
     sunIntensity: 1.4,
-    godRayIntensity: 2.5,
     fogColor: 0x0a2a50,
     fogDensity: 0.00160,
   },
@@ -54,7 +49,6 @@ const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
     ambientIntensity: 0.95,
     sunColor: 0x40c8f0,
     sunIntensity: 0.5,
-    godRayIntensity: 0.35,
     fogColor: 0x0a2a50,
     fogDensity: 0.00305,
   },
