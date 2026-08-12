@@ -452,11 +452,10 @@
 - [-] Optimize goal completion criteria by incorporating blob delta checks and allowing for documentation-only goals.
 - [x] Review and update the README to reflect always-on runner loop and pipeline changes accurately.
 - [x] Simplify god ray references after post-process migration to ensure clean codebase.
-- [ ] Remove water surface plane from the Ocean module to streamline rendering processes.
-- [ ] Soften god rays to billboard shafts in the Ocean module for better performance.
-- [ ] Connect vision judge to the live pipeline for promoted axes to enhance reliability and reproducibility.
-- [ ] Correct caudal fin orientation and add tail-direction check for Fish and agent interaction.
-- [ ] Describe camera soft-follow functionality instead of using drag-only 360 views.
+- [-] Remove water surface plane from the Ocean module to streamline rendering processes.
+- [-] Soften god rays to billboard shafts in the Ocean module for better performance.
+- [-] Connect vision judge to the live pipeline for promoted axes to enhance reliability and reproducibility.
+- [x] Describe camera soft-follow functionality instead of using drag-only 360 views.
 - [ ] Backfill the CHANGELOG since 2026-06-02 to ensure comprehensive documentation history.
 - [ ] Split loop.ts into pipeline modules by responsibility to improve code organization and maintainability.
 - [ ] Evaluate god ray quality beyond just presence to enhance rendering accuracy.

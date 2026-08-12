@@ -21,6 +21,7 @@ async function init() {
 
   await loadingScreen.waitForTap();
   loadingScreen.hide();
+  hud.showCameraHint();
 
   sceneManager.start();
 }
