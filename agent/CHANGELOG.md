@@ -7,6 +7,17 @@
 
 ---
 
+## [2026-08-13] rate-limit 오탐 수정 — 정상 응답 본문 인용을 가짜 한도로 오인
+
+### 배경
+직전 커밋(FORBIDDEN에 "resets Nam" 헛것 패턴 추가)의 부작용. 러너(2026-08-13_11-13-35)에서 Planner가 헛것 목표 `Remove ... resets at 9:40am`을 만나 `PLAN_ABANDON`을 **정상 출력**(is_error=false, out=752, turns=5, $0.079)했는데, 그 설명 본문이 FORBIDDEN 정규식 `resets? .*\d{1,2}...(am|pm)`과 "rate-limit"·"resets at 9:40am"을 인용했다. `runClaudeOnce`가 정상 응답 `output`에 `isRateLimitMessage`를 적용(runner.ts:147)해 `rateLimited=true`로 오판 → run-loop이 code 75로 30분 대기(가짜). 같은 목표를 재실행마다 또 오탐 → 무한 대기 루프. metrics.jsonl 전체에서 rateLimited=true는 이 1건뿐이고 out=752 정상 생성이었다 — 정상 응답 본문 검사가 오탐만 내고 실익이 없음을 방증.
+
+### 변경
+- **rate-limit 판정을 구조신호로 전환** (runner.ts `runClaudeOnce`): 정상 반환 경로에서 `rateLimited = isError && isRateLimitMessage(output)`로 변경 — **정상 생성 응답(is_error=false)은 본문에 rate-limit 문구를 인용해도 한도가 아니다.** `success`도 `!isError`만으로(본문 매칭 제거). 실제 일 사용량 한도는 CLI가 비정상 종료(throw)하며 catch 경로(154행)로 오고, 거기서는 `isRateLimitMessage(stderr)`를 그대로 유지해 감지한다. `isRateLimitMessage` 함수 자체(usage 소진 문구 확장분)는 catch 경로용으로 유지. budget/max_turns가 이미 `subtype` 구조신호로 판정하는 것과 일관성 확보.
+
+### 검증
+단위 테스트: 오탐 케이스(정상 PLAN_ABANDON이 resets/rate-limit 인용) → rateLimited=false 정정 확인, 실제 한도 메시지(catch stderr "out of extra usage · resets 8am")·is_error=true+한도 본문 → 여전히 감지. main·agent tsc 0에러, `npm run check:checklist` 바인딩 정상(신규 @src `runClaudeOnce`).
+
 ## [2026-08-13] max_turns 자원 한도로 루프가 죽던 버그 + Planner 턴 상향 + FORBIDDEN 보강
 
 ### 배경

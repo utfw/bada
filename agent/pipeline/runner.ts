@@ -143,8 +143,13 @@ function runClaudeOnce(
       }
     );
     const { output, metrics, isError, budgetExhausted, maxTurnsReached } = parseClaudeJson(raw);
-    // 정상 반환에도 한도 메시지가 본문에 실려 올 수 있음 (CLI가 non-error로 처리하는 경우).
-    return { output, success: !isError && !isRateLimitMessage(output), rateLimited: isRateLimitMessage(output), budgetExhausted, maxTurnsReached, metrics };
+    // rate-limit 판정은 CLI 구조신호로만 한다. 정상 생성 응답(is_error=false)은 본문에
+    // rate-limit 문구를 인용하더라도(예: Planner가 FORBIDDEN 정규식·"resets 9:40am"을
+    // 설명하는 PLAN_ABANDON) 한도가 아니다 — 본문 텍스트 매칭은 재귀적 오탐을 낳는다.
+    // 실제 일 사용량 한도는 CLI가 비정상 종료(throw)하며 아래 catch 경로로 온다.
+    // is_error=true인 드문 경우에만 본문에서 한도 메시지를 확인한다.
+    const rateLimited = isError && isRateLimitMessage(output);
+    return { output, success: !isError, rateLimited, budgetExhausted, maxTurnsReached, metrics };
   } catch (e: unknown) {
     const err = e as { stdout?: string; stderr?: string; status?: number };
     const rawOut = `${err.stdout ?? ""}\n${err.stderr ?? ""}`.trim();
