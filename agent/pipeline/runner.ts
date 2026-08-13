@@ -42,7 +42,7 @@ export const CLAUDE_BIN = findClaude();
 
 // ── 응답 파싱 ────────────────────────────────────────────────────────────────
 
-export function parseClaudeJson(raw: string): { output: string; metrics?: StageMetrics; isError: boolean; budgetExhausted: boolean } {
+export function parseClaudeJson(raw: string): { output: string; metrics?: StageMetrics; isError: boolean; budgetExhausted: boolean; maxTurnsReached: boolean } {
   try {
     const parsed = JSON.parse(raw) as ClaudeJsonResult;
     const metrics: StageMetrics = {
@@ -57,9 +57,11 @@ export function parseClaudeJson(raw: string): { output: string; metrics?: StageM
     };
     // --max-budget-usd 도달 시 CLI가 subtype "error_max_budget_usd"로 종료.
     const budgetExhausted = parsed.subtype === "error_max_budget_usd";
-    return { output: parsed.result ?? "", metrics, isError: parsed.is_error === true, budgetExhausted };
+    // --max-turns 도달 시 CLI가 subtype "error_max_turns"로 종료 — budget과 동일한 자원 한도.
+    const maxTurnsReached = parsed.subtype === "error_max_turns";
+    return { output: parsed.result ?? "", metrics, isError: parsed.is_error === true, budgetExhausted, maxTurnsReached };
   } catch {
-    return { output: raw, isError: false, budgetExhausted: false };
+    return { output: raw, isError: false, budgetExhausted: false, maxTurnsReached: false };
   }
 }
 
@@ -140,17 +142,17 @@ function runClaudeOnce(
         env: process.env,
       }
     );
-    const { output, metrics, isError, budgetExhausted } = parseClaudeJson(raw);
+    const { output, metrics, isError, budgetExhausted, maxTurnsReached } = parseClaudeJson(raw);
     // 정상 반환에도 한도 메시지가 본문에 실려 올 수 있음 (CLI가 non-error로 처리하는 경우).
-    return { output, success: !isError && !isRateLimitMessage(output), rateLimited: isRateLimitMessage(output), budgetExhausted, metrics };
+    return { output, success: !isError && !isRateLimitMessage(output), rateLimited: isRateLimitMessage(output), budgetExhausted, maxTurnsReached, metrics };
   } catch (e: unknown) {
     const err = e as { stdout?: string; stderr?: string; status?: number };
     const rawOut = `${err.stdout ?? ""}\n${err.stderr ?? ""}`.trim();
     // JSON 응답이 stdout에 일부 있을 수 있음 — 우선 파싱 시도
-    const { output, metrics, budgetExhausted } = parseClaudeJson(rawOut);
+    const { output, metrics, budgetExhausted, maxTurnsReached } = parseClaudeJson(rawOut);
     const finalOutput = output || rawOut;
     const rateLimited = isRateLimitMessage(finalOutput);
-    return { output: finalOutput, success: false, rateLimited, budgetExhausted, metrics };
+    return { output: finalOutput, success: false, rateLimited, budgetExhausted, maxTurnsReached, metrics };
   }
 }
 

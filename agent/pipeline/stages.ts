@@ -85,7 +85,9 @@ PLAN_START
 PLAN_END
 `.trim();
 
-  return runClaude(prompt, "Read,Glob,Grep", 15, {
+  // 읽기전용 Planner(Read/Glob/Grep)가 정상 목표에서도 코드 탐색이 길면 15턴이 빠듯 →
+  // 20턴. 그래도 초과하면 max_turns로 이 목표만 skip(전체 중단 아님, stageFailureResult).
+  return runClaude(prompt, "Read,Glob,Grep", 20, {
     model: "sonnet",
     effort: "low",
     budgetUsd: 0.40,

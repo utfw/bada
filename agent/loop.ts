@@ -109,14 +109,19 @@ function evaluateAesthetic(observation: Observation | null): AestheticEval {
 
 /**
  * 단계(Planner/Implementer/Reviewer) 실패 시 반환할 GoalResult 결정.
- * 예산 캡 도달(budgetExhausted)은 코드 실패가 아니라 자원 한도이므로, 전체 실행을
- * 멈추지 않고 이 목표만 실패로 두고 다음 목표로 진행("failed"). 그 외 예기치 않은
+ * 예산 캡(budgetExhausted)·턴 한도(maxTurnsReached) 도달은 코드 실패가 아니라 자원 한도이므로,
+ * 전체 실행을 멈추지 않고 이 목표만 실패로 두고 다음 목표로 진행("failed"). 그 외 예기치 않은
  * CLI 실패는 systemic 위험이라 실행 중단("interrupted").
  */
 function stageFailureResult(result: StageResult, stageLabel: string): "failed" | "interrupted" {
   if (result.budgetExhausted) {
     console.log(`\n💸 ${stageLabel}: 예산 캡 도달 — 이 목표만 건너뛰고 다음 목표로 진행합니다(전체 중단 아님).`);
     console.log(`   반복되면 stages.ts의 해당 단계 budgetUsd를 상향하거나 목표를 더 작게 쪼갤 것.`);
+    return "failed";
+  }
+  if (result.maxTurnsReached) {
+    console.log(`\n🔁 ${stageLabel}: 턴 한도(--max-turns) 도달 — 이 목표만 건너뛰고 다음 목표로 진행합니다(전체 중단 아님).`);
+    console.log(`   목표가 실행 불가/모호해 헤매는 경우가 많다. 반복되면 목표를 더 구체화하거나 stages.ts의 해당 단계 maxTurns를 상향할 것.`);
     return "failed";
   }
   return "interrupted";

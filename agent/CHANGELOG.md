@@ -7,6 +7,19 @@
 
 ---
 
+## [2026-08-13] max_turns 자원 한도로 루프가 죽던 버그 + Planner 턴 상향 + FORBIDDEN 보강
+
+### 배경
+러너 재시작 후 첫 실행(2026-08-13_10-49-09)이 다시 exit 1로 죽음. 원인은 이전 rate-limit 버그와 다름: 첫 목표 `Remove unnecessary resets at 9:40am (Asia/Seoul) to improve performance.`(rate-limit 문구가 오염돼 생성된 실행 불가능한 헛것 목표)에서 Planner가 `subtype=error_max_turns`로 15턴을 소진. `stageFailureResult`(loop.ts)가 `budgetExhausted`만 "이 목표만 skip(failed)"으로 처리하고 나머지는 "interrupted"(exit 1, run-loop 중단)로 봐서, 자원 한도인 max_turns를 systemic 실패로 오분류해 루프 전체가 죽었다. 이 헛것 목표를 포함해 goals.md에 이전 자기수정 필터가 놓친 self-mod 목표들(backfill CHANGELOG, report/checklist/stale-binding 등)이 잔존했다.
+
+### 변경
+- **max_turns를 자원 한도로 처리** (runner.ts `parseClaudeJson`·`runClaudeOnce`, types.ts `StageResult.maxTurnsReached`, loop.ts `stageFailureResult`): `subtype === "error_max_turns"`를 감지해 `StageResult.maxTurnsReached`로 전파. `stageFailureResult`가 `budgetExhausted || maxTurnsReached`면 "failed"(이 목표만 skip, 다음 목표 진행)를 반환 — 루프 중단 아님. 사유별 로그 구분.
+- **Planner 턴 15→20** (stages.ts `runPlanner`): 읽기전용 Planner가 정상 목표에서도 코드 탐색이 길면 15턴이 빠듯. 그래도 초과하면 위 skip 경로로 안전 처리.
+- **FORBIDDEN_GOAL_PATTERNS 보강** (types.ts): 이전 필터가 놓친 self-mod/헛것 차단 — rate-limit 문구 오염(`resets Nam` 류), `backfill CHANGELOG`, `report padding/.ts`, `checklist check`, `stale-binding`. **경계 설계(사용자 결정)**: 시각 품질 '평가 기준' 개선("god ray 품질을 존재 넘어 평가")은 진화의 정당한 방향이라 통과시키고, `agent/vision` judge/label '코드·데이터' 리팩터만 차단(god-ray-quality 패턴은 시도했다가 오탐 위험으로 제거).
+
+### 검증
+필터 케이스 테스트: max_turns/budget skip 로직 + 헛것/self-mod 차단 + 제품 목표(god ray uExposure·fish·lighting) 통과 + "god ray 품질 평가"(진화) 통과 + "vision judge 코드" 차단, 총 12·16케이스 100%. main·agent tsc 0에러, `npm run check:checklist` 바인딩 정상(신규 @src `stageFailureResult`).
+
 ## [2026-08-13] 목표 생성기 자기수정 금지 — agent/** 진화 루프 차단
 
 ### 배경

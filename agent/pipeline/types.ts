@@ -94,6 +94,17 @@ export const FORBIDDEN_GOAL_PATTERNS: RegExp[] = [
   /(개선|수정|리팩터|refactor|improve|enhance|tune)\b.*\b(planner|implementer|reviewer|observer|evolver)\b/i,
   /\b(planner|implementer|reviewer|observer|evolver)\b.*(개선|수정|리팩터|refactor|improve|enhance|tune)/i,
   /(목표|goal)\s*(생성기|생성器|generat)/i,   // "goal 생성기" / "goal generator" 지칭 자체를 차단
+  // rate-limit/시각 문구가 목표로 오염된 헛것 (예: "Remove ... resets at 9:40am ...").
+  // 정상 제품 목표엔 "resets 9:40am" 같은 시각 문구가 등장하지 않는다.
+  /\bresets?\b.*\d{1,2}(:\d{2})?\s?(am|pm)/i,
+  // agent/** 인프라를 우회 표현으로 지칭하는 self-mod (경로·파일명 안 쓰고 기능으로):
+  /\bbackfill\b.*\bchangelog\b/i,             // "Backfill the CHANGELOG since ..." (agent 문서 이력)
+  /\breport\s*(padding|\.ts|table|집계)/i,     // agent/report.ts
+  /\bchecklist\s*(check|검증|바인딩)|checkChecklist/i, // agent/checkChecklist
+  /\bstale.?(binding|symbol|바인딩)/i,         // agent/checks/stale
+  // ⓘ 시각 품질 '평가 기준' 개선(예: "god ray 품질을 존재 넘어 평가")은 진화의 정당한
+  //    방향이라 차단하지 않는다. agent/vision judge '코드'를 리팩터하는 목표만 아래
+  //    vision judge 코드 패턴으로 막는다.
 ];
 
 // ── 로그 단계 ────────────────────────────────────────────────────────────────
@@ -188,6 +199,9 @@ export interface StageResult {
   // 예산 캡(--max-budget-usd) 도달로 CLI가 중도 종료 — 코드 실패가 아닌 자원 한도.
   // 이 목표만 실패 처리하고 다음 목표로 진행(전체 중단 방지)하기 위해 구분한다.
   budgetExhausted?: boolean;
+  // 턴 한도(--max-turns) 도달로 CLI가 중도 종료(subtype "error_max_turns") — budget과
+  // 동일한 자원 한도. 이 목표만 skip하고 다음 목표로 진행(전체 중단 아님)하기 위해 구분한다.
+  maxTurnsReached?: boolean;
   metrics?: StageMetrics;
 }
 
