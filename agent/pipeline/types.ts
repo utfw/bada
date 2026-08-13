@@ -66,6 +66,12 @@ export const COMPLETION_DOC_FILES = ["README.md", "CHANGELOG.md"];
 export const GOAL_GENERATION_EXCLUSIONS = `
 ⛔ 절대 생성 금지: 물고기/고래상어 진행 방향 관련 코드 수정 목표
   (방향 문제는 사람만 판단·수정 가능. 어떤 표현으로 우회해도 금지.)
+⛔ 절대 생성 금지: 에이전트 파이프라인 자신(agent/**)을 수정하는 목표
+  (loop.ts 리팩터, 목표 생성기·Planner·Implementer·Reviewer·Observer·Evolver 개선,
+   비용/CV 리포트, vision judge·label, rate-limit·backoff·runner 등 인프라 개선 일체.
+   "진화"의 대상은 오직 src/ 제품 코드(씬·시각·Fish·WhaleShark·조명 등)다.
+   agent/**를 고치는 목표는 사람 몫이며 어떤 표현으로 우회해도 금지.
+   예외: agent/REVIEW_CHECKLIST.md 갱신은 Reviewer의 정상 동작이므로 목표 대상 아님.)
 `.trim();
 
 export const FORBIDDEN_GOAL_PATTERNS: RegExp[] = [
@@ -75,6 +81,19 @@ export const FORBIDDEN_GOAL_PATTERNS: RegExp[] = [
   /avgForwardDot/i,
   /역방향.*(이동|움직|방향)/,
   /add\s*\/\s*sub.*부호/,
+  // ── 에이전트 파이프라인 자기수정 금지 (진화 대상은 src/ 제품 코드뿐) ──
+  // 목표 문구가 agent/** 인프라를 지칭하면 차단. src/ 제품 목표엔 이 토큰들이
+  // 등장하지 않으므로 오탐 없음. REVIEW_CHECKLIST 갱신(Reviewer 정상 동작)은 예외.
+  /\bagent\/(?!REVIEW_CHECKLIST)/i,          // agent/loop, agent/pipeline, agent/vision, agent/evolve …
+  /\b(loop|logging|observation|stages|runner|goals|report|setGoals|observe|evolve)\.ts\b/i,
+  /\bpipeline\s*modul/i,                      // "split into pipeline modules"
+  /\b(cost|token)\s*(cv|변동계수|report|리포트|회계)/i,
+  /\bvision\s*(judge|label|라벨|judg)/i,
+  /\bexponential\s*backoff|\bbackoff\b|\brate.?limit/i,
+  /\bself.?hosted\s*runner|러너\s*루프|autonomous\s*loop/i,
+  /(개선|수정|리팩터|refactor|improve|enhance|tune)\b.*\b(planner|implementer|reviewer|observer|evolver)\b/i,
+  /\b(planner|implementer|reviewer|observer|evolver)\b.*(개선|수정|리팩터|refactor|improve|enhance|tune)/i,
+  /(목표|goal)\s*(생성기|생성器|generat)/i,   // "goal 생성기" / "goal generator" 지칭 자체를 차단
 ];
 
 // ── 로그 단계 ────────────────────────────────────────────────────────────────

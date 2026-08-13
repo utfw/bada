@@ -7,6 +7,18 @@
 
 ---
 
+## [2026-08-13] 목표 생성기 자기수정 금지 — agent/** 진화 루프 차단
+
+### 배경
+러너 로그(2026-08-12_21-35-28) goal 1·2가 `Split loop.ts into pipeline modules`, `Add per-stage cost CV reporting and refine vision labels`처럼 **에이전트 파이프라인 자신을 개선하는 메타 목표**였고, Implementer가 실제로 `agent/loop.ts`·`logging.ts`·`vision/*`를 수정했다. 하지만 autoCommit이 `agent/**`를 stage하지 않는 가드레일 때문에 이 산출물은 커밋되지 못하고 워킹트리에 고여(유실 위기) 매 실행 `warnUncommittedAgentChanges` 경고만 쌓였다. 원인: `generateGoalsFromChecklist`가 `getRecentHumanCommits(30)`을 "관심 영역 신호"로 프롬프트에 주입하는데 최근 사람 커밋이 거의 전부 `fix(agent)`/`feat(agent)`(파이프라인 개선 세션들)라, 생성기가 그 방향을 학습·증폭해 자기개선 목표를 계속 만들어낸 피드백 루프. `GOAL_GENERATION_EXCLUSIONS`엔 방향 목표 금지만 있고 자기수정 금지가 없었다. (사용자 결정: "진화"의 대상은 `src/` 제품 코드뿐, 파이프라인은 사람 몫.)
+
+### 변경
+- **`FORBIDDEN_GOAL_PATTERNS`** (types.ts): `agent/`(REVIEW_CHECKLIST 제외 negative lookahead)·파이프라인 파일명(`loop.ts` 등)·인프라 개념어(`pipeline module`, `cost/CV report`, `vision judge/label`, `backoff`, `rate-limit`, `self-hosted runner`, planner/reviewer/… 개선, `goal 생성기/generator`) 패턴 추가. `appendGoals`(goals.ts) chokepoint가 모든 생성경로(checklist/review/aesthetic/vision)에서 `filterForbiddenGoals`를 거치므로 단일 지점 방어. `src/` 제품 목표와 REVIEW_CHECKLIST 갱신은 통과하도록 오탐 방지 설계.
+- **`GOAL_GENERATION_EXCLUSIONS`** (types.ts, 프롬프트 지시): "agent/** 파이프라인 자기수정 목표 생성 금지 — 진화 대상은 src/ 제품 코드뿐, REVIEW_CHECKLIST 갱신은 예외" 항목 추가(코드 필터가 최종 방어선, 프롬프트는 1차).
+
+### 검증
+16케이스 필터 테스트 통과 — 자기수정 목표 10종(Split loop.ts/cost CV/backoff/vision judge/agent 경로/planner·reviewer 개선/goal 생성기 등) 전부 차단, 제품 목표 5종(godray/fish/lighting/whaleshark/ocean)·REVIEW_CHECKLIST 갱신 1종 전부 통과. "goal of lively schools" 같은 오탐 유발 문구도 통과 확인. main·agent tsc 0에러, `npm run check:checklist` 바인딩 정상.
+
 ## [2026-08-13] rate-limit 감지 정규식 확장 — usage 소진 문구로 루프가 죽던 버그 수정
 
 ### 배경
