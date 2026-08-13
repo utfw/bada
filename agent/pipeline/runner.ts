@@ -64,22 +64,27 @@ export function parseClaudeJson(raw: string): { output: string; metrics?: StageM
 }
 
 // API 사용량 한도 도달 메시지 감지. CLI는 이를 일반 텍스트 응답으로 흘리기도 하므로
-// ("You've hit your limit · resets …") HTTP 코드 외에 실제 메시지 문구도 포함한다.
+// HTTP 코드 외에 실제 메시지 문구도 포함한다. 관측된 변형:
+//   "You've hit your limit · resets 3:00pm"      (12h + 분)
+//   "You're out of extra usage · resets 8am"     (extra usage 소진, 분 없는 12h) ← 놓쳐서 exit 1 유발
+//   "resets 15:00"                               (24h)
+// resets 시각은 분(:\d{2})과 meridiem(am/pm)이 각각 선택적 — 셋 조합을 모두 허용.
 export function isRateLimitMessage(text: string): boolean {
-  return /rate.?limit|too many requests|429|usage.?limit|quota|hit your limit|reset(s)?\s+\d{1,2}:\d{2}\s?(am|pm)/i.test(text);
+  return /rate.?limit|too many requests|429|usage.?limit|out of (extra )?usage|quota|hit your limit|reset(s)?\s+\d{1,2}(:\d{2}\s?(am|pm)?|\s?(am|pm))/i.test(text);
 }
 
 /**
  * rate-limit 메시지에서 리셋 시각을 추출해 다음 리셋의 절대 시각(Date)으로 변환한다.
- * CLI는 "resets 3:00pm" / "resets 15:00" 같은 로컬 시각 문구로 한도 회복 시점을 알린다.
+ * CLI는 "resets 3:00pm" / "resets 15:00" / "resets 8am"(분 생략) 같은 로컬 시각 문구로
+ * 한도 회복 시점을 알린다. 분(:\d{2})은 선택적 — 없으면 0분으로 본다.
  * 파싱된 시:분이 현재보다 과거면 다음 날 같은 시각으로 넘긴다(하루 경계 처리).
  * 문구를 못 찾으면 null — 호출부는 고정 폴백 대기를 쓴다.
  */
 export function parseRateLimitReset(text: string, now: Date = new Date()): Date | null {
-  const m = text.match(/reset(?:s)?\s+(\d{1,2}):(\d{2})\s?(am|pm)?/i);
+  const m = text.match(/reset(?:s)?\s+(\d{1,2})(?::(\d{2}))?\s?(am|pm)?/i);
   if (!m) return null;
   let hour = Number.parseInt(m[1], 10);
-  const minute = Number.parseInt(m[2], 10);
+  const minute = m[2] !== undefined ? Number.parseInt(m[2], 10) : 0;
   const meridiem = m[3]?.toLowerCase();
   if (Number.isNaN(hour) || Number.isNaN(minute) || minute > 59) return null;
   if (meridiem === "pm" && hour < 12) hour += 12;

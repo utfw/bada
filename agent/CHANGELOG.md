@@ -7,6 +7,18 @@
 
 ---
 
+## [2026-08-13] rate-limit 감지 정규식 확장 — usage 소진 문구로 루프가 죽던 버그 수정
+
+### 배경
+러너 로그(2026-08-12_22-12-44, 실제 종료 08-13 07:16)에서 루프가 `exit code 1`로 중단됨(`예기치 않은 종료 — 루프 중단`). goal-01 plan 단계 출력이 `You're out of extra usage · resets 8am (Asia/Seoul)`였는데, `isRateLimitMessage`가 이 문구를 감지하지 못해 `rateLimited=false` → stop reason이 rate-limit이 아닌 일반 실패로 잡혀 code 75(대기 후 재개)가 아니라 code 1(중단)로 종료. run-loop.sh는 code 75만 재개하므로 루프가 죽고 사람 개입 대기 상태가 됨. 원인은 두 가지 정규식 구멍: ① `out of extra usage`류 문구 미포함 ② reset 시각 패턴이 분(`:\d{2}`) 필수라 `resets 8am`(분 없는 12h)·`resets 15:00`(24h) 매치 실패.
+
+### 변경
+- **`isRateLimitMessage`** (runner.ts): `out of (extra )?usage` alternation 추가, reset 시각 패턴을 `\d{1,2}(:\d{2}\s?(am|pm)?|\s?(am|pm))`로 확장 — 분·meridiem 조합(`8am`/`15:00`/`3:00pm`)을 모두 허용하되 `resets 8`(숫자만)·"resets after 3 seconds" 류는 오탐 안 하도록 최소 하나(분 or am/pm) 요구.
+- **`parseRateLimitReset`** (runner.ts): 분을 선택적(`(?::(\d{2}))?`)으로 만들어 `resets 8am`을 08:00으로 파싱. 없으면 0분.
+
+### 검증
+감지/오탐 9케이스 100% 통과(놓쳤던 `resets 8am` 포함, "resets after 3 seconds" false 확인), 리셋 파싱 `8am`→08:00·`15:00`→15:00 정확. main·agent tsc 0에러, `npm run check:checklist` 바인딩 정상.
+
 ## [2026-07-28] 완료 게이트 오탐 수정 — blob 델타 판정 + 문서 전용 목표 완료 허용
 
 ### 배경
