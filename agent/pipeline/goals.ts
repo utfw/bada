@@ -191,8 +191,12 @@ export function getRecentHumanCommits(maxCount: number = 30): string {
   // cutoff: 첫 ` [agent]` 마커 도입 commit 이후만 신뢰. 정확 매치(subject 끝)만 사용해
   // subject 본문에 [agent]가 인용된 케이스를 cutoff로 잡지 않는다.
   const CUTOFF_GREP = " \\[agent\\]$";
-  // 필터: 마커 + legacy "agent auto-commit (N goals)" 패턴 모두 제외.
-  const FILTER_GREP = "( \\[agent\\]$|agent auto-commit)";
+  // 필터: 다음을 관심-신호에서 제외한다.
+  //   1. ` [agent]$` 마커 + legacy "agent auto-commit (N goals)" — 에이전트 자동 커밋
+  //   2. `<type>(agent):` 스코프 커밋(fix/feat/perf/refactor/docs/chore(agent)) — 파이프라인
+  //      인프라 사람 커밋. 이걸 "관심 영역 신호"로 주입하면 생성기가 "agent를 고치자"는
+  //      self-mod 목표를 만들어낸다(관찰된 근원). 진화 신호는 제품(src/) 커밋만.
+  const FILTER_GREP = "( \\[agent\\]$|agent auto-commit|^[a-z]+\\(agent\\):)";
   try {
     const firstAgentShaOut = execFileSync(
       "git",
@@ -275,6 +279,33 @@ export function revertSrcFiles(files: string[]): void {
     console.log(`  ↩ 미완료 goal 변경 되돌림(autoCommit 누출 방지): ${targets.join(", ")}`);
   } catch (e) {
     console.warn(`  ⚠ 되돌리기 실패(무시): ${String(e).slice(0, 150)}`);
+  }
+}
+
+/**
+ * 하네스 파일 변경을 HEAD로 되돌린다(작업트리 폐기). 사후 안전망 —
+ * harness-guard.sh(CLI 사전 차단)가 뚫려 Implementer가 실행 하네스를 수정했을 때
+ * loop가 호출해 되돌린다. 추적 파일은 checkout, 미추적(신규)은 삭제.
+ * 대상은 호출부(loop)가 isHarnessFile로 이미 걸러 넘긴다.
+ */
+export function revertHarnessFiles(files: string[]): void {
+  if (files.length === 0) return;
+  let tracked: string[] = [];
+  try {
+    tracked = execFileSync("git", ["ls-files", "--", ...files], { cwd: ROOT, encoding: "utf-8" })
+      .split("\n").map((s) => s.trim()).filter((f) => f.length > 0);
+  } catch { /* ignore — 전부 미추적으로 취급 */ }
+  const untracked = files.filter((f) => !tracked.includes(f));
+  try {
+    if (tracked.length > 0) {
+      execFileSync("git", ["checkout", "HEAD", "--", ...tracked], { cwd: ROOT, stdio: "pipe" });
+    }
+    for (const f of untracked) {
+      try { fs.rmSync(path.join(ROOT, f), { force: true }); } catch { /* ignore */ }
+    }
+    console.log(`  ↩ 하네스 변경 되돌림(가드 우회 안전망): ${files.join(", ")}`);
+  } catch (e) {
+    console.warn(`  ⚠ 하네스 되돌리기 실패(무시): ${String(e).slice(0, 150)}`);
   }
 }
 

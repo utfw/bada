@@ -7,6 +7,23 @@
 
 ---
 
+## [2026-08-15] 하네스 물리 잠금 — 정책/하네스 경계를 CLI 권한으로 강제
+
+### 배경
+자율 파이프라인이 **자기 실행 하네스를 반복 수정**했다(러너 2026-08-13_15-11-00 goal 3 "루프.ts 리팩터링", goal 2 "예산 초과 자원 확보" 등). 방어가 프롬프트 지시 + `FORBIDDEN_GOAL_PATTERNS` 블랙리스트라는 **"설득" 계층뿐**이라, LLM이 표현을 바꾸면("loop.ts"→"루프.ts") 계속 우회됐다. 근본 원인: `runClaudeOnce`가 CLI에 `--allowedTools`만 넘기고 **경로 샌드박스가 없어**(cwd=repo root, Bash까지 허용) Implementer가 `agent/**` 아무 파일이나 수정 가능. autoCommit이 agent/**를 stage 안 하니 커밋 못 되고 워킹트리에 고여 유실/덮임.
+
+사용자 제약: 단순 "src/ 밖 금지"가 아님 — 에이전트는 **평가 기준(정책)은 스스로 갱신**해야 하고 **실행 하네스는 못 건드려야** 한다. 경계는 경로가 아니라 의미.
+
+### 변경
+- **`agent/harness-guard.sh`** (신규, 커밋·chmod +x): CLI PreToolUse hook. stdin의 tool_input(Edit/Write `file_path`, Bash `command`)을 검사해 하네스 경로 쓰기면 `exit 2`(차단, 사유를 모델에 피드백), 정책·src면 `exit 0`. jq 우선·node 폴백. Bash 우회(리다이렉트/tee/sed -i/cp/mv/node -e/python -c)도 매칭.
+- **`agent/pipeline/types.ts`**: `AGENT_POLICY_FILES`(REVIEW_CHECKLIST.md, vision/labels.json) + `isHarnessFile()` — 정책/하네스 경계 단일 출처. 가드·안전망 공유.
+- **`agent/pipeline/runner.ts`** `runClaudeOnce`: 모든 단계 CLI 호출에 `--settings <가드 hook JSON>` 주입(+ `permissions.allow: src/**`). deny 규칙은 항상 이겨 carve-out 불가하므로(공식) 경계 판정을 hook exit code로 단일화.
+- **`agent/loop.ts`** 완료 게이트: `implChanged.filter(isHarnessFile)`로 하네스 변경 사후 감지 → `revertHarnessFiles`로 revert + goal 거부(가드 우회 안전망, defense-in-depth).
+- **`agent/pipeline/goals.ts`**: `revertHarnessFiles` 신규. `getRecentHumanCommits` 필터에 `^<type>(agent):` 스코프 커밋 제외 추가 — 파이프라인 인프라 사람 커밋을 진화 신호에서 빼 self-mod 목표 유도 근원 차단.
+
+### 검증
+가드 단위 15/15(하네스 차단·정책/src 허용·절대경로/node-e 우회·Bash 정책대상 허용), **라이브 CLI 검증**: `agent/loop.ts` 편집 시도 차단(모델이 "protected file" 사유 수신)·`src/vite-env.d.ts` 편집 통과. `isHarnessFile` 15/15. `revertHarnessFiles` 통합(오염 파일 HEAD 복원). agent-scope 커밋 제외 확인. main·agent tsc 0에러, `npm run check:checklist` 바인딩 정상(신규 @src `isHarnessFile`, `getRecentHumanCommits`).
+
 ## [2026-08-13] rate-limit 오탐 수정 — 정상 응답 본문 인용을 가짜 한도로 오인
 
 ### 배경

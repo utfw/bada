@@ -63,6 +63,33 @@ export const ARCHIVE_SHOTS = ["screenshot-1.png", "surface-up.png"];
 // agent/** 인프라(loop/observe 등)는 제외 — 가드레일 유지.
 export const COMPLETION_DOC_FILES = ["README.md", "CHANGELOG.md"];
 
+// ── 정책(policy) vs 하네스(harness) 경계 ──────────────────────────────────────
+// 에이전트는 "평가 기준(정책)"은 스스로 갱신할 수 있어야 하지만(진화의 감각기관),
+// "실행 하네스"(loop/pipeline/runner 등 파이프라인 자신)는 건드리면 안 된다.
+// 이 경계는 harness-guard.sh(사전 차단)와 loop.ts의 사후 revert 안전망이 공유한다.
+//
+// 정책 파일(repo-상대 경로) — 에이전트 갱신 허용:
+//   - agent/REVIEW_CHECKLIST.md: Reviewer가 갱신·커밋하는 리뷰 기준
+//   - agent/vision/labels.json: vision judge ground-truth 라벨
+// (vision rubric은 현재 agent/vision/core.ts에 코드로 박혀 있어 하네스로 잠근다.
+//  rubric 갱신이 필요해지면 데이터 파일로 분리해 여기 추가한다.)
+export const AGENT_POLICY_FILES = [
+  "agent/REVIEW_CHECKLIST.md",
+  "agent/vision/labels.json",
+];
+
+// repo-상대 경로가 잠긴 하네스인지 판정. agent/ 아래인데 정책 파일이 아니면 하네스.
+// src/·문서·정책·런타임 데이터가 아닌 agent/** 코드·스크립트가 잠금 대상.
+// getChangedFiles()가 내는 경로(예: "agent/loop.ts", "src/scene/Ocean.ts")에 적용.
+export function isHarnessFile(repoRelPath: string): boolean {
+  const p = repoRelPath.replace(/^\.\//, "");
+  if (!p.startsWith("agent/")) return false;      // agent/ 밖은 하네스 아님
+  if (AGENT_POLICY_FILES.includes(p)) return false; // 정책 파일은 허용
+  // 하네스 프로세스가 런타임에 쓰는 기계생성 데이터는 Implementer가 만지지 않으므로
+  // 잠금 대상으로 둔다(정책 아님, 그대로 하네스로 취급 = 에이전트 편집 금지).
+  return true;
+}
+
 export const GOAL_GENERATION_EXCLUSIONS = `
 ⛔ 절대 생성 금지: 물고기/고래상어 진행 방향 관련 코드 수정 목표
   (방향 문제는 사람만 판단·수정 가능. 어떤 표현으로 우회해도 금지.)

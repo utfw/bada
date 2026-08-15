@@ -40,6 +40,24 @@ export function findClaude(): string {
 
 export const CLAUDE_BIN = findClaude();
 
+// ── 하네스 잠금 settings (PreToolUse 가드) ────────────────────────────────────
+// 모든 단계 CLI 호출에 주입해, 에이전트가 실행 하네스(agent/loop·pipeline 등)를
+// Edit/Write/Bash로 수정하지 못하게 물리적으로 차단한다. 정책 파일(REVIEW_CHECKLIST,
+// vision/labels.json)·src/**는 통과. 경계 판정은 agent/harness-guard.sh가 exit code로 한다
+// (permissions deny는 항상 이겨 carve-out 불가하므로 hook을 단일 판정자로 씀).
+const HARNESS_GUARD = path.join(ROOT, "agent", "harness-guard.sh");
+const HARNESS_LOCK_SETTINGS = JSON.stringify({
+  permissions: { allow: ["Edit(src/**)", "Write(src/**)"] },
+  hooks: {
+    PreToolUse: [
+      {
+        matcher: "Edit|Write|Bash|NotebookEdit",
+        hooks: [{ type: "command", command: HARNESS_GUARD, timeout: 10 }],
+      },
+    ],
+  },
+});
+
 // ── 응답 파싱 ────────────────────────────────────────────────────────────────
 
 export function parseClaudeJson(raw: string): { output: string; metrics?: StageMetrics; isError: boolean; budgetExhausted: boolean; maxTurnsReached: boolean } {
@@ -122,6 +140,8 @@ function runClaudeOnce(
       "--allowedTools", allowedTools,
       "--max-turns", String(maxTurns),
       "--output-format", "json",
+      // 하네스 잠금 — 모든 단계 공통. agent/** 하네스 수정을 PreToolUse 가드로 차단.
+      "--settings", HARNESS_LOCK_SETTINGS,
     ];
     if (opts.model) {
       args.push("--model", opts.model);

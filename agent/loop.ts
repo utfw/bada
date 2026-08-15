@@ -25,6 +25,7 @@ import {
   EVALUATOR_EVERY_N_GOALS,
   RATE_LIMIT_SIGNAL_FILE,
   COMPLETION_DOC_FILES,
+  isHarnessFile,
   ROOT,
   type Goal,
   type GoalResult,
@@ -66,6 +67,7 @@ import {
   snapshotBlobs,
   changedSinceSnapshot,
   revertSrcFiles,
+  revertHarnessFiles,
   warnUncommittedAgentChanges,
   archiveVisualMilestone,
   extractCommitMsg,
@@ -406,6 +408,19 @@ function executeGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBu
       // 실제로 내용을 바꾼 파일"을 잡는다. 선행 완료 goal이 dirty하게 남긴 파일을
       // 이 goal이 "더" 바꿔도 감지된다(관찰된 오탐 수정).
       const implChanged = changedSinceSnapshot(blobsBefore);
+
+      // 안전망(defense-in-depth): harness-guard.sh(CLI PreToolUse)가 어떤 이유로 뚫려
+      // 하네스 파일이 바뀌었으면 되돌리고 goal을 거부한다. 가드가 정상 작동하면 여기 도달 안 함.
+      const implChangedHarness = implChanged.filter(isHarnessFile);
+      if (implChangedHarness.length > 0) {
+        console.log(`\n🛑 하네스 파일 변경 감지 — 되돌리고 goal 거부(가드 우회 의심): ${implChangedHarness.join(", ")}`);
+        revertHarnessFiles(implChangedHarness);
+        markGoal(goal.lineIndex, "abandoned");
+        log.goalEnd(false, []);
+        log.save();
+        return "abandoned";
+      }
+
       const implChangedSrc = implChanged.filter((f) => f.startsWith("src/"));
       const implChangedDocs = implChanged.filter((f) => COMPLETION_DOC_FILES.includes(f));
       if (implChangedSrc.length === 0 && implChangedDocs.length === 0) {
