@@ -108,7 +108,7 @@ export class Ocean {
       { x:  0, z:  6 },
     ];
     for (const pos of spotPositions) {
-      const spot = new THREE.SpotLight(0x1ec0e0, 28.0, 35, Math.PI / 7, 0.7);
+      const spot = new THREE.SpotLight(0x1ec0e0, 28.0, 35, Math.PI / 5.7, 0.7);
       spot.position.set(pos.x, 10, pos.z);
       spot.target.position.set(pos.x, -10, pos.z);
       scene.add(spot);
@@ -227,7 +227,7 @@ export class Ocean {
     const posAttr = geo.attributes.position as THREE.BufferAttribute;
     const colors = new Float32Array(posAttr.count * 3);
     // 상단을 밝은 시안으로 — 후처리 God ray가 "쏟아질" 밝은 광원(수면) 역할 + 수직 깊이감.
-    const topColor = new THREE.Color(0x90e0ff);
+    const topColor = new THREE.Color(0xb8f0ff);
     const bottomColor = new THREE.Color(0x020818);
     for (let i = 0; i < posAttr.count; i++) {
       const y = posAttr.getY(i);

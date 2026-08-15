@@ -1,4 +1,6 @@
-import { WEATHER_API_BASE, AIR_POLLUTION_API_BASE, DEFAULT_CITY } from '../utils/constants';
+import { WEATHER_API_BASE, AIR_POLLUTION_API_BASE, DEFAULT_CITY, GEO_TIMEOUT } from '../utils/constants';
+
+const CACHE_TTL_MS = 600_000;
 
 export type WeatherCondition = 'clear' | 'cloudy' | 'rain' | 'snow' | 'fog';
 
@@ -21,14 +23,26 @@ const FOG_MAP: Record<WeatherCondition, { density: number; color: number }> = {
   fog: { density: 0.013, color: 0x0a3a6a },
 };
 
+interface OWMWeatherResponse {
+  weather: { id: number; description: string; icon: string }[];
+  main: { temp: number };
+  name: string;
+}
+
 export class WeatherService {
   private apiKey: string;
+  private _cachedWeather: WeatherData | null = null;
+  private _cacheExpiry = 0;
 
   constructor() {
     this.apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY || '';
   }
 
   async fetchWeather(): Promise<WeatherData> {
+    if (this._cachedWeather && Date.now() < this._cacheExpiry) {
+      return this._cachedWeather;
+    }
+
     if (!this.apiKey) {
       console.warn('No OpenWeatherMap API key set. Using default weather.');
       return this.getDefaultWeather();
@@ -56,7 +70,10 @@ export class WeatherService {
         aqi = aqiData.list?.[0]?.main?.aqi ?? 1;
       }
 
-      return this.mapApiResponse(weatherData, aqi);
+      const result = this.mapApiResponse(weatherData as OWMWeatherResponse, aqi);
+      this._cachedWeather = result;
+      this._cacheExpiry = Date.now() + CACHE_TTL_MS;
+      return result;
     } catch (error) {
       console.warn('Weather fetch failed, using default:', error);
       return this.getDefaultWeather();
@@ -78,12 +95,12 @@ export class WeatherService {
             lon: pos.coords.longitude,
           }),
         () => resolve(seoulCoords),
-        { timeout: 5000 },
+        { timeout: GEO_TIMEOUT },
       );
     });
   }
 
-  private mapApiResponse(data: any, aqi: number): WeatherData {
+  private mapApiResponse(data: OWMWeatherResponse, aqi: number): WeatherData {
     const weatherId: number = data.weather?.[0]?.id ?? 800;
     const condition = this.mapConditionCode(weatherId);
     const fog = FOG_MAP[condition];

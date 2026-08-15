@@ -473,4 +473,10 @@
 - [-] 개선 사항: 최대 회전 횟수 제한 (max_turns)을 초과하는 원인 분석 및 대응 방법 개발
 - [x] 개선 사항: 사용자 커밋 이력에서 반복적으로 등장하는 주제에 대한 자세한 수정 및 리팩터링
 - [x] 개선 사항: 물고기와 고래상어에 대한 조명 시스템의 최적화 및 품질 향상
-- [ ] 개선 사항: 카메라의 소프트 팔로우 기능 구현을 위한 사용자 지침 추가
+- [-] 개선 사항: 카메라의 소프트 팔로우 기능 구현을 위한 사용자 지침 추가
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] 총 비용 관리: 예산을 최대한 효율적으로 사용하기 위해 인프라를 최적화하는 방법을 찾아내고 구현한다.
+- [x] 성능 개선: API 응답 시간을 줄여 전체 플로우의 효율성을 높인다.
+- [ ] 에러 핸들링 향상: 현재 예산 제한 도달 시에 발생하는 오류를 다루는 방안을 구체적으로 세부한다.
+- [ ] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)

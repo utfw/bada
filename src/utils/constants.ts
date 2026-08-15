@@ -17,6 +17,7 @@ export const TONE_MAPPING_EXPOSURE = 1.4;
 export const WEATHER_API_BASE = 'https://api.openweathermap.org/data/2.5/weather';
 export const AIR_POLLUTION_API_BASE = 'https://api.openweathermap.org/data/2.5/air_pollution';
 export const DEFAULT_CITY = 'Seoul';
+export const GEO_TIMEOUT = 2000;
 
 // Default coordinates — Seoul
 export const DEFAULT_LAT = 37.5665;
@@ -79,15 +80,15 @@ export const CAMERA_REPULSION_RANGE = 4.0;
 export const CAMERA_REPULSION_WEIGHT = 6.0;
 
 // ── GodRay Post-processing ────────────────────────
-export const GODRAY_EXPOSURE = 55.0;
+export const GODRAY_EXPOSURE = 80.0;
 export const GODRAY_DENSITY = 0.95;
 export const GODRAY_WEIGHT = 1.2;
-export const GODRAY_DECAY = 0.985;
+export const GODRAY_DECAY = 0.92;
 export const GODRAY_THRESHOLD = -0.03;
 export const GODRAY_BAND_COUNT = 10.0;
-export const GODRAY_BAND_SHARP = 14.0;
+export const GODRAY_BAND_SHARP = 10.0;
 export const GODRAY_BAND_STRENGTH = 0.98;
-export const GODRAY_VERTICAL_FALLOFF = 0.7;
+export const GODRAY_VERTICAL_FALLOFF = 2.5;
 export const GODRAY_COLOR_R = 0.80;
 export const GODRAY_COLOR_G = 0.92;
 export const GODRAY_COLOR_B = 1.0;
