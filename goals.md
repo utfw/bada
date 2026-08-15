@@ -455,4 +455,7 @@
 - [-] Soften god rays to billboard shafts in the Ocean module for better performance.
 - [-] Connect vision judge to the live pipeline for promoted axes to enhance reliability and reproducibility.
 - [x] Describe camera soft-follow functionality instead of using drag-only 360 views.
-- [ ] Evaluate god ray quality beyond just presence to enhance rendering accuracy.
+- [x] Evaluate god ray quality beyond just presence to enhance rendering accuracy.
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] 예산 초과 문제를 해결하기 위한 추가 자원 확보 계획
+- [-] 루프.ts 리팩터링을 통해 성능 개선 및 비용 절감
