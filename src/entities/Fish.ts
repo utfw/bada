@@ -528,7 +528,7 @@ export class FishSchool {
         this._schoolDistances[g] = this._schoolCentroids[g].distanceTo(this._sharkPos);
         // 이번 프레임 1마리 평균 flee 강도를 0~1로 정규화
         const avgFleeMag = this._fleeForceFrameSum[g] / n;
-        const targetIntensity = Math.min(avgFleeMag / this._schoolPeakFlee[g], 1.0);
+        const targetIntensity = Math.min(avgFleeMag / Math.max(this._schoolPeakFlee[g], PREDATOR_FLEE_INTENSITY_NORM * 0.1), 1.0);
         this._fleeIntensity[g] = this._fleeIntensity[g] + (targetIntensity - this._fleeIntensity[g]) * smoothK;
       } else {
         this._schoolDistances[g] = Infinity;

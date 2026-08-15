@@ -235,10 +235,6 @@
 - 의문이면 추가하지 말 것. 검증 결과는 콘솔/로그 디렉터리로 충분하다.
 - 형식: `- (YYYY-MM-DD) [reviewer|human] §섹션 추가/수정 요약`
 
-- (2026-05-10) [reviewer] §10 갱신: ConeGeometry → PlaneGeometry+ShaderMaterial 교체 반영. GOD_RAY_MAX_OPACITY=0.11, SpotLight(angle=0.18, penumbra=0.7, intensity=3.0) 파라미터 확인. whaleshark-front/side에서 기둥형 갓레이 가시성 확인. wide 앵글 미세화는 2026-05-07 선례와 동일하게 실패 미해당.
-- (2026-05-10) [정정: MeshBasicMaterial 기재 오류] 갓레이 재질은 ShaderMaterial(animated uTime uniform)이며 MeshBasicMaterial이 아님 — §10 명시 규칙과 실제 코드 모두 ShaderMaterial 사용.
-- (2026-05-15) [reviewer] §3 가슴지느러미 접합 기준 보완: group pivot이 body 반지름보다 안쪽(gap-hiding 설계)이더라도 shape X extent가 body 반지름의 2배를 초과하면 tip이 충분히 노출된 것으로 허용. rotation.x 검증에서 geometry.rotateX(-π/2) 패턴은 mesh.rotation.x 탐색으로 탐지 불가 — 시각 확인으로 보완.
-- (2026-05-16) [reviewer] §1 HUMAN_VERIFICATION_REQUIRED 확인: fish.avgForwardDot=-1.00 관측, 탑뷰 개체 크기가 작아 역방향 육안 확정 불가 — 규정에 따라 사람 보고로 종료. §10 MeshBasicMaterial 로그 오류 정정: 갓레이 재질은 실제로 ShaderMaterial(animated uTime) — 2026-05-10 로그 오기 수정.
 - (2026-05-23) [reviewer] §3-2 추가: surface-up.png 근접 물고기가 화면 상단 40%+ 점거하여 고래상어 주체 인식 방해하는 패턴이 다수 세션에 걸쳐 반복 관찰됨 — REVIEW_FAIL 아닌 SUGGESTIONS 트리거 기준으로 명시. Fish.ts 카메라 거리 컬링(<2.0m) 또는 camera.near 상향 수정 방향 기준 명시.
 - (2026-05-24) [human] §3-3 신설: Predator avoidance(Boids flee force) 도입에 따른 검증 항목 추가 — setSharkPosition 호출 누락 금지, FLEE_WEIGHT > SEPARATION_WEIGHT 유지, 전 학교 미만남 실패, flee 후 회복 실패, pathVariance 단조 SUGGESTIONS 트리거, minDistance 충돌 SUGGESTIONS, schoolDefs 보존. Observer는 `predatorMetrics` 시계열 지표를 `latest.json`에 출력하며 `detectPredatorAnomalies()`가 anomalies에 자동 누적한다.
 - (2026-05-24) [human] §3-4 신설: 자율 진화 루프(`agent/evolve.ts`) 정합성 항목 추가 — Evolver 호출 위치(Observer 직후·Planner 직전), `currentSchoolDefs` Observation 전달, history.json schema·dramaScore 범위, 변이 목표 누적 한도, 정체 임계치 적정성, evolutionSummary Planner 전달. drama score = peakFleeIntensity × encounterRate × pathVariance × 균형도. 정체 시 가장 약한 학교의 단일 파라미터를 변이 제안으로 자동 추가.

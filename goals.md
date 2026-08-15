@@ -459,3 +459,13 @@
 - [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
 - [-] 예산 초과 문제를 해결하기 위한 추가 자원 확보 계획
 - [-] 루프.ts 리팩터링을 통해 성능 개선 및 비용 절감
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] **Fish.ts**의 `createPectoralFins()`에서 pectoral group(또는 mesh)의 `position.x`와 최대 반지름 구간(t=0.2~0.45)에서 X방향 실제 반지름을 확인하여, `group.position.x + shape_max_x > body_radius × 1.1 × 2`이면 root 매립은 의도된 gap-hiding 기법으로 허용하고 통과로 판정한다.
+- [-] **Fish.ts**의 `createDorsalFin()`에서 생성되는 두 등지느러미 모두(dorsal, secondDorsal)의 `position.y`와 각 Z에서의 `bodyRadius × 0.75` 계산값을 비교해 차이가 0.5 이상이면 **실패**.
+- [-] **Fish.ts**의 `animateBodyUndulation()`에서 지느러미 base의 X 위치만 이동하고 `rotation.y`를 업데이트하지 않으면, body 표면이 기울어진 방향과 지느러미가 수직으로 어긋나 시각적 분리가 발생한다. `animateBodyUndulation()` 안에서 `this.dorsal.rotation.y`와 `this.secondDorsal.rotation.y`가 body wave의 기울기(예: `Math.PI/2 + finTiltY(finZ)`)로 매 프레임 갱신되는지 확인. **position.x만 갱신하고 rotation.y를 정적 값(Math.PI/2)으로 두면 실패**.
+- [-] **Fish.ts**의 `finWave(finZ)` 호출 시 각 `finZ` 인자가 `createDorsalFin()` / `createPectoralFins()` 내 해당 fin의 `position.z` 값과 일치해야 한다. 불일치 시 웨이브 위상이 어긋나 body-fin gap이 발생하므로 **실패**.
+- [-] **Fish.ts**의 `createSpots()`의 `x`, `y` 계산식에 스케일이 반영된지 확인하여, 실제 반지름을 사용해야 한다 — X방향은 `radius × 1.1`, Y방향은 `radius × 0.75`.
+- [-] **Fish.ts**의 `createCaudalFin()`에서 tailGroup position이 body 끝점과 일치하는지 확인.
+- [x] **Fish.ts**의 `_schoolPeakFlee` 배열 각 원소가 `PREDATOR_FLEE_INTENSITY_NORM × 0.1`(기본값 기준 0.4) 미만이면, 해당 학교는 아주 미세한 flee force(`avgFleeMag ≥ threshold`)에도 `fleeIntensity=1.0`에 고정되어 `effectiveOrbitWeight = FISH_ORBIT_WEIGHT × 0.3`으로 감소 — 궤도 복귀 불능의 직접 원인이므로 **실패**.
+- [-] **Fish.ts**의 `schoolDefs` 배열을 `getDebugState()`가 반환하는 `currentSchoolDefs` 필드에 포함하여 Evolver가 mutation 후보를 생성할 수 있도록 추가. Reviewer는 `latest.json`에 `currentSchoolDefs`가 있고 길이가 `FISH_SCHOOL_COUNT`와 일치하는지 확인.
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
