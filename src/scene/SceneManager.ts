@@ -20,6 +20,7 @@ import {
   DEFAULT_FOG_COLOR,
   DEFAULT_BG_COLOR,
   TONE_MAPPING_EXPOSURE,
+  GODRAY_EXPOSURE,
 } from '../utils/constants';
 
 const BASE_RATE = 1.8;
@@ -48,7 +49,6 @@ export class SceneManager {
   // God ray 광원(태양) — Lighting.sunLight와 동일한 수면 위 지점. 매 프레임 스크린 투영.
   private readonly _sunWorld = new THREE.Vector3(0, SURFACE_HEIGHT + 10, 0);
   private readonly _sunNDC = new THREE.Vector3();
-  private readonly GODRAY_EXPOSURE = 40.0;
 
   async init(): Promise<void> {
     this.container = document.getElementById('scene-container')!;
@@ -210,7 +210,7 @@ export class SceneManager {
     this.fishSchool.setSharkPosition(this._sharkWorldPos);
     this.fishSchool.setCameraPosition(this.camera.position);
     this.fishSchool.update(elapsed, delta);
-    this.lighting.update(elapsed, this.camera);
+    this.lighting.update(elapsed, this.camera, this._sharkWorldPos);
     this.skyBox.update(elapsed);
 
     this._sharkNDC.copy(this._sharkWorldPos).project(this.camera);
@@ -228,7 +228,7 @@ export class SceneManager {
     this._sunNDC.copy(this._sunWorld).project(this.camera);
     if (this._sunNDC.z < 1) {
       this.godRayPass.setLightPosition(this._sunNDC.x * 0.5 + 0.5, this._sunNDC.y * 0.5 + 0.5);
-      this.godRayPass.setExposure(this.GODRAY_EXPOSURE);
+      this.godRayPass.setExposure(GODRAY_EXPOSURE);
     } else {
       this.godRayPass.setExposure(0);
     }

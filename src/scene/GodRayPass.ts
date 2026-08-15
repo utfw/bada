@@ -1,5 +1,19 @@
 import * as THREE from 'three';
 import { Pass, FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
+import {
+  GODRAY_EXPOSURE,
+  GODRAY_DENSITY,
+  GODRAY_WEIGHT,
+  GODRAY_DECAY,
+  GODRAY_THRESHOLD,
+  GODRAY_BAND_COUNT,
+  GODRAY_BAND_SHARP,
+  GODRAY_BAND_STRENGTH,
+  GODRAY_COLOR_R,
+  GODRAY_COLOR_G,
+  GODRAY_COLOR_B,
+  GODRAY_VERTICAL_FALLOFF,
+} from '../utils/constants';
 
 /**
  * 스크린스페이스 볼류메트릭 God Ray (light scattering / radial blur, GPU Gems 3 Ch.13).
@@ -23,16 +37,16 @@ export class GodRayPass extends Pass {
       uniforms: {
         tDiffuse: { value: null },
         uLightPos: { value: new THREE.Vector2(0.5, 1.5) }, // 수면(상단) 방향 기본값
-        uDensity: { value: 0.92 },    // 광원 쪽으로 얼마나 멀리 샘플하나 (0~1)
-        uWeight: { value: 1.2 },     // 샘플당 가중치
-        uDecay: { value: 0.985 },    // 샘플당 감쇠 (스트리크 길이)
-        uExposure: { value: 22.0 },  // 전체 세기 (SceneManager가 매 프레임 갱신)
-        uThreshold: { value: 0.0 },  // 이 밝기 이상만 광선에 기여 (물고기 등 어두운 것 배제)
-        uColor: { value: new THREE.Color(0.92, 0.95, 1.0) }, // 청백 틴트 (hot pink 과포화 억제)
-        uTime: { value: 0 },         // 밴드 천천히 흐르게
-        uBandCount: { value: 10.0 }, // 광원 기준 각도 밴드 개수 (갈래 수, 적을수록 넓은 광선)
-        uBandSharp: { value: 12.0 }, // 밴드 대비 (클수록 또렷, 낮을수록 부드러움)
-        uBandStrength: { value: 0.95 }, // 밴딩 강도 (0=균일 글로우, 1=완전 갈래)
+        uDensity: { value: GODRAY_DENSITY },
+        uWeight: { value: GODRAY_WEIGHT },
+        uDecay: { value: GODRAY_DECAY },
+        uExposure: { value: GODRAY_EXPOSURE },
+        uThreshold: { value: GODRAY_THRESHOLD },
+        uColor: { value: new THREE.Color(GODRAY_COLOR_R, GODRAY_COLOR_G, GODRAY_COLOR_B) },
+        uTime: { value: 0 },
+        uBandCount: { value: GODRAY_BAND_COUNT },
+        uBandSharp: { value: GODRAY_BAND_SHARP },
+        uBandStrength: { value: GODRAY_BAND_STRENGTH },
       },
       vertexShader: /* glsl */`
         varying vec2 vUv;
@@ -75,7 +89,7 @@ export class GodRayPass extends Pass {
           float dist = length(vUv - uLightPos);
           float falloff = max(0.0, 1.0 - pow(dist / 1.5, 0.5));
           // 수직 감쇠: 광원 근처(상단)에서 강하고 하단으로 갈수록 옅어져 기둥 부피감
-          rays *= falloff * pow(clamp(vUv.y, 0.0, 1.0), 1.2);
+          rays *= falloff * pow(clamp(vUv.y, 0.0, 1.0), ${GODRAY_VERTICAL_FALLOFF});
 
           // 광원 기준 각도 밴딩 — 균일 글로우를 태양에서 갈라지는 광선으로.
           // 폭이 제각각이고(여러 주파수 합성) 부드러운 대비로 부피감.

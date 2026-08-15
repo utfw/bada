@@ -469,3 +469,8 @@
 - [x] **Fish.ts**의 `_schoolPeakFlee` 배열 각 원소가 `PREDATOR_FLEE_INTENSITY_NORM × 0.1`(기본값 기준 0.4) 미만이면, 해당 학교는 아주 미세한 flee force(`avgFleeMag ≥ threshold`)에도 `fleeIntensity=1.0`에 고정되어 `effectiveOrbitWeight = FISH_ORBIT_WEIGHT × 0.3`으로 감소 — 궤도 복귀 불능의 직접 원인이므로 **실패**.
 - [-] **Fish.ts**의 `schoolDefs` 배열을 `getDebugState()`가 반환하는 `currentSchoolDefs` 필드에 포함하여 Evolver가 mutation 후보를 생성할 수 있도록 추가. Reviewer는 `latest.json`에 `currentSchoolDefs`가 있고 길이가 `FISH_SCHOOL_COUNT`와 일치하는지 확인.
 - [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] 개선 사항: 최대 회전 횟수 제한 (max_turns)을 초과하는 원인 분석 및 대응 방법 개발
+- [x] 개선 사항: 사용자 커밋 이력에서 반복적으로 등장하는 주제에 대한 자세한 수정 및 리팩터링
+- [x] 개선 사항: 물고기와 고래상어에 대한 조명 시스템의 최적화 및 품질 향상
+- [ ] 개선 사항: 카메라의 소프트 팔로우 기능 구현을 위한 사용자 지침 추가

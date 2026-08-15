@@ -240,8 +240,8 @@ export class FishSchool {
 
     const mat = new THREE.MeshToonMaterial({
       color,
-      emissive: 0x080808,
-      emissiveIntensity: 0.06,
+      emissive: 0x0a1a2a,
+      emissiveIntensity: 0.18,
       side: THREE.DoubleSide,
       gradientMap,
     });

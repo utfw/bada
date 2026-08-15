@@ -97,7 +97,7 @@ export class Lighting {
 
     // Under-fill point light — mitigates PBR under-belly darkening on WhaleShark
     // decay=1.5 (less than physical 2.0) for even coverage across belly at y≈-3~-5
-    this.underFillPoint = new THREE.PointLight(0x5588bb, 1.6, 40, 1.5);
+    this.underFillPoint = new THREE.PointLight(0x5588bb, 2.0, 30, 1.5);
     this.underFillPoint.position.set(0, -8, 0);
     scene.add(this.underFillPoint);
 
@@ -111,10 +111,14 @@ export class Lighting {
     // 증폭해 제거함.)
   }
 
-  update(_elapsed: number, _camera: THREE.Camera): void {
+  update(_elapsed: number, _camera: THREE.Camera, sharkPos?: THREE.Vector3): void {
     this.sunLight.position.set(0, SURFACE_HEIGHT + 10, 0);
     this.sunLight.target.position.set(0, -1, 0);
     this.sunLight.target.updateMatrixWorld();
+
+    if (sharkPos !== undefined) {
+      this.underFillPoint.position.set(sharkPos.x, sharkPos.y - 6, sharkPos.z);
+    }
   }
 
   applyWeather(data: WeatherData): void {
