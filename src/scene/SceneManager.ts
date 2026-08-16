@@ -23,8 +23,9 @@ import {
   GODRAY_EXPOSURE,
 } from '../utils/constants';
 
-const BASE_RATE = 1.8;
-const BOOST_FACTOR = 12.0;
+const BASE_RATE = 0.8;
+const BOOST_FACTOR = 8.0;
+const LEAD_DISTANCE = 6.0;
 
 export class SceneManager {
   private scene!: THREE.Scene;
@@ -46,6 +47,7 @@ export class SceneManager {
   private readonly _sharkWorldFwd = new THREE.Vector3();
   private readonly _sharkNDC = new THREE.Vector3();
   private readonly _cameraLookTarget = new THREE.Vector3();
+  private readonly _lookAheadTarget = new THREE.Vector3();
   // God ray 광원(태양) — Lighting.sunLight와 동일한 수면 위 지점. 매 프레임 스크린 투영.
   private readonly _sunWorld = new THREE.Vector3(0, SURFACE_HEIGHT + 10, 0);
   private readonly _sunNDC = new THREE.Vector3();
@@ -215,11 +217,12 @@ export class SceneManager {
 
     this._sharkNDC.copy(this._sharkWorldPos).project(this.camera);
     if (this._sharkNDC.z > 0 && this._sharkNDC.z < 1) {
-      const excessX = this._sharkNDC.x - THREE.MathUtils.clamp(this._sharkNDC.x, -0.35, 0.35);
-      const excessY = this._sharkNDC.y - THREE.MathUtils.clamp(this._sharkNDC.y, -0.35, 0.35);
+      const excessX = this._sharkNDC.x - THREE.MathUtils.clamp(this._sharkNDC.x, -0.25, 0.25);
+      const excessY = this._sharkNDC.y - THREE.MathUtils.clamp(this._sharkNDC.y, -0.25, 0.25);
       const excessMag = Math.abs(excessX) + Math.abs(excessY);
       const lerpRate = BASE_RATE + excessMag * BOOST_FACTOR;
-      this._cameraLookTarget.lerp(this._sharkWorldPos, Math.min(lerpRate * delta, 1.0));
+      this._lookAheadTarget.copy(this._sharkWorldPos).addScaledVector(this._sharkWorldFwd, LEAD_DISTANCE);
+      this._cameraLookTarget.lerp(this._lookAheadTarget, Math.min(lerpRate * delta, 1.0));
       this.camera.lookAt(this._cameraLookTarget);
     }
 
