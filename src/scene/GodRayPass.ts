@@ -33,7 +33,7 @@ export class GodRayPass extends Pass {
     super();
 
     this.material = new THREE.ShaderMaterial({
-      defines: { NUM_SAMPLES: 48 },
+      defines: { NUM_SAMPLES: 80 },
       uniforms: {
         tDiffuse: { value: null },
         uLightPos: { value: new THREE.Vector2(0.5, 1.5) }, // 수면(상단) 방향 기본값
@@ -81,13 +81,15 @@ export class GodRayPass extends Pass {
             vec3 s = texture2D(tDiffuse, texCoord).rgb;
             float luma = dot(s, vec3(0.299, 0.587, 0.114));
             float bright = max(0.0, luma - uThreshold);
+            float skyBias = smoothstep(0.6, 1.0, texCoord.y) * 0.15;
+            bright += skyBias;
             rays += bright * illuminationDecay * uWeight;
             illuminationDecay *= uDecay;
           }
           rays = rays / float(NUM_SAMPLES) * uExposure;
           // 방사 감쇠: 광원 중심에서 멀어질수록 제곱근 곡선으로 부드럽게 감쇠
           float dist = length(vUv - uLightPos);
-          float falloff = max(0.0, 1.0 - pow(dist / 1.5, 0.5));
+          float falloff = max(0.0, 1.0 - pow(dist / 2.2, 0.5));
           // 수직 감쇠: 광원 근처(상단)에서 강하고 하단으로 갈수록 옅어져 기둥 부피감
           rays *= falloff * pow(clamp(vUv.y, 0.0, 1.0), ${GODRAY_VERTICAL_FALLOFF});
 
