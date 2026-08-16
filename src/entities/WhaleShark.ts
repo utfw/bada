@@ -528,9 +528,6 @@ export class WhaleShark {
     // 몸체 좌우 물결 (상어 특유의 사인 곡선 웨이브)
     this.animateBodyUndulation(elapsed);
 
-    // 꼬리지느러미 좌우 스윕 (whale은 상하였지만 shark는 좌우)
-    this.tailGroup.rotation.y = -Math.PI / 2 + Math.sin(elapsed * 2.5) * 0.45;
-
     // 가슴지느러미 flap: group의 rotation.z 가 직접 dihedral 각도이므로
     // sin 진동을 그대로 더하면 끝(tip)이 위아래로 펄럭이는 효과가 된다.
     // 좌우는 미러 공간이라 동기적으로 펄럭이려면 부호 반대.
@@ -592,6 +589,7 @@ export class WhaleShark {
     this.leftPelvic.position.x = this.leftPelvicBaseX + pelvicWave;
     this.rightPelvic.position.x = this.rightPelvicBaseX + pelvicWave;
     this.tailGroup.position.x = finWave(SHARK_LENGTH / 2 - 0.15);
+    this.tailGroup.rotation.y = -Math.PI / 2 + Math.sin(elapsed * 2.5) * 0.45 + Math.atan(finWaveSlope(SHARK_LENGTH / 2 - 0.15));
 
     // 흰 반점들도 같은 wave에 묶어 몸통과 함께 흔들리게 한다
     for (let i = 0; i < this.spots.length; i++) {

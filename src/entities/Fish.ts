@@ -513,7 +513,8 @@ export class FishSchool {
       const tail = fi.mesh.getObjectByName('tail');
       if (tail) {
         const speedRatio = fi.velocity.length() / BOID_MAX_SPEED;
-        tail.rotation.y = Math.sin(elapsed * 8 + i) * 0.2 * (0.5 + speedRatio);
+        const turnIntensity = Math.min(1.0, this._accel.length() * 0.4);
+        tail.rotation.y = Math.sin(elapsed * (8 + turnIntensity * 6) + i) * 0.2 * (0.5 + speedRatio + turnIntensity * 0.25);
       }
 
       // 카메라 근접 컬링: 5 unit 이내 물고기를 숨겨 surface-up 시점 화면 점유 해소
