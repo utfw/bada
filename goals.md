@@ -482,4 +482,11 @@
 - [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
 - [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
 - [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
-- [ ] `Fish.ts` `update()` 루프에서 카메라까지 거리 < 2.0인 물고기 `mesh.visible=false` 처리 (또는 `camera.near=1.5` 상향) — surface-up.png에서 근접 물고기가 상단 50% 이상을 덮어 고래상어 주체 인식이 어려움
+- [x] `Fish.ts` `update()` 루프에서 카메라까지 거리 < 2.0인 물고기 `mesh.visible=false` 처리 (또는 `camera.near=1.5` 상향) — surface-up.png에서 근접 물고기가 상단 50% 이상을 덮어 고래상어 주체 인식이 어려움
+- [-] SceneManager.ts에 `GODRAY_EXPOSURE` 상수(>0)를 선언하고 `composer.addPass(this.godRayPass)` 배선 확인 — 자동 검증 GODRAY_EXPOSURE=미검출로 갓레이 후처리가 비활성 상태로 추정됨 (surface-up.png에서도 수면 광선 불가시)
+- [x] 리소스 관리 개선: 최대 사용량 초과 문제를 해결하기 위해 리소스 할당 및 관리 전략을 재검토하고 개선합니다.
+- [x] 사용자 지시사항 도큐먼트 최적화: README와 문서를 더 명확하고 간결하게 작성하여 사용자의 이해를 높입니다.
+- [ ] 씬 및 시각 효과 향상: 현재의 volumetric god rays가 부족한 부분을 보완하여 시각적인 품질을 개선합니다.
+- [ ] 물고기와 고래 상어의 정확한 움직임 구현: caudal fin orientation과 tail-direction check를 통해 물고기와 고래 상어의 움직임을 더욱 정밀하게 만듭니다.
+- [ ] 카메라 뷰 개선: camera soft-follow 기능을 구현하여 드래그-only 360 view보다 더 자연스럽게 보행하는 시각을 제공합니다.
+- [ ] `src/entities/` 또는 `src/scene/Ocean.ts` `addGodRays()` — SpotLight 스프라이트/플레인의 `baseOpacity`를 현재 ~0.005에서 **0.04~0.08**로 상향하고, GodRayPass uniform `uExposure`를 현재값 대비 **1.5~2배** 증가시켜 surface-up 앵글에서 광선이 또렷이 보이도록 할 것

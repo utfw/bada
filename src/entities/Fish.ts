@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 
-const CAMERA_EXCLUSION_RADIUS = 8.0;
 const CAMERA_REPULSION_WEIGHT = 4.0;
 
 import {
@@ -26,6 +25,7 @@ import {
   PREDATOR_FLEE_INTENSITY_NORM,
   INTRA_SCHOOL_AVOID_DIST,
   INTRA_SCHOOL_AVOID_WEIGHT,
+  CAMERA_REPULSION_RANGE,
 } from '../utils/constants';
 
 interface FishInstance {
@@ -33,7 +33,19 @@ interface FishInstance {
   velocity: THREE.Vector3;
   schoolIndex: number;
   phaseOffset: number;
-  disposables: Array<THREE.BufferGeometry | THREE.Material | THREE.Texture>;
+}
+
+interface SharedFishResources {
+  gradientMap: THREE.DataTexture;
+  bodyGeo: THREE.BufferGeometry;
+  tailGeo: THREE.BufferGeometry;
+  dorsalGeo: THREE.BufferGeometry;
+  pectoralGeo: THREE.BufferGeometry;
+  rightPectoralGeo: THREE.BufferGeometry;
+  eyeGeo: THREE.BufferGeometry;
+  eyeMat: THREE.MeshToonMaterial;
+  outlineMat: THREE.MeshBasicMaterial;
+  colorMats: THREE.MeshToonMaterial[];
 }
 
 // [cx, cz, yBase, semi_a, semi_b, yWave] — 학교별 타원 궤도 정의 튜플
@@ -41,6 +53,7 @@ export type OrbitDef = [number, number, number, number, number, number];
 
 export class FishSchool {
   private fish: FishInstance[] = [];
+  private _shared!: SharedFishResources;
   private readonly scene: THREE.Scene;
   private readonly _accel = new THREE.Vector3();
   private readonly _separation = new THREE.Vector3();
@@ -120,10 +133,75 @@ export class FishSchool {
       this.schoolProgress[g] = g / FISH_SCHOOL_COUNT;
     }
 
+    // Build shared GPU resources once — reused across all 120 fish
+    const gradientData = new Uint8Array([0, 0, 0, 128, 128, 128, 128, 255, 255, 255]);
+    const sharedGradientMap = new THREE.DataTexture(gradientData, 10, 1);
+    sharedGradientMap.format = THREE.RedFormat;
+    sharedGradientMap.minFilter = THREE.NearestFilter;
+    sharedGradientMap.magFilter = THREE.NearestFilter;
+    sharedGradientMap.needsUpdate = true;
+
+    const colorValues = [0x1a8fc0, 0x0d6e9e, 0x1a7ab5, 0x1dbfcf];
+    const colorMats = colorValues.map(
+      (c) =>
+        new THREE.MeshToonMaterial({
+          color: c,
+          emissive: 0x0a1a2a,
+          emissiveIntensity: 0.18,
+          side: THREE.DoubleSide,
+          gradientMap: sharedGradientMap,
+        }),
+    );
+
+    const sharedBodyGeo = new THREE.SphereGeometry(1, 8, 6);
+    sharedBodyGeo.scale(1.6, 0.7, 0.5);
+
+    const sharedTailGeo = new THREE.ConeGeometry(0.72, 1.0, 4);
+    sharedTailGeo.rotateZ(-Math.PI / 2);
+
+    const sharedDorsalGeo = new THREE.BufferGeometry();
+    sharedDorsalGeo.setAttribute(
+      'position',
+      new THREE.BufferAttribute(new Float32Array([0.2, 0.35, 0, -0.5, 0.35, 0, -0.1, 0.9, 0]), 3),
+    );
+    sharedDorsalGeo.computeVertexNormals();
+
+    const sharedPectoralGeo = new THREE.BufferGeometry();
+    sharedPectoralGeo.setAttribute(
+      'position',
+      new THREE.BufferAttribute(new Float32Array([0.4, -0.1, 0, -0.3, -0.1, 0, 0.0, -0.1, 0.7]), 3),
+    );
+    sharedPectoralGeo.computeVertexNormals();
+
+    const sharedRightPectoralGeo = new THREE.BufferGeometry();
+    sharedRightPectoralGeo.setAttribute(
+      'position',
+      new THREE.BufferAttribute(new Float32Array([0.4, -0.1, 0, -0.3, -0.1, 0, 0.0, -0.1, -0.7]), 3),
+    );
+    sharedRightPectoralGeo.computeVertexNormals();
+
+    const sharedEyeGeo = new THREE.SphereGeometry(0.1, 6, 6);
+    const sharedEyeMat = new THREE.MeshToonMaterial({ color: 0x111111, gradientMap: sharedGradientMap });
+    const sharedOutlineMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide });
+
+    const shared: SharedFishResources = {
+      gradientMap: sharedGradientMap,
+      bodyGeo: sharedBodyGeo,
+      tailGeo: sharedTailGeo,
+      dorsalGeo: sharedDorsalGeo,
+      pectoralGeo: sharedPectoralGeo,
+      rightPectoralGeo: sharedRightPectoralGeo,
+      eyeGeo: sharedEyeGeo,
+      eyeMat: sharedEyeMat,
+      outlineMat: sharedOutlineMat,
+      colorMats,
+    };
+    this._shared = shared;
+
     for (let i = 0; i < FISH_COUNT; i++) {
       const schoolIndex = i % FISH_SCHOOL_COUNT;
       const scale = 0.30 + Math.random() * 0.45;
-      const { mesh, disposables } = this.createFishMesh(scale);
+      const mesh = this.createFishMesh(scale, shared);
 
       // Spawn near this group's initial orbit anchor ±7.5 units (wider spread for visual balance)
       const groupPhase = schoolIndex / FISH_SCHOOL_COUNT;
@@ -165,7 +243,7 @@ export class FishSchool {
       ).normalize();
       const velocity = dir.multiplyScalar(BOID_MIN_SPEED);
 
-      this.fish.push({ mesh, velocity, schoolIndex, phaseOffset: (Math.random() - 0.5) * 0.3, disposables });
+      this.fish.push({ mesh, velocity, schoolIndex, phaseOffset: (Math.random() - 0.5) * 0.3 });
       scene.add(mesh);
     }
   }
@@ -210,7 +288,7 @@ export class FishSchool {
     this._cameraPos.copy(pos);
   }
 
-  private createFishMesh(scale: number): { mesh: THREE.Group; disposables: Array<THREE.BufferGeometry | THREE.Material | THREE.Texture> } {
+  private createFishMesh(scale: number, shared: SharedFishResources): THREE.Group {
     // outer는 lookAt 대상 그룹(로컬 -Z가 진행 방향).
     // inner는 모델 파츠를 +X 축을 머리로 조립한 뒤 Y로 +90° 회전해
     // inner의 +X(머리)가 outer의 -Z에 정렬되도록 한다.
@@ -219,118 +297,43 @@ export class FishSchool {
     inner.rotation.y = Math.PI / 2;
     group.add(inner);
 
-    const hue = Math.random();
-    let color: number;
-    if (hue < 0.3) {
-      color = 0x1a8fc0;
-    } else if (hue < 0.5) {
-      color = 0x0d6e9e;
-    } else if (hue < 0.7) {
-      color = 0x1a7ab5;
-    } else {
-      color = 0x1dbfcf;
-    }
+    const colorIndex = Math.floor(Math.random() * shared.colorMats.length);
+    const mat = shared.colorMats[colorIndex];
 
-    const gradientData = new Uint8Array([0, 0, 0, 128, 128, 128, 128, 255, 255, 255]);
-    const gradientMap = new THREE.DataTexture(gradientData, 10, 1);
-    gradientMap.format = THREE.RedFormat;
-    gradientMap.minFilter = THREE.NearestFilter;
-    gradientMap.magFilter = THREE.NearestFilter;
-    gradientMap.needsUpdate = true;
-
-    const mat = new THREE.MeshToonMaterial({
-      color,
-      emissive: 0x0a1a2a,
-      emissiveIntensity: 0.18,
-      side: THREE.DoubleSide,
-      gradientMap,
-    });
-
-    const bodyGeo = new THREE.SphereGeometry(1, 8, 6);
-    bodyGeo.scale(1.6, 0.7, 0.5);
-    const body = new THREE.Mesh(bodyGeo, mat);
+    const body = new THREE.Mesh(shared.bodyGeo, mat);
     inner.add(body);
 
-    const outlineMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide });
-    const outline = new THREE.Mesh(bodyGeo, outlineMat);
+    const outline = new THREE.Mesh(shared.bodyGeo, shared.outlineMat);
     outline.scale.setScalar(1.05);
     inner.add(outline);
 
     // 꼬리지느러미: 머리는 inner +X, 꼬리는 −X. 원뿔 apex는 +X(머리 쪽, 몸통에 묻힘),
     // 넓은 base가 −X(꼬리 끝)로 벌어져 갈래진 꼬리 실루엣 (몸통)< 을 만든다.
     // rotateZ 부호가 +π/2이면 apex가 뒤(−X)로 가 (몸통)> 화살촉이 되므로 −π/2 유지.
-    const tailGeo = new THREE.ConeGeometry(0.72, 1.0, 4);
-    tailGeo.rotateZ(-Math.PI / 2);
-    const tail = new THREE.Mesh(tailGeo, mat);
+    const tail = new THREE.Mesh(shared.tailGeo, mat);
     tail.position.x = -1.4;
     tail.scale.set(1, 1, 0.5);
     tail.name = 'tail';
     inner.add(tail);
 
-    // Dorsal fin (등지느러미)
-    const dorsalGeo = new THREE.BufferGeometry();
-    const dorsalVerts = new Float32Array([
-      0.2, 0.35, 0, // front base
-      -0.5, 0.35, 0, // rear base
-      -0.1, 0.9, 0, // tip
-    ]);
-    dorsalGeo.setAttribute('position', new THREE.BufferAttribute(dorsalVerts, 3));
-    dorsalGeo.computeVertexNormals();
-    const dorsalFin = new THREE.Mesh(dorsalGeo, mat);
+    const dorsalFin = new THREE.Mesh(shared.dorsalGeo, mat);
     inner.add(dorsalFin);
 
-    // Pectoral fins (가슴지느러미) — 좌우 대칭
-    const pectoralGeo = new THREE.BufferGeometry();
-    const pectoralVerts = new Float32Array([
-      0.4, -0.1, 0, // front (body 쪽)
-      -0.3, -0.1, 0, // rear (body 쪽)
-      0.0, -0.1, 0.7, // tip (바깥쪽)
-    ]);
-    pectoralGeo.setAttribute(
-      'position',
-      new THREE.BufferAttribute(pectoralVerts, 3),
-    );
-    pectoralGeo.computeVertexNormals();
-    const leftPectoral = new THREE.Mesh(pectoralGeo, mat);
+    const leftPectoral = new THREE.Mesh(shared.pectoralGeo, mat);
     inner.add(leftPectoral);
 
-    const rightPectoralGeo = new THREE.BufferGeometry();
-    const rightPectoralVerts = new Float32Array([
-      0.4, -0.1, 0,
-      -0.3, -0.1, 0,
-      0.0, -0.1, -0.7,
-    ]);
-    rightPectoralGeo.setAttribute(
-      'position',
-      new THREE.BufferAttribute(rightPectoralVerts, 3),
-    );
-    rightPectoralGeo.computeVertexNormals();
-    const rightPectoral = new THREE.Mesh(rightPectoralGeo, mat);
+    const rightPectoral = new THREE.Mesh(shared.rightPectoralGeo, mat);
     inner.add(rightPectoral);
 
-    const eyeMat = new THREE.MeshToonMaterial({ color: 0x111111, gradientMap });
-    const eyeGeo = new THREE.SphereGeometry(0.1, 6, 6);
-    const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+    const leftEye = new THREE.Mesh(shared.eyeGeo, shared.eyeMat);
     leftEye.position.set(1.0, 0.2, 0.35);
-    const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+    const rightEye = new THREE.Mesh(shared.eyeGeo, shared.eyeMat);
     rightEye.position.set(1.0, 0.2, -0.35);
     inner.add(leftEye, rightEye);
 
     group.scale.setScalar(scale);
 
-    const disposables: Array<THREE.BufferGeometry | THREE.Material | THREE.Texture> = [
-      bodyGeo,
-      tailGeo,
-      dorsalGeo,
-      pectoralGeo,
-      rightPectoralGeo,
-      mat,
-      eyeGeo,
-      eyeMat,
-      gradientMap,
-      outlineMat,
-    ];
-    return { mesh: group, disposables };
+    return group;
   }
 
   update(elapsed: number, delta: number): void {
@@ -492,8 +495,8 @@ export class FishSchool {
       // Camera exclusion — push fish away from camera origin if too close
       diff.subVectors(pos, this._cameraPos);
       const camDist = diff.length();
-      if (camDist < CAMERA_EXCLUSION_RADIUS && camDist > 0) {
-        const weight = ((CAMERA_EXCLUSION_RADIUS - camDist) / CAMERA_EXCLUSION_RADIUS) * CAMERA_REPULSION_WEIGHT;
+      if (camDist < CAMERA_REPULSION_RANGE && camDist > 0) {
+        const weight = ((CAMERA_REPULSION_RANGE - camDist) / CAMERA_REPULSION_RANGE) * CAMERA_REPULSION_WEIGHT;
         accel.addScaledVector(diff, weight / camDist);
       }
 
@@ -514,7 +517,7 @@ export class FishSchool {
       }
 
       // 카메라 근접 컬링: 5 unit 이내 물고기를 숨겨 surface-up 시점 화면 점유 해소
-      fi.mesh.visible = pos.distanceTo(this._cameraPos) >= 8.0;
+      fi.mesh.visible = pos.distanceTo(this._cameraPos) >= CAMERA_REPULSION_RANGE;
     }
 
     // ── 학교별 후처리: centroid, 거리, dispersion, smoothed flee intensity ──
@@ -551,9 +554,19 @@ export class FishSchool {
   dispose(): void {
     for (const fi of this.fish) {
       this.scene.remove(fi.mesh);
-      fi.disposables.forEach((d) => d.dispose());
     }
     this.fish.length = 0;
+    const s = this._shared;
+    s.gradientMap.dispose();
+    s.bodyGeo.dispose();
+    s.tailGeo.dispose();
+    s.dorsalGeo.dispose();
+    s.pectoralGeo.dispose();
+    s.rightPectoralGeo.dispose();
+    s.eyeGeo.dispose();
+    s.eyeMat.dispose();
+    s.outlineMat.dispose();
+    s.colorMats.forEach((m) => m.dispose());
   }
 
   getDebugState(): {
