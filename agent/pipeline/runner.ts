@@ -2,7 +2,7 @@
 /**
  * Project BADA — 외부 실행기 래퍼 (Claude Code CLI + Ollama 로컬 API)
  *
- * - findClaude/CLAUDE_BIN: claude 바이너리 탐색 (setGoals·vision/judge도 재사용)
+ * - findClaude/CLAUDE_BIN: claude 바이너리 탐색 (vision/judge도 재사용)
  * - runClaude: 일시 과부하(overload/5xx)에 지수 백오프 재시도하는 견고한 CLI 호출
  * - runOllama: 로컬 Ollama(localhost:11434) 단발 텍스트 생성
  * - runText: 경량 텍스트 생성 — Ollama 우선, 실패/형식부적합 시 claude(haiku) 폴백

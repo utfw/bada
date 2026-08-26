@@ -23,7 +23,7 @@ npm run dev   # http://localhost:5173
 - **물고기 떼** — 5개 school, 120마리. Boids(분리·정렬·응집) 알고리즘 + 독립 타원 궤도로 360° 씬에 분산
 - **실시간 날씨** — OpenWeatherMap API + Geolocation으로 현재 위치 날씨 반영 (안개 밀도·조명색 변화)
 - **God Ray** — 수면에서 내려오는 볼류메트릭 광선
-- **카메라** — 원점 고정, 고래상어 soft-follow 자동 추적 (시야 밖이면 터치·마우스 드래그)
+- **카메라** — 원점 고정, 고래상어 soft-follow 자동 추적 (드래그 입력은 현재 auto-follow에 덮여 반영되지 않음)
 
 ## 명령어
 
@@ -134,19 +134,29 @@ src/
   scene/
     SceneManager.ts     # 렌더러, 카메라, 애니메이션 루프
     Ocean.ts            # 수면, 파티클, 기포
-    Lighting.ts         # 날씨별 조명
+    Lighting.ts         # 수중 조명
     SkyBox.ts           # 배경
   entities/
     WhaleShark.ts       # 고래상어 모델 + 유영 애니메이션
     Fish.ts             # Boids 군집 시스템
   controls/
-    DeviceControls.ts   # 터치 / 마우스 드래그 입력
-  weather/
-    WeatherService.ts   # 날씨 API
+    DeviceControls.ts   # 터치 / 마우스 드래그 입력 (현재 auto-follow에 덮임)
   ui/
     LoadingScreen.ts
     HUD.ts
-agent/                  # 자율 파이프라인 — 상세는 agent/AUTOMATION.md 참고
+agent/
+  loop.ts               # 파이프라인 오케스트레이션 (goal 루프·예산·종료 코드)
+  pipeline/             # 단계 모듈 (stages·runner·goals·observation·types·logging)
+  observe.ts            # Playwright 런타임 관찰자 (predatorMetrics 수집)
+  evolve.ts             # Evolver — dramaScore 환산 + 정체 시 궤도 변이 목표 생성
+  vision/               # Vision Judge (멀티모달 축별 판정·재현성 측정)
+  checks/               # 결정적 수치 검증 (LLM 미사용)
+  run-loop.sh           # 상시 자동 루프 래퍼 (self-hosted runner)
+  flushCommits.ts       # 커밋 대기열 강제 flush
+  evolution/history.json # dramaScore + schoolDefs 진화 이력
+  REVIEW_CHECKLIST.md   # 버그 패턴 누적 체크리스트 (단일 진실원천)
+  AUTOMATION.md         # 상시 자동화·러너 운영 문서
+  CHANGELOG.md          # 에이전트 파이프라인 변경 이력
 ```
 
 ## 기술 스택

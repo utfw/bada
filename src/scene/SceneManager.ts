@@ -5,7 +5,6 @@ import { SkyBox } from './SkyBox';
 import { WhaleShark } from '../entities/WhaleShark';
 import { FishSchool } from '../entities/Fish';
 import { DeviceControls } from '../controls/DeviceControls';
-import { WeatherData } from '../weather/WeatherService';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
@@ -163,29 +162,6 @@ export class SceneManager {
     }
 
     this.container.appendChild(btnContainer);
-  }
-
-  applyWeather(data: WeatherData): void {
-    this.lighting.applyWeather(data);
-    this.skyBox.applyWeather(data.condition);
-
-    if (this.scene.fog instanceof THREE.FogExp2) {
-      this.scene.fog.density = data.fogDensity;
-      this.scene.fog.color.set(data.fogColor);
-    }
-
-    // 공기질에 따른 전체 색상 변화
-    if (data.aqi !== undefined) {
-      this.skyBox.applyAqi(data.aqi);
-      this.lighting.applyAqi(data.aqi);
-      this.ocean.applyAqi(data.aqi);
-
-      if (this.scene.fog instanceof THREE.FogExp2) {
-        // AQI가 나쁠수록 fog 밀도 증가 (탁해짐)
-        const aqiFogBoost = 1 + (data.aqi - 1) * 0.25;
-        this.scene.fog.density *= aqiFogBoost;
-      }
-    }
   }
 
   start(): void {

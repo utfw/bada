@@ -1,61 +1,7 @@
 import * as THREE from 'three';
 import { SURFACE_HEIGHT } from '../utils/constants';
-import { WeatherData, WeatherCondition } from '../weather/WeatherService';
-
-interface LightingPreset {
-  ambientColor: number;
-  ambientIntensity: number;
-  sunColor: number;
-  sunIntensity: number;
-  fogColor: number;
-  fogDensity: number;
-}
-
-const WEATHER_PRESETS: Record<WeatherCondition, LightingPreset> = {
-  clear: {
-    ambientColor: 0x0a78cc,
-    ambientIntensity: 0.75,
-    sunColor: 0x40c8f0,
-    sunIntensity: 3.2,
-    fogColor: 0x0a2a50,
-    fogDensity: 0.00217,
-  },
-  cloudy: {
-    ambientColor: 0x0a78cc,
-    ambientIntensity: 1.05,
-    sunColor: 0x40c8f0,
-    sunIntensity: 1.2,
-    fogColor: 0x0a2a50,
-    fogDensity: 0.00189,
-  },
-  rain: {
-    ambientColor: 0x0a78cc,
-    ambientIntensity: 1.10,
-    sunColor: 0x40c8f0,
-    sunIntensity: 0.8,
-    fogColor: 0x082040,
-    fogDensity: 0.00247,
-  },
-  snow: {
-    ambientColor: 0x0a78cc,
-    ambientIntensity: 1.20,
-    sunColor: 0x40c8f0,
-    sunIntensity: 1.4,
-    fogColor: 0x0a2a50,
-    fogDensity: 0.00160,
-  },
-  fog: {
-    ambientColor: 0x0a78cc,
-    ambientIntensity: 0.95,
-    sunColor: 0x40c8f0,
-    sunIntensity: 0.5,
-    fogColor: 0x0a2a50,
-    fogDensity: 0.00305,
-  },
-};
 
 export class Lighting {
-  private scene: THREE.Scene;
   private ambientLight: THREE.AmbientLight;
   private sunLight: THREE.DirectionalLight;
   private fillLight: THREE.DirectionalLight;
@@ -65,17 +11,16 @@ export class Lighting {
   private hemisphereLight: THREE.HemisphereLight;
 
   constructor(scene: THREE.Scene) {
-    this.scene = scene;
     scene.fog = new THREE.FogExp2(0x0a2a50, 0.00217);
     scene.background = new THREE.Color(0x0a2a50);
 
-    this.ambientLight = new THREE.AmbientLight(0x0a78cc, 0.6);
+    this.ambientLight = new THREE.AmbientLight(0x0a78cc, 0.75);
     scene.add(this.ambientLight);
 
     this.hemisphereLight = new THREE.HemisphereLight(0x0a78cc, 0x0a88bc, 1.0);
     scene.add(this.hemisphereLight);
 
-    this.sunLight = new THREE.DirectionalLight(0x40c8f0, 2.8);
+    this.sunLight = new THREE.DirectionalLight(0x40c8f0, 3.2);
     this.sunLight.position.set(0, SURFACE_HEIGHT + 10, 0);
     this.sunLight.target.position.set(0, -1, 0);
     scene.add(this.sunLight);
@@ -119,26 +64,6 @@ export class Lighting {
     if (sharkPos !== undefined) {
       this.underFillPoint.position.set(sharkPos.x, sharkPos.y - 6, sharkPos.z);
     }
-  }
-
-  applyWeather(data: WeatherData): void {
-    const preset = WEATHER_PRESETS[data.condition];
-    this.ambientLight.color.set(preset.ambientColor);
-    this.ambientLight.intensity = preset.ambientIntensity;
-    this.sunLight.color.set(preset.sunColor);
-    this.sunLight.intensity = preset.sunIntensity;
-
-    const fog = this.scene.fog as THREE.FogExp2;
-    fog.color.set(preset.fogColor);
-    fog.density = preset.fogDensity;
-    (this.scene.background as THREE.Color).set(preset.fogColor);
-  }
-
-  applyAqi(aqi: number): void {
-    const factor = Math.max(0.3, 1 - (aqi - 1) * 0.15);
-    this.ambientLight.intensity *= factor;
-    this.ambientLight.intensity = Math.max(0.65, this.ambientLight.intensity);
-    this.sunLight.intensity *= factor;
   }
 
   dispose(): void {

@@ -35,7 +35,7 @@ git log --grep "\[agent\]" --oneline
 
 ## 에이전트 인프라 변경 시 CHANGELOG 갱신 (필수)
 
-스테이징 대상에 `agent/**`(`loop.ts`, `observe.ts`, `setGoals.ts`, `evolve.ts`, `report.ts`, `checkChecklist.ts`, `checks/**`, `vision/**`, `pipeline/**`, `REVIEW_CHECKLIST.md` 등)가 **포함된 사람 커밋**이면, 커밋 전에 `agent/CHANGELOG.md` **최상단**(`---` 뒤 첫 항목 앞)에 새 항목을 추가한다:
+스테이징 대상에 `agent/**`(`loop.ts`, `observe.ts`, `evolve.ts`, `report.ts`, `checkChecklist.ts`, `checks/**`, `vision/**`, `pipeline/**`, `REVIEW_CHECKLIST.md` 등)가 **포함된 사람 커밋**이면, 커밋 전에 `agent/CHANGELOG.md` **최상단**(`---` 뒤 첫 항목 앞)에 새 항목을 추가한다:
 
 ```
 ## [YYYY-MM-DD] 제목 (커밋 <sha 있으면>)

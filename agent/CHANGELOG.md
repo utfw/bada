@@ -1,11 +1,32 @@
 # Agent Pipeline Changelog
 
-이 문서는 `agent/` 파이프라인(`loop.ts`, `observe.ts`, `setGoals.ts`)에 가해진 설계 변경을 기록합니다.
+이 문서는 `agent/` 파이프라인(`loop.ts`, `observe.ts`)에 가해진 설계 변경을 기록합니다.
 버그 픽스·기능 추가·프롬프트 수정 모두 포함하며, "왜 바꿨는가"를 중심으로 서술합니다.
 
 > **갱신 규칙**: 에이전트 인프라(`agent/**`)를 수정하는 사람 커밋(`feat(agent)`/`fix(agent|checks)`/`docs(agent)` 등, `[agent]` 자동 커밋 제외)을 만들 때는 이 파일 최상단에 `## [YYYY-MM-DD] 제목` 항목을 추가한다. `[agent]` 접미사가 붙은 자동 커밋은 에이전트 자신의 산출물이므로 기록 대상이 아니다.
 
 ---
+
+## [2026-08-27] 날씨 API·레퍼런스 이미지 goal setter 제거
+
+### 배경
+두 기능 모두 현 시점에 실효가 사라졌다.
+- **날씨 연동**: OpenWeatherMap + Geolocation + AQI가 씬의 조명/fog/SkyBox 색을 바꾸는 구조였으나, 실제로는 API 키 없이 항상 `getDefaultWeather()`(clear, aqi=1) 경로만 타고 있었고, 외부 네트워크 의존 때문에 테스트마다 `page.route` 모킹이 필요했다. 시각 품질 튜닝은 이미 GodRayPass uniform과 각 클래스 상수로 하고 있어 날씨 프리셋 계층은 중간에 낀 잡음이었다.
+- **setGoals.ts**: `agent/observations/samples/`의 레퍼런스 사진과 현재 스크린샷을 멀티모달 비교해 goals.md를 채우는 경로. 현재 목표 생성은 Evolver(dramaScore) + Vision Judge(축별 판정) + REVIEW_CHECKLIST 기반 SUGGESTIONS로 대체됐고, samples/는 gitignore된 로컬 사진이라 러너에서 재현되지도 않았다(파이프라인이 호출하지 않는 고아 스크립트).
+
+### 변경
+- **`agent/setGoals.ts` 삭제**, `package.json`의 `agent:goals` 스크립트 제거. 참조 정리: `pipeline/runner.ts` 주석, `pipeline/types.ts`의 하네스 파일 정규식, `.claude/commands/commit.md` 목록.
+- **`src/weather/` 삭제** — `WeatherService`, `applyWeather`/`applyAqi`(SceneManager·Lighting·SkyBox·Ocean), HUD 날씨 오버레이, constants.ts의 Weather API 상수·`WeatherState` 타입, `VITE_OPENWEATHER_API_KEY`.
+  - **시각 무변경 보장**: 기존 실효 경로였던 clear/aqi=1 프리셋 값을 각 생성자 기본값으로 인라인(Lighting ambient 0.6→0.75·sun 2.8→3.2, SkyBox uTopColor `0x22aaee`→`0x33bbff`·uBottomColor `0x003366`→`0x010d1f`). 이전엔 이 값들이 `applyWeather()` 호출 시점에 덮어써졌으므로, 인라인하지 않으면 화면이 어두워진다.
+- **드래그 무효 상태 문서화**: HUD 힌트 문구 `'Camera follows whale shark · Drag to look around'` → `'Camera follows the whale shark'`(후반부가 거짓). CLAUDE.md 카메라 불변식과 README도 "드래그가 auto-follow에 덮여 반영되지 않음"으로 정정하고, 에이전트가 임의로 고치거나 드래그 코드를 지우지 않도록 명시(사람이 정할 사안).
+- **불변식 문서화**: CLAUDE.md 씬 불변식 + REVIEW_CHECKLIST에 "날씨 연동 없음" 항목 추가 — 에이전트가 날씨 프리셋 부재를 "누락"으로 오인해 API를 되살리지 못하게. fog 동기화 항목도 `applyWeather()`가 최종 승자라는 전제가 깨졌으므로 "Lighting 생성자가 최종 승자"로 갱신.
+
+### 부수 수정 (테스트 실행 불가 상태 해소)
+- `tests/smoke.spec.ts`가 ESM에서 `require('@playwright/test')`를 써 **전체 스위트가 수집 단계에서 죽어 있었다**(기존 결함).
+- 그 `require`를 쓰던 **'터치 드래그로 시점이 변경된다' 테스트를 삭제**. 이름과 달리 캔버스가 아직 보이는지만 단언했고, 실제로 시점 변경을 검증하도록 고치려 해도 **불가능**하다 — `SceneManager.animate()`의 soft-follow `camera.lookAt()`이 `controls.update()` 뒤에 실행돼 매 프레임 quaternion을 덮어쓰고, auto-follow가 고래상어를 항상 화면 안에 유지해 "시야 밖이면 드래그" 경로에 도달하지 않는다. 즉 **드래그는 현재 화면에 아무 효과가 없다**. `dragYaw` 누적만 단언하는 테스트는 죽은 기능을 영원히 green으로 덮으므로 남기지 않았다. 스위트 32s → 2.9s.
+
+### 검증
+`npx tsc --noEmit` 0에러, `npm run build` 성공, `npm run test` **4/4 통과**(기존엔 0 실행; 실행 시 5173을 점유한 다른 dev 서버가 없어야 함 — `reuseExistingServer: true`라 선점 서버가 있으면 그 앱을 테스트한다), `npm run check:checklist` 바인딩 23/23 정상, `npm run agent:observe` anomalies=0·errors=0. 스크린샷 육안 확인 — 상단 시안 그라디언트·고래상어·물고기 떼 렌더 이전과 동일.
 
 ## [2026-08-15] 하네스 물리 잠금 — 정책/하네스 경계를 CLI 권한으로 강제
 

@@ -112,7 +112,7 @@ export const FORBIDDEN_GOAL_PATTERNS: RegExp[] = [
   // 목표 문구가 agent/** 인프라를 지칭하면 차단. src/ 제품 목표엔 이 토큰들이
   // 등장하지 않으므로 오탐 없음. REVIEW_CHECKLIST 갱신(Reviewer 정상 동작)은 예외.
   /\bagent\/(?!REVIEW_CHECKLIST)/i,          // agent/loop, agent/pipeline, agent/vision, agent/evolve …
-  /\b(loop|logging|observation|stages|runner|goals|report|setGoals|observe|evolve)\.ts\b/i,
+  /\b(loop|logging|observation|stages|runner|goals|report|observe|evolve)\.ts\b/i,
   /\bpipeline\s*modul/i,                      // "split into pipeline modules"
   /\b(cost|token)\s*(cv|변동계수|report|리포트|회계)/i,
   /\bvision\s*(judge|label|라벨|judg)/i,

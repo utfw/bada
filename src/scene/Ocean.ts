@@ -257,12 +257,6 @@ export class Ocean {
     camera.add(this._bgQuad);
   }
 
-  applyAqi(aqi: number): void {
-    const debrisMat = this.debrisParticles.material as THREE.ShaderMaterial;
-    debrisMat.uniforms.uOpacity.value = 0.4 + (aqi - 1) * 0.15;
-    debrisMat.uniforms.uSizeScale.value = 1.0 + (aqi - 1) * 0.33;
-  }
-
   dispose(): void {
     this._camera.remove(this._bgQuad);
     this._bgQuad.geometry.dispose();

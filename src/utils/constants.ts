@@ -13,26 +13,6 @@ export const DEFAULT_FOG_COLOR = 0x0a2a50;
 export const DEFAULT_BG_COLOR = 0x0077b6;
 export const TONE_MAPPING_EXPOSURE = 1.4;
 
-// ── Weather API ────────────────────────────────────
-export const WEATHER_API_BASE = 'https://api.openweathermap.org/data/2.5/weather';
-export const AIR_POLLUTION_API_BASE = 'https://api.openweathermap.org/data/2.5/air_pollution';
-export const DEFAULT_CITY = 'Seoul';
-export const GEO_TIMEOUT = 2000;
-
-// Default coordinates — Seoul
-export const DEFAULT_LAT = 37.5665;
-export const DEFAULT_LON = 126.978;
-
-// ── Weather State Type ─────────────────────────────
-export type WeatherCondition = 'clear' | 'cloudy' | 'rain' | 'snow' | 'fog';
-
-export interface WeatherState {
-  condition: WeatherCondition;
-  fogDensity: number;
-  fogColor: number;
-  aqi: number;
-}
-
 // ── WhaleShark ─────────────────────────────────────
 export const SHARK_LENGTH = 14;
 export const SHARK_BODY_SEGMENTS = 24;

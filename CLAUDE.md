@@ -16,28 +16,25 @@ npm run test:ui      # Playwright UI 모드 (시각적 디버깅)
 
 ```
 src/
-  main.ts                  # 진입점 — SceneManager, WeatherService, UI 초기화
+  main.ts                  # 진입점 — SceneManager, UI 초기화
   scene/
     SceneManager.ts        # Three.js 씬, 카메라, 렌더러, 애니메이션 루프
     Ocean.ts               # 수면, 파티클, 기포 (해저 바닥 없음)
-    Lighting.ts            # 날씨별 조명 변경
+    Lighting.ts            # 수중 조명 (고정 프리셋)
     SkyBox.ts              # 배경 환경
   entities/
     WhaleShark.ts          # 고래상어 프로시저럴 생성 (LatheGeometry 몸체, 수직 heterocercal 꼬리, 회청색+흰 반점). 꼬리 좌우 스윕(상어 특징), CatmullRomCurve3 경로
     Fish.ts                # Boids 군집 시스템 (Separation/Alignment/Cohesion), 저폴리 메시, 꼬리 진동
   controls/
     DeviceControls.ts      # 터치 드래그 / 마우스 드래그 (Pointer Events 기반)
-  weather/
-    WeatherService.ts      # OpenWeatherMap API 호출, Geolocation
   ui/
     LoadingScreen.ts       # 로딩 진행률
-    HUD.ts                 # 날씨 아이콘, 도시명
+    HUD.ts                 # 카메라 조작 힌트 오버레이
   utils/
     constants.ts           # 상수 (API URL, 기본 좌표 등)
 agent/
   loop.ts                  # 자율 파이프라인 (Observer → Planner → Implementer → Reviewer)
   observe.ts               # Playwright 런타임 관찰자 (위치 샘플, 스크린샷, anomaly 감지)
-  setGoals.ts              # 레퍼런스 이미지 vs 현재 스크린샷 비교 → goals.md 자동 업데이트
   REVIEW_CHECKLIST.md      # Observer/Reviewer가 모든 실행에서 점검해야 할 체크리스트 (아래 참조)
 ```
 
@@ -46,15 +43,16 @@ agent/
 다음은 프로젝트의 명시적 결정으로, 에이전트가 "누락"으로 오인해 복구하면 안 됨:
 - **해저 바닥 없음** — Ocean에 seabed/caustic projector를 추가하지 말 것
 - **God ray는 후처리(post-processing) 방식** — 시각 광선은 `SceneManager`의 `GodRayPass`(EffectComposer, 스크린스페이스 light scattering + 각도 밴딩)가 담당한다(2026-07). Ocean/Lighting에 지오메트리 기반 god ray(cone/plane 메시)를 **다시 추가하지 말 것** — 이전에 Ocean 빌보드 + Lighting cone/near-ray plane이 중복 존재해 후처리에 증폭되어 사각형 아티팩트를 냈고 제거함. Ocean.addGodRays는 이제 실제 조명(SpotLight)만 둔다. 밝기·갈래·강도 조정은 `GodRayPass`의 uniform(uExposure/uThreshold/uBandCount 등)으로.
-- **수면 평면 없음** — 보이는 물 표면 메시(`Ocean.createSurface`)는 의도적으로 제거됨(2026-07). `SURFACE_HEIGHT` 상수(=15)는 god ray 꼭지점·버블 스폰·물고기 경계·조명 위치의 좌표 기준으로 여전히 사용되므로 유지하되, 눈에 보이는 수면 평면 mesh를 다시 추가하지 말 것. Ocean은 날씨(condition)에 시각 응답하지 않음 — 날씨 반영은 Lighting/SkyBox/fog가 담당
+- **수면 평면 없음** — 보이는 물 표면 메시(`Ocean.createSurface`)는 의도적으로 제거됨(2026-07). `SURFACE_HEIGHT` 상수(=15)는 god ray 꼭지점·버블 스폰·물고기 경계·조명 위치의 좌표 기준으로 여전히 사용되므로 유지하되, 눈에 보이는 수면 평면 mesh를 다시 추가하지 말 것.
+- **날씨 연동 없음** — OpenWeatherMap API·Geolocation·AQI 연동은 전면 제거됨(2026-08). `src/weather/`, `WeatherService`, `applyWeather`/`applyAqi`, HUD 날씨 오버레이는 존재하지 않는다. 조명·SkyBox·fog는 기존 clear/AQI=1 프리셋을 **고정 기본값**으로 코드에 인라인해 둔 상태이며, 날씨 API를 **다시 추가하지 말 것**. 색·강도 조정은 각 클래스의 생성자 기본값으로 직접 한다.
 - **카메라 위치는 원점(0,0,0) 고정** — 위치는 이동하지 않고 방향만 회전
-- **카메라 방향은 고래상어 soft-follow + 드래그 병행** — `SceneManager.animate()`에서 고래상어가 화면 앞(NDC z 0~1)에 있으면 `camera.lookAt`으로 부드럽게 자동 추적(BASE_RATE/BOOST_FACTOR lerp)하고, 시야 밖이면 DeviceControls 드래그가 방향을 제어한다. 이 auto-follow는 의도된 동작이므로 "드래그를 덮어쓴다"고 제거하지 말 것
+- **카메라 방향은 고래상어 soft-follow가 단독 제어** — `SceneManager.animate()`에서 고래상어가 화면 앞(NDC z 0~1)에 있으면 `camera.lookAt`으로 부드럽게 자동 추적(BASE_RATE/BOOST_FACTOR lerp). 이 auto-follow는 의도된 동작이므로 제거하지 말 것.
+  - ⚠ **드래그는 현재 실질적으로 동작하지 않는다** — `camera.lookAt`이 `controls.update()` **뒤에** 실행돼 매 프레임 quaternion을 덮어쓴다. "시야 밖이면 드래그가 제어" 하는 경로는 auto-follow가 고래상어를 항상 화면 안에 유지하므로 사실상 도달 불가. `DeviceControls`의 포인터 입력은 `dragYaw`/`dragPitch`에 누적만 되고 화면에 반영되지 않는다. 이 상태를 "버그"로 보고 임의로 고치거나(추적 양보 로직 추가 등) 드래그 코드를 지우지 말 것 — 사람이 방향을 정할 사안이다.
 - **dev 모드에서 `window.__scene` / `__camera` / `__controls` / `__entities` 노출** — Observer가 이걸 읽으므로 제거 금지
 
 ## 핵심 아키텍처 규칙
 
 - **SceneManager**가 모든 씬 객체(Ocean, Whale, Lighting 등)를 소유하고 `update(delta)` 호출
-- 날씨 변경은 `WeatherService`가 `Lighting`, `Ocean`, `SkyBox`에 날씨 상태(`WeatherState`)를 주입하는 방식
 - **DeviceControls**는 카메라 객체를 직접 받아 조작 (SceneManager에 의존하지 않음)
 - GLB 파일은 `public/models/` 에 위치. Three.js `GLTFLoader`로 로딩
 
@@ -77,7 +75,6 @@ Three.js 캔버스는 픽셀 수준 단위 테스트가 불가하므로 다음 �
 ## 디버깅 팁
 
 - `window.__scene` — 브라우저 콘솔에서 Three.js 씬 직접 접근 (dev 모드)
-- `window.__weather` — 현재 날씨 상태 확인
 - Playwright 테스트 실패 시 `tests/screenshots/` 에 스크린샷 저장됨
 
 ## 자율 에이전트 (Observer / Planner / Implementer / Reviewer)

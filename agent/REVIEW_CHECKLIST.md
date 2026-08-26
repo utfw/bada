@@ -192,15 +192,17 @@
 <!-- @src: agent/vision/core.ts:AXIS_RUBRICS -->
 - **[시각 품질] 갓레이 자연스러움 (Vision judge — godray 축)**: 갓레이 "존재/가시성"만으로는 품질을 평가하지 못한다(수치 가드레일과 Reviewer 한 줄 시각 검증은 opacity>0 같은 **부재**만 잡고, 평면 띠·실선 같은 **저품질**은 통과시킨다 — 실제로 에이전트가 godray를 반복 수정해도 체감 개선이 없던 원인). godray 축 ground-truth(`agent/vision/labels.json`의 `axis:"godray"` 샘플)는 **가시성 + 자연스러움(부피감·농담)** 두 가지를 본다: 광선이 비가시(opacity 과소)이거나, 보이더라도 균일 너비의 **납작한 평면 띠·가는 실선**이면 awkward. 판정 절차 — (1) 빛줄기가 인지되는가? (2) 인지된다면 부피감 있는 광선인가, 그어 놓은 띠/실선인가? Reviewer는 `surface-up.png`(수면 투시 앵글이라 godray가 가장 잘 드러남)를 직접 Read해 이 기준으로 판정하고, awkward면 SUGGESTIONS에 "**GodRayPass uniform 조정**(uExposure/uThreshold 상향으로 가시성, uBandCount/uBandSharp/uBandStrength로 갈래 형태) 또는 상단 광원(배경 quad top color) 밝기 보강 — ⛔ 지오메트리 god ray 메시 추가 금지(씬 불변식)" 목표를 추가한다. 이 항목은 REVIEW_FAIL 사유가 아닌 SUGGESTIONS 트리거다. **회귀 검증**: `npm run vision:judge -- --axis=godray`로 Vision 판정과 라벨 일치(recall/precision)를 먼저 확인. **주의(2026-07-13 재교정 실험)**: recall 100%이나 precision 80% — judge가 사람이 natural로 본 후처리 godray 프레임을 awkward로 오탐한 기록이 있음(주관 품질 경계의 사람↔judge 불일치). 이 축의 awkward 판정은 SUGGESTIONS 신호로만 쓰고, 같은 구현에 대해 반복 awkward가 나와도 무한 재수정 루프에 들어가지 말 것 — 2회 연속 같은 원인의 awkward면 사람 검토로 넘긴다.
 
-- **[코드 검증] 수면 평면 없음 — 씬 불변식**: 보이는 물 표면 메시(`Ocean.createSurface`)는 의도적으로 제거됨(2026-07, CLAUDE.md 불변식). `Ocean.ts`에 수면 PlaneGeometry 메시나 `createSurface` 류 코드가 다시 추가되면 **실패**. `SURFACE_HEIGHT` 상수는 god ray 광원·버블 스폰·물고기 경계·조명 위치의 좌표 기준으로 유지가 정상. Ocean은 날씨(condition)에 시각 응답하지 않음 — 날씨 반영은 Lighting/SkyBox/fog 담당이므로 "Ocean에 applyWeather가 없다"를 누락으로 오인하지 말 것.
+- **[코드 검증] 수면 평면 없음 — 씬 불변식**: 보이는 물 표면 메시(`Ocean.createSurface`)는 의도적으로 제거됨(2026-07, CLAUDE.md 불변식). `Ocean.ts`에 수면 PlaneGeometry 메시나 `createSurface` 류 코드가 다시 추가되면 **실패**. `SURFACE_HEIGHT` 상수는 god ray 광원·버블 스폰·물고기 경계·조명 위치의 좌표 기준으로 유지가 정상.
 
 - **[시각 검증] surface-up.png 상단 광원 투시**: Observer가 아래에서 위를 바라보는 `surface-up.png`를 촬영한다(카메라 y=-10, target y=15). 수면 메시가 없으므로 이 앵글의 판정 대상은 **상단 밝은 그라디언트(광원)와 후처리 godray**다: 상단이 하단과 구분되지 않는 균일 단색이면 배경 quad 상단 색 또는 GodRayPass 배선 문제 — SUGGESTIONS에 상단 광원/godray 가시성 개선 추가.
 
-- **[코드 검증] AmbientLight vs DirectionalLight 비율**: `Lighting.ts`의 맑은 날씨(clear) 기준 AmbientLight intensity가 DirectionalLight intensity의 60% 초과이면 수중 depth감이 없어진다. Reviewer는 두 값을 코드에서 확인. `ambient.intensity > directional.intensity × 0.6`이면 **경고** (치명 실패 아님).
+- **[코드 검증] AmbientLight vs DirectionalLight 비율**: `Lighting.ts` 생성자의 AmbientLight intensity가 DirectionalLight intensity의 60% 초과이면 수중 depth감이 없어진다. Reviewer는 두 값을 코드에서 확인. `ambient.intensity > directional.intensity × 0.6`이면 **경고** (치명 실패 아님).
 
 - **[코드 검증] 수중 안개 색상**: `Lighting.ts` 또는 `SceneManager.ts`에서 fog color가 청록색 계열(예: `0x1188bb`)이고 density가 0보다 크게 설정되어야 한다. fog가 없거나 회색/무채색이면 수중 분위기가 없다 — SUGGESTIONS에 fog 색상 개선 추가.
 
-- **[코드 검증] constants.ts DEFAULT_FOG_DENSITY/DEFAULT_FOG_COLOR와 Lighting.ts fog 동기화**: `SceneManager.ts`의 `init()`에서 `new THREE.FogExp2(DEFAULT_FOG_COLOR, DEFAULT_FOG_DENSITY)`(constants.ts 상수)로 씬 fog를 초기 설정한다. Lighting.ts 프리셋의 fogColor/fogDensity를 수정할 때 constants.ts의 두 상수도 **같은 방향**으로 수정하지 않으면 날씨 로드 전 초기 프레임의 fog가 목표와 달라진다. Reviewer는 fog 관련 목표 후 `DEFAULT_FOG_DENSITY` 변경 방향이 Lighting.ts 프리셋(감소 목표 시 감소, 증가 목표 시 증가)과 일치하는지 확인한다. 방향이 반대이면 **경고** (applyWeather()가 곧 덮어쓰므로 치명 실패 아님).
+- **[코드 검증] constants.ts DEFAULT_FOG_DENSITY/DEFAULT_FOG_COLOR와 Lighting.ts fog 동기화**: 씬 fog는 두 곳에서 설정된다 — `SceneManager.init()`의 `new THREE.FogExp2(DEFAULT_FOG_COLOR, DEFAULT_FOG_DENSITY)`(constants.ts 상수)와 `Lighting` 생성자의 `scene.fog = new THREE.FogExp2(...)`(하드코딩 값). **Lighting 생성자가 나중에 실행돼 최종 승자**이므로, fog를 바꾸는 목표에서 constants.ts만 고치면 화면에 반영되지 않는다. Reviewer는 fog 관련 변경 시 `Lighting.ts` 생성자 값이 실제로 바뀌었는지 확인하고, constants.ts의 두 상수도 같은 값으로 맞췄는지 본다. 두 곳이 어긋나면 **경고**.
+
+- **[코드 검증] 날씨 연동 없음 — 씬 불변식**: OpenWeatherMap/Geolocation/AQI 연동은 전면 제거됨(2026-08, CLAUDE.md 불변식). `src/weather/` 디렉터리, `WeatherService`, `applyWeather`/`applyAqi` 메서드, `VITE_OPENWEATHER_API_KEY`, HUD 날씨 오버레이가 다시 추가되면 **실패**. 조명/SkyBox/fog의 고정 기본값은 각 클래스 생성자에 인라인된 것이 정상이므로 "날씨별 프리셋이 없다"를 누락으로 오인하지 말 것.
 
 ## 9. 파티클 시각적 균형 (Particle Visual Balance)
 
