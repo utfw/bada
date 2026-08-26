@@ -55,13 +55,25 @@ export const VISUAL_SOURCE_FILES = [
 export const ARCHIVE_SHOTS = ["screenshot-1.png", "surface-up.png"];
 
 // 완료 게이트에서 "의미 있는 구현 산출물"로 인정하는 비-src 파일.
-// 문서 전용 목표(README/CHANGELOG 업데이트)가 src 변경 0이라는 이유로
+// 문서 전용 목표(CHANGELOG 업데이트)가 src 변경 0이라는 이유로
 // silent no-op abandoned로 폐기되던 문제를 막는다. 시각 리뷰(탑뷰 등)는
 // 스킵하되 타입체크/lint 게이트는 여전히 통과해야 한다.
 // autoCommit이 실제로 stage하는 경로와 일치해야 커밋되므로, 사람이 검토 없이
-// push돼도 안전한 사용자 대상 문서(README·루트 CHANGELOG)만 포함한다.
-// agent/** 인프라(loop/observe 등)는 제외 — 가드레일 유지.
-export const COMPLETION_DOC_FILES = ["README.md", "CHANGELOG.md"];
+// push돼도 안전한 문서만 포함한다.
+//
+// ⛔ README.md는 제외 — 프로젝트가 무엇인지 사람에게 설명하는 문서이므로 소유자는
+//    사람이다. 에이전트가 "문서 최적화" 류 목표로 README를 재작성해 커밋한 실제
+//    사례가 있다(fb901a8, 2026-08-16: 113줄 재구성). 여기서 빼면 ① 완료 게이트가
+//    README-only 변경을 산출물로 인정하지 않고 ② autoCommit이 stage하지 않으며
+//    ③ revertSrcFiles가 미완료 goal의 README 변경을 되돌리지 않게 되므로, 아래
+//    HUMAN_OWNED_DOC_FILES가 revert 대상으로 별도 관리한다.
+// agent/** 인프라(loop/observe 등)도 제외 — 가드레일 유지.
+export const COMPLETION_DOC_FILES = ["CHANGELOG.md"];
+
+// 사람이 소유하는 문서 — 에이전트 편집 금지. harness-guard.sh가 사전 차단하고,
+// 가드를 우회해 변경이 생기면 loop.ts의 사후 revert 안전망이 되돌린다.
+// (COMPLETION_DOC_FILES와 달리 "완료 산출물로 인정 안 함" + "되돌림" 두 성질을 가진다.)
+export const HUMAN_OWNED_DOC_FILES = ["README.md", "CLAUDE.md"];
 
 // ── 정책(policy) vs 하네스(harness) 경계 ──────────────────────────────────────
 // 에이전트는 "평가 기준(정책)"은 스스로 갱신할 수 있어야 하지만(진화의 감각기관),
@@ -99,6 +111,9 @@ export const GOAL_GENERATION_EXCLUSIONS = `
    "진화"의 대상은 오직 src/ 제품 코드(씬·시각·Fish·WhaleShark·조명 등)다.
    agent/**를 고치는 목표는 사람 몫이며 어떤 표현으로 우회해도 금지.
    예외: agent/REVIEW_CHECKLIST.md 갱신은 Reviewer의 정상 동작이므로 목표 대상 아님.)
+⛔ 절대 생성 금지: README.md·CLAUDE.md를 수정하는 목표
+  (프로젝트가 무엇인지 사람에게 설명하는 문서의 소유자는 사람이다.
+   "문서 최적화", "README 간결화", "설명 재구성" 등 어떤 표현으로 우회해도 금지.)
 `.trim();
 
 export const FORBIDDEN_GOAL_PATTERNS: RegExp[] = [
@@ -121,6 +136,15 @@ export const FORBIDDEN_GOAL_PATTERNS: RegExp[] = [
   /(개선|수정|리팩터|refactor|improve|enhance|tune)\b.*\b(planner|implementer|reviewer|observer|evolver)\b/i,
   /\b(planner|implementer|reviewer|observer|evolver)\b.*(개선|수정|리팩터|refactor|improve|enhance|tune)/i,
   /(목표|goal)\s*(생성기|생성器|generat)/i,   // "goal 생성기" / "goal generator" 지칭 자체를 차단
+  // ── README 수정 금지 (프로젝트 설명 문서의 소유자는 사람) ──
+  // 실제 사례: "사용자 지시사항 도큐먼트 최적화: README와 문서를 더 명확하고 간결하게
+  // 작성하여 …" 목표가 생성·수행돼 README 113줄이 재작성·커밋됨(fb901a8, 2026-08-16).
+  // 경로/파일명 형태와 "문서 간결화" 류 우회 표현을 함께 막는다.
+  /\breadme\b/i,
+  // 한글엔 \b가 동작하지 않으므로(단어경계 없음) 문서/동사 사이 조사·부사를 허용하는
+  // 느슨한 .* 매칭으로 둔다. "문서"는 src/ 제품 목표에 등장하지 않아 오탐 위험이 낮다.
+  /(문서|도큐먼트|documentation|\bdocs?\b).*(최적화|간결|재구성|정리|개선|다듬|갱신|작성|rewrite|reorganiz|condens|clean\s*up|updat)/i,
+  /(최적화|간결|재구성|정리|다듬|rewrite|reorganiz|condens|clean\s*up).*(문서|도큐먼트|documentation|\bdocs?\b)/i,
   // rate-limit/시각 문구가 목표로 오염된 헛것 (예: "Remove ... resets at 9:40am ...").
   // 정상 제품 목표엔 "resets 9:40am" 같은 시각 문구가 등장하지 않는다.
   /\bresets?\b.*\d{1,2}(:\d{2})?\s?(am|pm)/i,
