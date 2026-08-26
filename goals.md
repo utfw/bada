@@ -489,4 +489,5 @@
 - [x] 씬 및 시각 효과 향상: 현재의 volumetric god rays가 부족한 부분을 보완하여 시각적인 품질을 개선합니다.
 - [x] 물고기와 고래 상어의 정확한 움직임 구현: caudal fin orientation과 tail-direction check를 통해 물고기와 고래 상어의 움직임을 더욱 정밀하게 만듭니다.
 - [x] 카메라 뷰 개선: camera soft-follow 기능을 구현하여 드래그-only 360 view보다 더 자연스럽게 보행하는 시각을 제공합니다.
-- [ ] `src/entities/` 또는 `src/scene/Ocean.ts` `addGodRays()` — SpotLight 스프라이트/플레인의 `baseOpacity`를 현재 ~0.005에서 **0.04~0.08**로 상향하고, GodRayPass uniform `uExposure`를 현재값 대비 **1.5~2배** 증가시켜 surface-up 앵글에서 광선이 또렷이 보이도록 할 것
+- [x] `src/entities/` 또는 `src/scene/Ocean.ts` `addGodRays()` — SpotLight 스프라이트/플레인의 `baseOpacity`를 현재 ~0.005에서 **0.04~0.08**로 상향하고, GodRayPass uniform `uExposure`를 현재값 대비 **1.5~2배** 증가시켜 surface-up 앵글에서 광선이 또렷이 보이도록 할 것
+- [ ] `src/scene/SceneManager.ts` GodRayPass uniform — `uExposure`를 현재값보다 1.5~2배 상향, `uBandCount`를 8→12로 늘려 광선 밀도와 가시성을 함께 개선
