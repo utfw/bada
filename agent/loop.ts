@@ -25,6 +25,7 @@ import {
   EVALUATOR_EVERY_N_GOALS,
   RATE_LIMIT_SIGNAL_FILE,
   COMPLETION_DOC_FILES,
+  HUMAN_OWNED_DOC_FILES,
   isHarnessFile,
   ROOT,
   type Goal,
@@ -415,6 +416,19 @@ function executeGoal(goal: Goal, goalIndex: number, log: AgentLog, budget: RunBu
       if (implChangedHarness.length > 0) {
         console.log(`\n🛑 하네스 파일 변경 감지 — 되돌리고 goal 거부(가드 우회 의심): ${implChangedHarness.join(", ")}`);
         revertHarnessFiles(implChangedHarness);
+        markGoal(goal.lineIndex, "abandoned");
+        log.goalEnd(false, []);
+        log.save();
+        return "abandoned";
+      }
+
+      // 같은 안전망을 사람 소유 문서(README/CLAUDE.md)에도 적용한다. README는
+      // COMPLETION_DOC_FILES에서 빠져 autoCommit이 stage하지 않지만, 그것만으론
+      // 워킹트리에 조용히 고여 다음 사람 커밋에 섞인다 — 여기서 즉시 되돌린다.
+      const implChangedHumanDocs = implChanged.filter((f) => HUMAN_OWNED_DOC_FILES.includes(f));
+      if (implChangedHumanDocs.length > 0) {
+        console.log(`\n🛑 사람 소유 문서 변경 감지 — 되돌리고 goal 거부(가드 우회 의심): ${implChangedHumanDocs.join(", ")}`);
+        revertHarnessFiles(implChangedHumanDocs);
         markGoal(goal.lineIndex, "abandoned");
         log.goalEnd(false, []);
         log.save();

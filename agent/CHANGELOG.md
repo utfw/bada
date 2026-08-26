@@ -7,6 +7,31 @@
 
 ---
 
+## [2026-08-27] README·CLAUDE.md를 사람 소유 문서로 잠금
+
+### 배경
+자율 파이프라인이 **README를 스스로 재작성해 커밋했다**(`fb901a8`, 2026-08-16: README 113줄 재구성). 경로는 전부 "설계대로" 동작한 결과였다 — 목표 생성기가 `사용자 지시사항 도큐먼트 최적화: README와 문서를 더 명확하고 간결하게 작성하여…`라는 goal을 만들었고, `FORBIDDEN_GOAL_PATTERNS`는 `agent/**` 자기수정만 막을 뿐 문서 목표는 통과시켰으며, `runDocGate`(tsc만)를 통과하자 완료로 인정됐고, `COMPLETION_DOC_FILES`에 `README.md`가 들어 있어 autoCommit이 그대로 stage·커밋했다.
+
+README는 **프로젝트가 무엇인지 사람에게 설명하는 문서이므로 소유자는 사람**이다(사용자 결정). 에이전트의 진화 대상은 `src/` 제품 코드뿐이라는 기존 원칙(2026-08-13 자기수정 금지)의 문서판 확장이다.
+
+### 변경 — 4겹 방어 (기존 하네스 잠금과 같은 defense-in-depth 구조)
+- **`pipeline/types.ts`**: `COMPLETION_DOC_FILES`에서 `README.md` 제거(`["CHANGELOG.md"]`만 남김) → README-only 변경이 완료 산출물로 인정되지 않고 autoCommit이 stage하지 않는다. `HUMAN_OWNED_DOC_FILES = ["README.md", "CLAUDE.md"]` 신설 — "완료 산출물 불인정 + 되돌림" 두 성질을 갖는 별도 목록.
+- **`pipeline/types.ts`**: `FORBIDDEN_GOAL_PATTERNS`에 `/\breadme\b/i` 와 "문서 최적화/간결화/재구성" 류 우회 표현 패턴 추가 → `appendGoals` chokepoint에서 전 생성경로 차단. 한글엔 `\b`가 동작하지 않으므로(단어경계 없음) 문서↔동사 사이 조사·부사를 허용하는 느슨한 `.*` 매칭으로 뒀다. `GOAL_GENERATION_EXCLUSIONS` 프롬프트에도 동일 지시 추가.
+- **`harness-guard.sh`**: `HUMAN_DOC_FILES` denylist + `is_human_doc()` 추가. Edit/Write/NotebookEdit의 대상 파일과 Bash 쓰기 리다이렉트(`>`, `tee`, `sed -i` 등)를 `exit 2`로 사전 차단. `normalize()`에 `/*)` → basename 케이스를 추가해 절대경로(`/Users/.../README.md`)도 repo 루트 문서로 정규화된다(기존엔 `agent/`·`src/` 이후만 잘라내 루트 문서가 매칭 안 됨).
+- **`loop.ts`**: 완료 게이트에 `HUMAN_OWNED_DOC_FILES` 사후 감지 추가 → `revertHarnessFiles`로 되돌리고 goal 거부. allowlist 제거(1번)만으론 변경이 워킹트리에 조용히 고여 **다음 사람 커밋에 섞이므로** 필요하다(`agent/**`가 미커밋 방치됐던 2026-07-09 사고와 동일 실패 양상).
+- **`REVIEW_CHECKLIST.md`**: §11에 "README·CLAUDE.md는 사람 소유" 항목 신설(`@src: types.ts:HUMAN_OWNED_DOC_FILES`), 기존 "문서 전용 목표도 완료 가능" 항목의 README 언급을 CHANGELOG로 정정.
+
+루트 `CHANGELOG.md`는 이력 문서이므로 계속 허용한다(문서 전용 완료 경로 유지).
+
+### 효과 / 검증
+- `npx tsc --noEmit` clean.
+- 가드 훅 15/15 통과 — README 차단 7(상대·`./`·절대경로·CLAUDE.md·`>`·`sed -i`·`tee`), 오탐 검사 6(`src/**`·CHANGELOG·정책파일 편집, README **읽기**(`cat`/`grep`)는 통과, `src/` 쓰기), 기존 하네스 가드 회귀 2.
+- 목표 패턴 11/11 통과 — `fb901a8`의 실제 목표 문구 포함 6종 차단, `src/` 제품 목표·`CHANGELOG.md` 목표 5종 정상 허용(오탐 없음).
+- `npm run check:checklist` 전 바인딩 정상.
+
+### 미해결 (별건, 후속)
+같은 러너 실행에서 **8/16 커밋 4개가 push되지 않은 버그**는 이번 커밋 범위 밖이다(러너 로그 확인 후 진행). 원인 분석은 마쳤다 — `autoCommitAndPush`의 단일 `try` 블록에서 `git commit` 성공 후 `git push`가 실패하면 `savePendingCommit([])`에 도달하지 못해 **대기열이 비워지지 않고**, `AUTO_COMMIT_THRESHOLD=3` 이상이 유지되어 goal 완료마다 재커밋된다. 증거: 8/16 커밋 4개의 bullet 수가 3→4→5→6으로 단조 증가하며 이전 goal을 전부 재나열하고, 마지막 `826bc05`는 "6 goals"를 주장하나 `Changed:`는 `SceneManager.ts` 하나뿐. (첫 가설이던 detached HEAD는 `origin/main` reflog가 반증 — 같은 워크플로가 8/15에 5회 정상 push했다.) 수정안: commit 성공 시점에 큐 비우기 + `git pull --rebase` 재시도 + push 실패를 catch에서 드러내기.
+
 ## [2026-08-27] 날씨 API·레퍼런스 이미지 goal setter 제거
 
 ### 배경

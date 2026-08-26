@@ -26,6 +26,14 @@ POLICY_FILES=(
   "agent/vision/labels.json"
 )
 
+# ── 사람 소유 문서 denylist (types.ts:HUMAN_OWNED_DOC_FILES 와 동기화) ──
+# 프로젝트가 무엇인지 사람에게 설명하는 문서. agent/** 밖(repo 루트)이라
+# 위 하네스 판정에 걸리지 않으므로 별도 목록으로 막는다.
+HUMAN_DOC_FILES=(
+  "README.md"
+  "CLAUDE.md"
+)
+
 input="$(cat)"
 
 # jq 우선, 없으면 node 폴백(파이프라인은 Node/tsx 환경이라 node는 항상 있음).
@@ -46,12 +54,23 @@ command="$(extract '.tool_input.command')"
 normalize() {
   local p="$1"
   p="${p#./}"
-  # 마지막 "agent/" 또는 "src/" 이후를 repo-상대로 간주
+  # 마지막 "agent/" 또는 "src/" 이후를 repo-상대로 간주.
+  # 그 외 절대경로(예: /Users/.../project_bada/README.md)는 basename만 남겨
+  # repo 루트 문서와 대조 가능하게 한다.
   case "$p" in
     */agent/*) echo "agent/${p##*/agent/}" ;;
     */src/*)   echo "src/${p##*/src/}" ;;
+    /*)        echo "${p##*/}" ;;
     *)         echo "$p" ;;
   esac
+}
+
+is_human_doc() { # $1 = repo-상대 경로
+  local p="$1" f
+  for f in "${HUMAN_DOC_FILES[@]}"; do
+    [[ "$p" == "$f" ]] && return 0
+  done
+  return 1
 }
 
 is_policy() { # $1 = repo-상대 경로
@@ -74,6 +93,9 @@ if [[ "$tool_name" == "Edit" || "$tool_name" == "Write" || "$tool_name" == "Note
   if [[ "$rel" == agent/* ]] && ! is_policy "$rel"; then
     deny "실행 하네스 '$rel' 는 수정 금지. src/** 또는 정책 파일(agent/REVIEW_CHECKLIST.md, agent/vision/labels.json)만 편집하라."
   fi
+  if is_human_doc "$rel"; then
+    deny "'$rel' 은 사람이 소유하는 프로젝트 설명 문서로 수정 금지. 코드 변경은 src/** 에만 하라."
+  fi
   exit 0
 fi
 
@@ -93,6 +115,12 @@ if [[ "$tool_name" == "Bash" ]]; then
       done
       [[ "$only_policy" -eq 0 ]] && deny "Bash가 실행 하네스(agent/**)에 쓰기를 시도. src/** 또는 정책 파일만 허용."
     fi
+    # 사람 소유 문서(README 등)로의 쓰기 리다이렉트도 같은 벡터로 차단.
+    for f in "${HUMAN_DOC_FILES[@]}"; do
+      if echo "$command" | grep -Eq "(^|[^a-zA-Z0-9_./])(\./)?${f}(\$|[^a-zA-Z0-9_.-])"; then
+        deny "Bash가 사람 소유 문서 '$f' 에 쓰기를 시도. 이 문서는 수정 금지."
+      fi
+    done
   fi
   exit 0
 fi

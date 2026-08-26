@@ -1,6 +1,6 @@
 # Project BADA — Claude Code 에이전트 가이드
 
-모바일 웹 기반 3D 해양 체험 프로젝트. Three.js + TypeScript + Vite.
+웹 기반 3D 해양 체험 프로젝트. Three.js + TypeScript + Vite.
 
 ## 핵심 명령어
 
