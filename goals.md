@@ -491,3 +491,7 @@
 - [x] 카메라 뷰 개선: camera soft-follow 기능을 구현하여 드래그-only 360 view보다 더 자연스럽게 보행하는 시각을 제공합니다.
 - [x] `src/entities/` 또는 `src/scene/Ocean.ts` `addGodRays()` — SpotLight 스프라이트/플레인의 `baseOpacity`를 현재 ~0.005에서 **0.04~0.08**로 상향하고, GodRayPass uniform `uExposure`를 현재값 대비 **1.5~2배** 증가시켜 surface-up 앵글에서 광선이 또렷이 보이도록 할 것
 - [x] `src/scene/SceneManager.ts` GodRayPass uniform — `uExposure`를 현재값보다 1.5~2배 상향, `uBandCount`를 8→12로 늘려 광선 밀도와 가시성을 함께 개선
+- [x] `src/scene/GodRayPass.ts`의 uniform 조정으로 후처리 갓레이 가시성·형태 개선 — 광선이 흐리면 uExposure(또는 SceneManager `GODRAY_EXPOSURE`) 상향·uThreshold 하향, 갈래가 안 보이면 uBandStrength/uBandSharp 상향, 상단 광원이 어두우면 Ocean 배경 quad top color 밝기 보강. ⛔ Ocean/Lighting에 지오메트리 god ray 메시 추가 금지(씬 불변식)
+- [-] Water surface plane을 제거하고 god rays를 billboard shafts로 소프트化하여 시각적 효과를 개선합니다.
+- [x] Fish와 WhaleShark의 조명 설정을 재검토하여 캐릭터의 구조와 느낌을 더욱 정확하게 반영합니다.
+- [x] `src/scene/Ocean.ts` 배경 fog/gradient 색상 — 하단 앰비언트 색을 현재 `#04101a` 수준에서 `#0a2a3a` 수준으로 올려 심해 영역 채도를 높이고, `SceneManager`의 `scene.fog` `near`/`far` 값을 좁혀 중간 거리 채도가 더 살아나도록 조정

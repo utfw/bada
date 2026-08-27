@@ -60,15 +60,15 @@ export const CAMERA_REPULSION_RANGE = 4.0;
 export const CAMERA_REPULSION_WEIGHT = 6.0;
 
 // ── GodRay Post-processing ────────────────────────
-export const GODRAY_EXPOSURE = 4.0;
+export const GODRAY_EXPOSURE = 5.5;
 export const GODRAY_DENSITY = 0.95;
 export const GODRAY_WEIGHT = 1.8;
 export const GODRAY_DECAY = 0.97;
-export const GODRAY_THRESHOLD = 0.05;
+export const GODRAY_THRESHOLD = 0.03;
 export const GODRAY_BAND_COUNT = 12.0;
-export const GODRAY_BAND_SHARP = 8.0;
-export const GODRAY_BAND_STRENGTH = 0.85;
-export const GODRAY_VERTICAL_FALLOFF = 1.5;
+export const GODRAY_BAND_SHARP = 6.0;
+export const GODRAY_BAND_STRENGTH = 0.90;
+export const GODRAY_VERTICAL_FALLOFF = 0.8;
 export const GODRAY_COLOR_R = 0.80;
 export const GODRAY_COLOR_G = 0.92;
 export const GODRAY_COLOR_B = 1.0;

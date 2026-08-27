@@ -11,16 +11,16 @@ export class Lighting {
   private hemisphereLight: THREE.HemisphereLight;
 
   constructor(scene: THREE.Scene) {
-    scene.fog = new THREE.FogExp2(0x0a2a50, 0.00217);
-    scene.background = new THREE.Color(0x0a2a50);
+    scene.fog = new THREE.FogExp2(0x0d3550, 0.0015);
+    scene.background = new THREE.Color(0x0d3550);
 
     this.ambientLight = new THREE.AmbientLight(0x0a78cc, 0.75);
     scene.add(this.ambientLight);
 
-    this.hemisphereLight = new THREE.HemisphereLight(0x0a78cc, 0x0a88bc, 1.0);
+    this.hemisphereLight = new THREE.HemisphereLight(0x1ab8e8, 0x0a2a3a, 1.0);
     scene.add(this.hemisphereLight);
 
-    this.sunLight = new THREE.DirectionalLight(0x40c8f0, 3.2);
+    this.sunLight = new THREE.DirectionalLight(0x40c8f0, 2.8);
     this.sunLight.position.set(0, SURFACE_HEIGHT + 10, 0);
     this.sunLight.target.position.set(0, -1, 0);
     scene.add(this.sunLight);

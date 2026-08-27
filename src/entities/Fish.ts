@@ -134,8 +134,8 @@ export class FishSchool {
     }
 
     // Build shared GPU resources once — reused across all 120 fish
-    const gradientData = new Uint8Array([0, 0, 0, 128, 128, 128, 128, 255, 255, 255]);
-    const sharedGradientMap = new THREE.DataTexture(gradientData, 10, 1);
+    const gradientData = new Uint8Array([0, 0, 80, 180, 255]);
+    const sharedGradientMap = new THREE.DataTexture(gradientData, 5, 1);
     sharedGradientMap.format = THREE.RedFormat;
     sharedGradientMap.minFilter = THREE.NearestFilter;
     sharedGradientMap.magFilter = THREE.NearestFilter;
@@ -147,7 +147,7 @@ export class FishSchool {
         new THREE.MeshToonMaterial({
           color: c,
           emissive: 0x0a1a2a,
-          emissiveIntensity: 0.18,
+          emissiveIntensity: 0.28,
           side: THREE.DoubleSide,
           gradientMap: sharedGradientMap,
         }),

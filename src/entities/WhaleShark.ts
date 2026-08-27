@@ -113,7 +113,7 @@ export class WhaleShark {
 
     // sRGB → linear 변환: 셰이더 내부는 리니어 색 공간
     const bellyLinear = new THREE.Color(0xd8eaf5).convertSRGBToLinear();
-    const dorsalLinear = new THREE.Color(0x3a4e63).convertSRGBToLinear();
+    const dorsalLinear = new THREE.Color(0x2a3d52).convertSRGBToLinear();
 
     const gradientData = new Uint8Array([64, 128, 255]);
     const gradientMap = new THREE.DataTexture(gradientData, 3, 1);
@@ -125,7 +125,7 @@ export class WhaleShark {
     const material = new THREE.MeshToonMaterial({
       color: 0x3a4e63,
       emissive: new THREE.Color(0x1a2e3a),
-      emissiveIntensity: 0.28,
+      emissiveIntensity: 0.22,
       vertexColors: false,
       gradientMap,
     });
