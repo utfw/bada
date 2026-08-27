@@ -96,10 +96,16 @@ function checkPectoralPositionX(): CheckResult {
  */
 function checkPectoralRotationX(): CheckResult {
   const src = readSrc("src/entities/WhaleShark.ts");
-  const start = src.indexOf("createPectoralFins");
-  if (start === -1) {
+  // ⚠ 반드시 **메서드 선언**에 앵커링한다. 이전 구현은 `indexOf("createPectoralFins")`로
+  // 첫 등장을 찾았는데, 그 첫 등장은 클래스 상단 필드 주석
+  // (`// ... must match createDorsalFin / createPectoralFins`)이었다. 그 결과 region이
+  // 실제 메서드 본문이 아니라 필드 선언 몇 줄로 잡혀 rotation 패턴을 절대 못 찾고
+  // **매 실행 거짓 실패**했다(Reviewer가 §3 예외 조항으로 매번 수동 통과 처리).
+  const declMatch = src.match(/^\s*(?:private|public|protected)?\s*createPectoralFins\s*\(/m);
+  const start = declMatch?.index;
+  if (start === undefined) {
     return { name: "pectoral.rotation.x", ok: false, severity: "fail",
-      reason: "createPectoralFins 함수를 찾을 수 없음" };
+      reason: "createPectoralFins 메서드 선언을 찾을 수 없음" };
   }
   const next = src.indexOf("\n  private ", start + 1);
   const region = src.slice(start, next === -1 ? src.length : next);
@@ -200,32 +206,46 @@ function checkSeparationVsCohesion(): CheckResult {
 
 /**
  * God ray는 후처리(GodRayPass) 방식 — 지오메트리 god ray는 씬 불변식으로 금지됨.
- * 검증: (1) SceneManager가 GodRayPass를 composer에 배선하고 GODRAY_EXPOSURE > 0,
- * (2) GodRayPass의 uExposure 기본값 > 0. 어느 쪽이 0이면 광선 비가시.
+ * 검증: (1) SceneManager가 GodRayPass를 composer에 배선하고 노출값을 주입하는지,
+ * (2) GodRayPass가 uExposure를 초기화하는지, (3) 실제 노출 수치 > 0.
+ *
+ * ⚠ 이전 구현은 `SceneManager.ts`에서 `GODRAY_EXPOSURE = <숫자>`를, `GodRayPass.ts`에서
+ * `uExposure: { value: <숫자> }`를 정규식으로 찾았다. 그러나 수치는 `constants.ts`에
+ * 정의되고 두 파일은 **심볼로 참조만** 한다(`setExposure(GODRAY_EXPOSURE)`,
+ * `uExposure: { value: GODRAY_EXPOSURE }`). 그래서 두 정규식이 항상 null을 반환해
+ * **모든 실행에서 거짓 실패**했고, Reviewer가 매번 "자동 검증 오탐"이라며 수동으로
+ * 뒤집느라 토큰을 태웠다(2026-08-26 로그 2회 연속 확인). 수치는 정의된 곳에서 읽는다.
  */
 function checkGodRayPassWiring(): CheckResult {
   const name = "GodRayPass 배선";
-  let pass: string, mgr: string;
+  let pass: string, mgr: string, consts: string;
   try {
     pass = readSrc("src/scene/GodRayPass.ts");
     mgr = readSrc("src/scene/SceneManager.ts");
+    consts = readSrc("src/utils/constants.ts");
   } catch {
     return { name, ok: false, severity: "fail",
-      reason: "GodRayPass.ts 또는 SceneManager.ts를 읽을 수 없음 — 후처리 god ray 제거됨?" };
+      reason: "GodRayPass.ts / SceneManager.ts / constants.ts를 읽을 수 없음 — 후처리 god ray 제거됨?" };
   }
   if (!/composer\.addPass\(\s*this\.godRayPass\s*\)/.test(mgr)) {
     return { name, ok: false, severity: "fail",
       reason: "SceneManager composer 체인에 godRayPass 미배선 → 광선 없음" };
   }
-  const exposure = extractNumber(mgr, /GODRAY_EXPOSURE\s*=\s*([-\d.]+)/);
+  // SceneManager가 노출값을 실제로 주입하는지 (심볼 참조 형태를 그대로 인정)
+  if (!/setExposure\(\s*GODRAY_EXPOSURE\s*\)/.test(mgr)) {
+    return { name, ok: false, severity: "fail",
+      reason: "SceneManager가 setExposure(GODRAY_EXPOSURE)를 호출하지 않음 → 노출값 미주입" };
+  }
+  // GodRayPass가 uExposure를 초기화하는지 — 심볼·숫자 리터럴 양쪽 허용
+  if (!/uExposure:\s*\{\s*value:\s*(GODRAY_EXPOSURE|[-\d.]+)/.test(pass)) {
+    return { name, ok: false, severity: "fail",
+      reason: "GodRayPass에 uExposure 초기화가 없음 → 광선 비가시" };
+  }
+  // 실제 수치는 정의처(constants.ts)에서 읽는다.
+  const exposure = extractNumber(consts, /GODRAY_EXPOSURE\s*=\s*([-\d.]+)/);
   if (exposure === null || exposure <= 0) {
     return { name, ok: false, severity: "fail",
-      reason: `SceneManager GODRAY_EXPOSURE=${exposure ?? "미검출"} → 광선 비가시` };
-  }
-  const uExposure = extractNumber(pass, /uExposure:\s*\{\s*value:\s*([-\d.]+)/);
-  if (uExposure === null || uExposure <= 0) {
-    return { name, ok: false, severity: "fail",
-      reason: `GodRayPass uExposure 기본값=${uExposure ?? "미검출"} → 광선 비가시` };
+      reason: `constants.ts GODRAY_EXPOSURE=${exposure ?? "미검출"} → 광선 비가시` };
   }
   return { name, ok: true, severity: "fail" };
 }

@@ -81,7 +81,13 @@ export function summarizeObservation(obs: Observation | null): string {
   const fishSample = obs.samples.find((s) => s.fish)?.fish;
   if (fishSample) {
     const fmt = (v: Vec3) => `(${v.x.toFixed(1)}, ${v.y.toFixed(1)}, ${v.z.toFixed(1)})`;
-    const dotLabel = fishSample.avgForwardDot < 0 ? `⚠역방향(${fishSample.avgForwardDot.toFixed(2)})` : `✓정방향(${fishSample.avgForwardDot.toFixed(2)})`;
+    // ⚠ 부호 규약: 물고기 메시는 머리가 로컬 -Z를 향하는데 getWorldDirection은 +Z를
+    // 반환하므로, **정상(머리부터 전진)일 때 dot이 -1**이다. 이전에는 이 부호가 뒤집혀
+    // 있어 정상 상태를 매 실행 `⚠역방향`으로 오보했고, 그 오보가 체크리스트에
+    // HUMAN_VERIFICATION_REQUIRED 항목까지 만들었다(2026-04-19~). 뒤집지 말 것.
+    const dotLabel = fishSample.avgForwardDot > 0
+      ? `⚠역방향(${fishSample.avgForwardDot.toFixed(2)})`
+      : `✓정방향(${fishSample.avgForwardDot.toFixed(2)})`;
     lines.push(`- FishSchool: ${fishSample.count}마리, centroid=${fmt(fishSample.centroid)}, spread=${fishSample.spread.toFixed(1)}, avgVelocity=${fmt(fishSample.avgVelocity)}, forwardDot=${dotLabel}`);
     if (fishSample.schoolSpreads && fishSample.schoolSpreads.length > 0) {
       const spreadStr = fishSample.schoolSpreads

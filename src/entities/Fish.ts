@@ -595,10 +595,15 @@ export class FishSchool {
         z: f.velocity.z,
       })),
       forwardDots: this.fish.map((f) => {
-        f.mesh.getWorldDirection(_forward); // 메시의 실제 -Z 월드 방향
+        // ⚠ getWorldDirection은 Three.js 규약상 메시의 **+Z** 월드 축을 준다(-Z 아님).
+        // 이 물고기는 머리가 로컬 -Z를 향하도록 조립되어 있고(createFishMesh 주석 참고),
+        // lookTarget이 `pos - velocity`라 +Z는 진행 방향의 **반대**를 가리킨다.
+        // 따라서 정상적으로 머리부터 헤엄치는 상태의 dot은 **-1**이다.
+        f.mesh.getWorldDirection(_forward);
         const speed = f.velocity.length();
         if (speed < 0.001) return 1; // 정지 상태는 무시
-        return _forward.dot(f.velocity) / speed; // 1=정방향, -1=역방향
+        // -1 = 정방향(머리부터 전진, 정상), +1 = 역방향(꼬리부터 전진, 이상)
+        return _forward.dot(f.velocity) / speed;
       }),
       schoolIndices: this.fish.map((f) => f.schoolIndex),
       schoolCentroids: this._schoolCentroids.map((c) => ({ x: c.x, y: c.y, z: c.z })),

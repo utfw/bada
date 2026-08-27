@@ -8,6 +8,7 @@ agent/pending-commit.json
 agent/metrics.jsonl
 agent/vision/judgments.jsonl
 agent/rate-limit-reset
+agent/push-failed
 agent/STOP
 agent/evolution/
 agent/.ollama-tmp.json

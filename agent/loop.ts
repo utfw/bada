@@ -24,6 +24,7 @@ import {
   MAX_GOALS_PER_RUN,
   EVALUATOR_EVERY_N_GOALS,
   RATE_LIMIT_SIGNAL_FILE,
+  PUSH_FAILURE_SIGNAL_FILE,
   COMPLETION_DOC_FILES,
   HUMAN_OWNED_DOC_FILES,
   isHarnessFile,
@@ -73,6 +74,8 @@ import {
   archiveVisualMilestone,
   extractCommitMsg,
   recordCompletedGoal,
+  hasPushFailure,
+  syncWithRemote,
 } from "./pipeline/goals.js";
 import { visionSuggestions } from "./pipeline/vision-check.js";
 import { runEvolutionStep, type DramaScoreResult } from "./evolve.js";
@@ -716,6 +719,12 @@ function main() {
   // 래퍼가 옛 타임스탬프를 읽고 불필요하게 대기하는 일을 막는다.
   try { fs.rmSync(RATE_LIMIT_SIGNAL_FILE, { force: true }); } catch { /* 무시 */ }
 
+  // 같은 이유로 이전 실행의 push 실패 신호도 제거 — 남겨두면 이번 실행이
+  // push에 성공해도(혹은 push할 것이 없어도) 계속 exit 1이 된다.
+  try { fs.rmSync(PUSH_FAILURE_SIGNAL_FILE, { force: true }); } catch { /* 무시 */ }
+
+  syncWithRemote();
+
   if (Number.isFinite(budget.total)) {
     console.log(`⚙  파이프라인 한도: ${budget.total}회 (Observer→Planner→Impl→Reviewer 1 cycle = 1회)`);
   }
@@ -756,12 +765,21 @@ function main() {
  *  75  — rate-limit: API 한도 도달. 래퍼는 리셋 시각까지 sleep 후 재실행.
  *        (75 = EX_TEMPFAIL, "일시적 실패, 재시도하라"는 관용적 sysexits 코드)
  *   1  — interrupted: 예기치 않은 단계 실패. 래퍼는 멈추고 사람 개입을 기다린다.
+ *   1  — push 최종 실패: 커밋이 로컬에만 남아 원격에 반영되지 않았다. rate-limit보다
+ *        우선하지 않는다(한도는 기다리면 풀리지만, push 실패는 사람이 풀어야 한다 —
+ *        다만 rate-limit 재시도가 같은 커밋을 다시 push하므로 75를 우선 존중한다).
  */
 function stopReasonToExitCode(reason: StopReason): number {
   switch (reason) {
     case "rate-limit": return 75;
     case "interrupted": return 1;
-    default: return 0; // clean | budget | iteration-cap
+    default:
+      // 단계는 정상이었어도 push가 끝내 실패했으면 green run으로 위장하지 않는다.
+      if (hasPushFailure()) {
+        console.log(`\n⚠ push 실패 상태로 종료 — 커밋이 원격에 없다. exit 1`);
+        return 1;
+      }
+      return 0; // clean | budget | iteration-cap
   }
 }
 

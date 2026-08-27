@@ -17,8 +17,10 @@ import {
   OBS_DIR,
   CHECKLIST_FILE,
   PENDING_COMMIT_FILE,
+  PUSH_FAILURE_SIGNAL_FILE,
   HISTORY_DIR,
   AUTO_COMMIT_THRESHOLD,
+  PUSH_MAX_ATTEMPTS,
   AGENT_COMMIT_SUFFIX,
   VISUAL_SOURCE_FILES,
   COMPLETION_DOC_FILES,
@@ -29,7 +31,39 @@ import {
   type GoalMetrics,
   type CommitEntry,
 } from "./types.js";
-import { runText, assertGoalsFormat } from "./runner.js";
+import { runText, runClaudeText, assertGoalsFormat } from "./runner.js";
+
+// ── 원격 동기화 ───────────────────────────────────────────────────────────────
+
+/**
+ * run 시작 시 origin/main을 로컬에 반영한다.
+ *
+ * 러너와 사람이 같은 origin/main을 공유하므로, 사람이 실행 사이에 push하면
+ * 러너는 뒤처진 상태로 run을 시작해 마지막 push가 non-fast-forward로 거부된다
+ * (관찰된 실패: 2026-08-26 run의 goal 1·2 연속 push 거부). 시작 시점에 맞춰두면
+ * 그 원인이 사라진다.
+ *
+ * `reset --hard`가 아니라 `pull --rebase`인 이유: 워킹트리에는 지난 run이 커밋만
+ * 하고 push하지 못한 로컬 커밋과 커밋 대기열(pending-commit.json)이 남아있을 수
+ * 있다. hard reset은 그걸 조용히 버린다 — 이미 API 비용을 지불한 작업이다.
+ *
+ * 실패해도 throw하지 않는다: 네트워크 문제로 sync를 못 했다고 run 전체를 막을
+ * 이유는 없고, 최종 push 단계에서 재시도·exit 1로 다시 걸러진다.
+ */
+export function syncWithRemote(): void {
+  try {
+    execFileSync("git", ["pull", "--rebase", "origin", "main"], { cwd: ROOT, stdio: "inherit" });
+    console.log(`  ✓ origin/main 동기화 완료`);
+  } catch (e) {
+    console.log(`  ⚠ origin/main 동기화 실패 — 뒤처진 상태로 진행: ${String(e).slice(0, 200)}`);
+    // 충돌로 rebase가 중간 상태로 멈췄으면 반드시 되돌린다. 그대로 두면
+    // 이후 모든 git 조작(add/commit)이 rebase 진행 중 상태에서 실행된다.
+    try {
+      execFileSync("git", ["rebase", "--abort"], { cwd: ROOT, stdio: "inherit" });
+      console.log(`  ↩ rebase abort — 실행 전 상태로 복구`);
+    } catch { /* rebase가 시작조차 안 됐으면 abort할 것도 없음 */ }
+  }
+}
 
 // ── git 변경 감지 ─────────────────────────────────────────────────────────────
 
@@ -323,6 +357,26 @@ function savePendingCommit(entries: CommitEntry[]): void {
   fs.writeFileSync(PENDING_COMMIT_FILE, JSON.stringify(entries, null, 2));
 }
 
+function markPushFailed(): void {
+  fs.writeFileSync(PUSH_FAILURE_SIGNAL_FILE, new Date().toISOString());
+}
+
+function clearPushFailure(): void {
+  try {
+    fs.unlinkSync(PUSH_FAILURE_SIGNAL_FILE);
+  } catch {
+    /* 없으면 지울 것도 없음 */
+  }
+}
+
+/**
+ * 이번 실행에서 push가 끝내 실패했는지 — loop.ts가 exit code 결정에 쓴다.
+ * 커밋이 로컬에만 있고 원격에 없으면 run을 성공으로 보고해선 안 된다.
+ */
+export function hasPushFailure(): boolean {
+  return fs.existsSync(PUSH_FAILURE_SIGNAL_FILE);
+}
+
 function withAgentSuffix(title: string): string {
   return title.endsWith(AGENT_COMMIT_SUFFIX) ? title : title + AGENT_COMMIT_SUFFIX;
 }
@@ -419,12 +473,56 @@ function autoCommitAndPush(entries: CommitEntry[]): void {
     } catch { /* ignore */ }
     const message = title + body + changedBlock + metricsBlock;
     execFileSync("git", ["commit", "-m", message], { cwd: ROOT, stdio: "inherit" });
-    execFileSync("git", ["push"], { cwd: ROOT, stdio: "inherit" });
-    console.log(`\n📦 자동 커밋·푸시 완료 (${entries.length}개 목표)`);
-    savePendingCommit([]);
   } catch (e) {
     console.log(`\n⚠ 자동 커밋 실패: ${String(e)}`);
+    return;
   }
+
+  // ⚠ 커밋이 성공한 시점에 대기열을 즉시 비운다 — push 성공을 기다리지 않는다.
+  // 이전에는 push 뒤에서 비웠기 때문에, push가 거부되면 대기열이 남아 goal마다
+  // 같은 backlog를 재커밋했다(bullet이 3→4→5→6으로 누적되며 이전 goal을 전부
+  // 재나열, 실제 Changed는 파일 하나뿐인 거짓 커밋 메시지 생성). 커밋은 이미
+  // 로컬 이력에 들어갔으므로 대기열에 남길 이유가 없다.
+  savePendingCommit([]);
+  pushCommitted(entries.length);
+}
+
+/**
+ * 커밋된 내용을 origin에 push한다. non-fast-forward 거부는 러너와 사람이 같은
+ * origin/main을 공유하는 한 정상적으로 발생하므로(사람이 사이에 push하면 확정),
+ * `git pull --rebase`로 원격 위에 선형으로 재적용한 뒤 재시도한다.
+ *
+ * 끝내 실패하면 markPushFailed()로 기록만 하고 throw하지 않는다 —
+ * recordCompletedGoal은 goal 루프 도중에 호출되므로 여기서 던지면 남은 goal이
+ * 통째로 유실된다. 실패는 job 종료 시 flushPendingCommits/hasPushFailure를 통해
+ * exit code로 드러난다.
+ */
+function pushCommitted(goalCount: number): void {
+  for (let attempt = 1; attempt <= PUSH_MAX_ATTEMPTS; attempt++) {
+    try {
+      execFileSync("git", ["push"], { cwd: ROOT, stdio: "inherit" });
+      console.log(`\n📦 자동 커밋·푸시 완료 (${goalCount}개 목표)`);
+      clearPushFailure();
+      return;
+    } catch (e) {
+      console.log(`\n⚠ push 실패 (${attempt}/${PUSH_MAX_ATTEMPTS}): ${String(e).slice(0, 200)}`);
+      if (attempt === PUSH_MAX_ATTEMPTS) break;
+      try {
+        console.log(`  ↻ git pull --rebase 후 재시도`);
+        execFileSync("git", ["pull", "--rebase", "origin", "main"], { cwd: ROOT, stdio: "inherit" });
+      } catch (rebaseErr) {
+        // 충돌 등으로 rebase가 멈추면 워킹트리가 rebase 중간 상태로 남는다.
+        // 다음 실행이 그 상태를 물려받지 않도록 반드시 abort한다.
+        console.log(`  ⚠ rebase 실패 — abort: ${String(rebaseErr).slice(0, 200)}`);
+        try {
+          execFileSync("git", ["rebase", "--abort"], { cwd: ROOT, stdio: "inherit" });
+        } catch { /* rebase가 시작조차 안 됐으면 abort할 것도 없음 */ }
+        break;
+      }
+    }
+  }
+  console.log(`\n⚠ push 최종 실패 — 커밋은 로컬에 남아있다. 사람 개입 필요(exit 1로 종료 예정).`);
+  markPushFailed();
 }
 
 export function extractCommitMsg(output: string): string {
@@ -577,24 +675,43 @@ function parseGoalOutput(output: string): string[] {
 }
 
 function deduplicateGoalsWithClaude(newGoals: string[], existing: string[]): string[] {
-  if (newGoals.length === 0 || existing.length === 0) return newGoals;
+  if (newGoals.length === 0) return newGoals;
+  // 기존 목표가 없어도 신규 후보끼리의 중복은 걸러야 하므로, 후보가 2개 이상이면 진행한다.
+  if (existing.length === 0 && newGoals.length === 1) return newGoals;
+
+  // ⚠ 이전 프롬프트는 "신규 후보 중 **기존 목표와** 중복인 것"만 물었다. 그래서 한 배치 안에
+  // 같은 변경을 뜻하는 후보가 2개 들어오면 둘 다 통과했다. 실제 사고(2026-08-26): Aesthetic
+  // Evaluator가 GodRayPass 노출 상향을 문구만 바꿔 2건 제안 → 둘 다 목표로 등록 → 각각
+  // "현재값의 1.5~2배"를 적용해 GODRAY_EXPOSURE가 1.2→2.2→4.0으로 **3.3배** 뛰었다.
+  // 배수 지정 목표는 중복 실행이 곱해지므로 배치 내 중복 제거가 필수다.
+  const existingBlock = existing.length > 0
+    ? `기존 미완료 목표:\n${existing.map((g, i) => `[E${i + 1}] ${g}`).join("\n")}\n\n`
+    : `기존 미완료 목표: (없음)\n\n`;
 
   const prompt = `
 당신은 목표 목록의 중복 판정자입니다. 동일 파일·함수·동작을 다루는 목표를 중복으로 표시하세요.
 표현이 달라도 같은 변경을 의미하면 중복입니다. 같은 파일이라도 명백히 다른 부분/변경이면 중복 아닙니다.
 
-기존 미완료 목표:
-${existing.map((g, i) => `[E${i + 1}] ${g}`).join("\n")}
+특히 주의: **같은 상수·uniform·속성의 값을 조정하는 목표는 문구가 달라도 중복입니다.**
+예) "Ocean.addGodRays baseOpacity 상향"과 "SceneManager GodRayPass uExposure 상향"은
+둘 다 갓레이 밝기를 올리는 같은 변경이므로 중복입니다. "현재값의 N배" 같은 상대적 배수
+지정은 중복 실행 시 값이 곱해져 의도한 범위를 크게 벗어나므로 반드시 하나만 남겨야 합니다.
 
-신규 추가 후보:
+${existingBlock}신규 추가 후보:
 ${newGoals.map((g, i) => `[N${i + 1}] ${g}`).join("\n")}
 
-신규 후보(N번호) 중 기존 목표와 의미상 중복인 번호만 한 줄에 하나씩 적으세요. 추가 설명 금지.
+다음 두 가지를 **분류만** 하세요. 무엇을 남길지는 시스템이 결정하므로, 그룹에서 임의로
+하나를 지우지 마세요 — 서로 중복인 후보는 **그룹으로 전부 나열**하면 됩니다.
+
+- \`E:<N번호>\` — 그 후보가 기존 목표(E)와 중복인 경우. 한 줄에 하나씩.
+- \`G:<N번호,N번호,...>\` — 서로 중복인 N후보들의 그룹. 그룹 구성원을 **모두** 나열.
+
+추가 설명 금지.
 출력 형식 — DUPS_START와 DUPS_END 사이에만 작성:
 
 DUPS_START
-1
-3
+E:2
+G:1,3
 DUPS_END
 
 중복 없으면:
@@ -604,7 +721,13 @@ DUPS_END
 
   let output: string;
   try {
-    output = runText(prompt);
+    // ⚠ 여기만은 runText(Ollama 우선)가 아니라 claude를 직접 쓴다. 중복 판정은 문구가
+    // 다른 두 목표가 "같은 변경"인지 보는 의미 판단이라 로컬 7B(qwen2.5-coder)로는
+    // 실측 실패했다: 같은 갓레이 노출 상향 2건을 서로 다른 항목으로 보고 무관한
+    // Lighting 목표와 묶었으며, 기존 목표가 0개인데 "기존과 중복"을 반환했다.
+    // 같은 프롬프트로 claude는 정확히 판정한다. 호출당 비용은 작고, 놓친 중복 1건은
+    // 파이프라인 1회(~$0.5)를 태우는 데다 상수를 중복 적용해 값을 배수로 튀게 한다.
+    output = runClaudeText(prompt);
   } catch (e) {
     console.log(`  ⚠ 중복 검사 실패 — 전체 통과: ${String(e).slice(0, 200)}`);
     return newGoals;
@@ -616,13 +739,42 @@ DUPS_END
     return newGoals;
   }
 
-  const dupIndices = new Set(
-    match[1]
-      .split("\n")
-      .map((l) => parseInt(l.replace(/[^\d]/g, ""), 10))
-      .filter((n) => !isNaN(n) && n > 0)
-      .map((n) => n - 1)
-  );
+  // 무엇을 남길지는 **코드가** 결정한다. LLM에 "하나만 남기고 지워라"고 맡겼더니
+  // 중복 그룹을 통째로 제거해 멀쩡한 목표까지 날렸다(실측: 갓레이 후보 2건을 둘 다 제거).
+  // LLM은 분류만 하고, 그룹 대표 선정은 결정론적으로 처리한다.
+  const dupIndices = new Set<number>();
+  const toIdx = (s: string): number => parseInt(s.replace(/[^\d]/g, ""), 10) - 1;
+  const valid = (i: number): boolean => Number.isInteger(i) && i >= 0 && i < newGoals.length;
+
+  for (const rawLine of match[1].split("\n")) {
+    const line = rawLine.trim();
+    if (line.length === 0) continue;
+
+    const gMatch = line.match(/^G\s*:\s*(.+)$/i);
+    if (gMatch) {
+      const members = gMatch[1].split(",").map(toIdx).filter(valid).sort((a, b) => a - b);
+      // 그룹 대표(가장 작은 번호)는 반드시 살린다 — 나머지만 제거.
+      for (const m of members.slice(1)) dupIndices.add(m);
+      continue;
+    }
+
+    const eMatch = line.match(/^E\s*:\s*(.+)$/i);
+    if (eMatch) {
+      // 기존 목표가 하나도 없으면 "기존과 중복"은 성립 불가 — 모델 환각이므로 버린다
+      // (실측: existing=[] 인데 `E:2`를 반환해 멀쩡한 후보를 지울 뻔했다).
+      if (existing.length === 0) {
+        console.log(`  ⚠ 기존 목표가 없는데 E: 판정 — 무시: ${line}`);
+        continue;
+      }
+      const i = toIdx(eMatch[1]);
+      if (valid(i)) dupIndices.add(i);
+      continue;
+    }
+
+    // 접두사 없는 숫자만 있는 구형 응답 — 기존 목표와의 중복으로 간주(하위 호환).
+    const i = toIdx(line);
+    if (valid(i)) dupIndices.add(i);
+  }
 
   const filtered = newGoals.filter((_, i) => !dupIndices.has(i));
   const skipped = newGoals.filter((_, i) => dupIndices.has(i));

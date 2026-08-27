@@ -8,6 +8,14 @@
  * 실행: npx tsx agent/flushCommits.ts
  */
 
-import { flushPendingCommits } from "./pipeline/goals.js";
+import { flushPendingCommits, hasPushFailure } from "./pipeline/goals.js";
 
 flushPendingCommits();
+
+// flush가 push까지 마쳤는지 확인 — 커밋이 로컬에만 남았으면 job을 실패로 끝낸다.
+// 이 스크립트는 `if: always()`로 job 마지막에 도는 별도 프로세스이므로
+// loop.ts의 exit code와 별개로 여기서도 실패를 드러내야 한다.
+if (hasPushFailure()) {
+  console.log(`\n⚠ 커밋이 원격에 push되지 않았다 — 사람 개입 필요. exit 1`);
+  process.exit(1);
+}

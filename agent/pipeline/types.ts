@@ -25,11 +25,18 @@ export const HISTORY_DIR = path.join(OBS_DIR, "history");
 // rate-limit 종료 시 loop.ts가 추정 리셋 시각(ISO)을 여기 기록한다.
 // bash 래퍼(agent/run-loop.sh)가 읽어 "그 시각까지 sleep 후 재실행"으로 분기.
 export const RATE_LIMIT_SIGNAL_FILE = path.join(ROOT, "agent", "rate-limit-reset");
+// push가 재시도까지 모두 실패하면 goals.ts가 이 파일을 만든다. 커밋은 로컬에
+// 있으나 원격에 없는 상태이므로, job 종료 시 loop.ts가 이걸 보고 exit 1로
+// 나가 "green run인데 아무것도 push되지 않음"을 막는다. push 성공 시 삭제.
+export const PUSH_FAILURE_SIGNAL_FILE = path.join(ROOT, "agent", "push-failed");
 
 // ── 임계값·튜닝 상수 ──────────────────────────────────────────────────────────
 export const MAX_REVIEW_RETRIES = 2;
 export const MAX_CHECKLIST_CYCLES = 3;
 export const AUTO_COMMIT_THRESHOLD = 3;
+// push 시도 횟수(첫 시도 + pull --rebase 후 재시도). 러너와 사람이 같은
+// origin/main을 공유하므로 non-fast-forward 거부는 정상적으로 발생한다.
+export const PUSH_MAX_ATTEMPTS = 3;
 export const SUGGESTION_SUPPRESS_THRESHOLD = 10;
 // 미적 점수가 이 값 미만이면 개선 제안을 goals.md에 추가한다 (10점 만점).
 export const AESTHETIC_SUGGEST_THRESHOLD = 8;

@@ -7,6 +7,48 @@
 
 ---
 
+## [2026-08-27] push 복구·죽은 자동검증·배치 내 목표 중복 수정
+
+### 배경
+2026-08-26 러너 실행에서 goal 2건이 모두 `REVIEW_PASS` 후 **push가 non-fast-forward로 거부**됐는데도 run은 `✓ 완료`로 끝났다. 조사해 보니 서로 무관한 4개의 결함이 겹쳐 있었고, 공통점은 **항상 실패하거나 항상 통과하는 죽은 로직을 사람·Reviewer가 매번 수동으로 메워왔다**는 것이다.
+
+`autoCommitAndPush`의 대기열 버그는 이미 이 문서 33번째 줄(2026-08-16 항목)에 원인 분석까지 기록돼 있었으나 수정되지 않은 채 남아 있었다.
+
+### `pipeline/goals.ts` — push 무결성
+- **커밋 성공 시점에 대기열을 비운다.** 기존에는 `savePendingCommit([])`가 `git push` **뒤에** 있어, push가 거부되면 큐가 남아 goal마다 같은 backlog를 재커밋했다. 결과적으로 bullet이 3→4→5→6으로 누적되며 **안 한 일을 주장하는 커밋 메시지**가 생성됐다(`4b7f1b8`은 8개 goal bullet을 달았으나 실제 `Changed:`는 `constants.ts` 하나).
+- **`pushCommitted()` 신설** — push 거부 시 `git pull --rebase origin main` 후 재시도(`PUSH_MAX_ATTEMPTS=3`). rebase가 충돌로 멈추면 반드시 `rebase --abort`로 워킹트리를 복구한다. `recordCompletedGoal`이 goal 루프 도중 호출되므로 **throw하지 않고** 신호 파일만 남긴다(던지면 남은 goal이 통째로 유실).
+- **`syncWithRemote()` 신설** — run 시작 시 `pull --rebase`로 원격을 먼저 반영해 거부 자체를 예방한다. `reset --hard`가 아닌 이유: 워킹트리에 지난 run이 커밋만 하고 push 못 한 로컬 커밋과 대기열이 남아있을 수 있고, hard reset은 이미 API 비용을 지불한 그 작업을 조용히 버린다.
+
+### `pipeline/types.ts` · `loop.ts` · `flushCommits.ts` — 실패의 가시화
+- `PUSH_FAILURE_SIGNAL_FILE`(`agent/push-failed`) 추가. push가 재시도까지 실패하면 기록되고, `loop.ts`와 `flushCommits.ts`가 각각 **exit 1**로 종료한다 — 커밋이 원격에 없는 상태를 green run으로 위장하지 않는다. run 시작 시 삭제해 stale 신호가 이후 실행을 영구히 실패시키지 않게 했다(`RATE_LIMIT_SIGNAL_FILE`과 동일 수명 규약). `.gitignore` 등록.
+
+### `checks/numeric.ts` — 항상 실패하던 죽은 검사 2건
+- **`GodRayPass 배선`**: 수치가 `constants.ts`로 옮겨졌는데 정규식은 `SceneManager.ts`에서 `GODRAY_EXPOSURE = <숫자>`를 찾고 있었다. 실제 소스는 심볼 참조(`setExposure(GODRAY_EXPOSURE)`, `uExposure: { value: GODRAY_EXPOSURE }`)라 항상 `null` → 항상 실패. 배선은 심볼 형태로 검증하고 **수치는 정의처(`constants.ts`)에서** 읽도록 수정.
+- **`pectoral.rotation.x`**: `indexOf("createPectoralFins")`가 메서드(L279)가 아니라 **클래스 상단 필드 주석**(L28)에 매칭돼, region이 필드 선언 몇 줄로 잡혀 rotation 패턴을 절대 못 찾았다. 메서드 **선언 정규식**으로 앵커링하도록 수정. 대상 코드(`rotation.x = -Math.PI/2`)는 원래부터 올바랐다.
+- 두 검사 모두 Reviewer가 매 실행 "자동 검증 오탐"이라며 수동으로 뒤집어 왔고, 그 반박에만 goal당 ~$0.35가 소모됐다.
+
+### `pipeline/goals.ts` — 배치 내 목표 중복
+- `deduplicateGoalsWithClaude`가 신규 후보를 **기존 목표와만** 비교하고 후보끼리는 비교하지 않았다. Aesthetic Evaluator가 같은 갓레이 노출 상향을 문구만 바꿔 2건 제안하자 둘 다 통과했고, 각각 "현재값의 1.5~2배"를 적용해 **`GODRAY_EXPOSURE`가 1.2→2.2→4.0(3.3배)** 로 튀었다. 상대 배수 목표는 중복 실행 시 값이 곱해진다.
+- 출력 형식을 **그룹 분류**(`G:1,2` / `E:3`)로 바꾸고, **무엇을 남길지는 코드가 결정론적으로** 정한다. "가장 작은 번호만 남기고 지워라"를 모델에 맡겼더니 중복 그룹을 통째로 삭제해 멀쩡한 목표까지 잃는 것을 실측했다.
+- 기존 목표가 0개인데 모델이 `E:` 판정을 반환하는 환각을 코드에서 버린다(실측 발생).
+- **이 판정만 `runClaudeText`를 직접 호출**한다. 로컬 `qwen2.5-coder:7b`는 같은 갓레이 2건을 서로 다른 항목으로 보고 무관한 Lighting 목표와 묶었으며, 동일 프롬프트로 claude는 정확히 `G:N1,N2`를 반환했다. 중복 1건을 놓치면 파이프라인 1회(~$0.5)를 태우고 상수를 배수로 튀게 하므로 호출 비용이 정당하다.
+
+### `pipeline/observation.ts` · `src/entities/Fish.ts` — forwardDot 부호 오보
+- Observer가 **정상 상태를 매 실행 `⚠역방향(-1.00)`으로 오보**해 왔다. 물고기는 머리가 로컬 -Z를 향하도록 조립되고(`inner.rotation.y = π/2`) `lookTarget = pos - velocity`인데, Three.js `getWorldDirection`은 **+Z**를 반환하므로 **머리부터 정상 전진하면 dot이 -1**이다. 라벨의 부등호가 뒤집혀 있었다.
+- 이 오보가 2026-04-19부터 4개월간 이어지며 `REVIEW_CHECKLIST.md`에 ⛔ 금지 규칙과 `HUMAN_VERIFICATION_REQUIRED` 항목을 만들어냈고, 에이전트가 멀쩡한 `lookAt` 부호를 고치려다 조명 목표 4회 연속 실패로 예산을 태웠다(§1 L118 기록). 원인을 고치는 대신 경보를 억눌러 온 셈이다.
+- 라벨 부등호를 정정하고, `Fish.ts`의 잘못된 주석(`getWorldDirection`을 "-Z 방향"이라 설명)을 정정했다. **`lookAt` 수식과 `inner.rotation.y`는 손대지 않았다** — 방향은 처음부터 옳았다.
+
+### `REVIEW_CHECKLIST.md`
+- §11에 3개 항목 신설: push 무결성(`@src: goals.ts:pushCommitted`), 배치 내 중복 판정(`@src: goals.ts:deduplicateGoalsWithClaude`), **"자동 수치 검증을 2회 이상 오탐으로 뒤집었다면 검증 코드가 버그다"**(`@src: checks/numeric.ts:runNumericChecks`) — 같은 항목을 매번 수동 통과시키는 것은 예외 처리 근거가 아니라 검증 코드를 고칠 신호라는 행동 규칙.
+- §1의 forwardDot `HUMAN_VERIFICATION_REQUIRED` 항목을 **"음수가 정상"** 확정 규약으로 교체. 이제 **양수(+1)일 때만** 진짜 이상으로 보고한다.
+
+### 효과 / 검증
+- `npx tsc --noEmit` clean, `npm run check:checklist` 전 바인딩 정상.
+- **자동 수치 검증 8/10 → 10/10.** 회귀 주입 테스트로 죽은 검사가 아님을 확인 — `GODRAY_EXPOSURE=0`·`rotation.x=0`을 주입하니 두 검사가 정확한 메시지와 함께 실패했고, 복원 후 10/10 회복.
+- push 거부→`pull --rebase`→재시도 성공 경로를 scratch repo에서 실제 재현, merge 커밋 없이 선형 이력 확인. 신호 파일 수명 3단계 검증.
+- 중복 판정 파서 단위 7/7(그룹 대표 생존·역순 그룹·범위 밖 번호·구형 응답 하위호환 포함). 실제 사고 배치 재현: 기존 목표 없음 3→2개(갓레이 1건만 생존), 기존 목표 있음 3→1개.
+- 러너 워킹트리에 남아있던 **stale 대기열 8건**(모두 `4b7f1b8`로 이미 push된 잔여물)을 백업 후 제거 — 방치 시 다음 run의 3번째 goal에서 8건이 재커밋될 상태였다.
+
 ## [2026-08-27] README·CLAUDE.md를 사람 소유 문서로 잠금
 
 ### 배경
